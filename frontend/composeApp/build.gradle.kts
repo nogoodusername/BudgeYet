@@ -7,6 +7,8 @@ plugins {
 }
 
 kotlin {
+    applyDefaultHierarchyTemplate()
+
     // 1. Android Target
     androidTarget {
         compilations.all {
@@ -28,7 +30,8 @@ kotlin {
         }
     }
 
-    // 3. Web Target (Wasm / JS)
+    // 3. Web Target (Wasm / JS) - Disabled until Ktor 3.0+ upgrade
+    /*
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
         moduleName = "composeApp"
@@ -39,6 +42,7 @@ kotlin {
         }
         binaries.executable()
     }
+    */
 
     sourceSets {
         commonMain.dependencies {
@@ -55,17 +59,20 @@ kotlin {
             implementation(libs.ktor.serialization.kotlinx.json)
         }
 
-        androidMain.dependencies {
-            implementation(libs.androidx.core.ktx)
-            implementation(libs.androidx.activity.compose)
+        val androidMain by getting {
+            dependencies {
+                implementation(libs.androidx.core.ktx)
+                implementation(libs.androidx.activity.compose)
+            }
         }
 
-        iosMain.dependencies {
-        }
-
-        wasmJsMain.dependencies {
+        val iosMain by getting {
+            dependencies {
+            }
         }
     }
+
+
 }
 
 android {
