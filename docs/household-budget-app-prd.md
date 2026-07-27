@@ -1,0 +1,238 @@
+# Household Budget App — Product Requirements Document (PRD)
+
+**Version:** 1.1
+**Status:** For Review
+**Date:** July 22, 2026
+**Owner:** Product
+
+---
+
+## 1. Product Overview
+
+A collaborative, cross-platform mobile app that lets households manage shared finances with full transparency. Every member sees the same budget, the same transactions, and the same real-time picture of where the money is going. The product replaces spreadsheets and "who paid for what" guesswork with a single shared source of truth, built around fast transaction logging and at-a-glance visual feedback.
+
+**Design system:** "Stability & Growth" — Manrope typeface, deep slate neutrals (`#0f172a`) with teal for positive/on-track states and coral/red for warnings, rounded 8px corners, card-based layout, persistent bottom navigation.
+
+---
+
+## 2. Goals & Success Metrics
+
+### Business goals
+- Establish a sticky, daily-use household finance habit (not a once-a-month reconciliation tool).
+- Drive multi-user adoption per household — value compounds as more members log activity.
+
+### User goals
+- Know, at a glance, how much budget is left in any category.
+- Log a transaction in under 10 seconds.
+- Avoid awkward money conversations by making spending visible to everyone automatically.
+
+### Success metrics (KPIs)
+| Metric | Target (post-launch) |
+|---|---|
+| Households with ≥2 active members | ≥ 60% of registered households |
+| Median time to log a transaction | < 10 seconds |
+| Transactions logged within 24h of purchase | ≥ 70% |
+| Monthly retention (household level) | ≥ 50% at month 3 |
+| Households that complete budget setup during onboarding | ≥ 65% |
+
+---
+
+## 3. Target Users & Personas
+
+**1. The Organizer** — Usually initiates the household, sets up the budget and categories, invites members, and checks the dashboard most often. Wants control and visibility.
+
+**2. The Contributor** — A partner, roommate, or family member who mainly logs transactions and checks their own spending against shared limits. Wants speed and simplicity, not setup overhead.
+
+**3. The Solo Budgeter** — Uses the app individually without inviting anyone. Wants the same tracking value without any collaboration friction.
+
+---
+
+## 4. Scope
+
+### In scope (v1 / MVP)
+- Email-based signup and household creation/joining
+- Single monthly budget per household, with categories and limits
+- Manual transaction logging (expenses and income)
+- Dashboard with spend-vs-budget gauge, category snapshots, activity feed
+- Category and transaction detail/edit/delete
+- Household invites via email or shareable link
+- Currency, language, and dark mode preferences
+
+### Out of scope (future phases — see Section 10)
+- Push notifications for member activity and budget thresholds
+- Receipt OCR (auto-extracting amount/merchant from a photo)
+- Savings goals, budget rollover, or multi-month trend analytics
+- Exportable reports (CSV/PDF)
+- Multiple concurrent budgets or multiple households per user
+
+---
+
+## 5. User Roles & Permissions
+
+| Action | Admin | Member |
+|---|---|---|
+| Create/edit household budget & category limits | ✅ | 🚫 |
+| Invite / remove members | ✅ | 🚫 |
+| Add / edit / delete their own transactions | ✅ | ✅ |
+| Edit / delete other members' transactions | ✅ | 🚫 |
+| View all household transactions & activity feed | ✅ | ✅ |
+| Change household currency/language | ✅ | 🚫 |
+| Promote / demote Admin status | ✅ | 🚫 |
+| Leave household | ✅ (if not sole admin) | ✅ |
+
+The household creator is the default Admin. An existing Admin can promote a Member to Admin or demote an Admin back to Member, so households can have more than one Admin.
+
+---
+
+## 6. Functional Requirements
+
+### A. Onboarding & Setup
+
+**A1. Welcome journey**
+- 2–3 screen intro (swipeable) communicating the value proposition: shared visibility, fast logging, real-time family activity.
+- Skippable at any point; last screen leads to Signup.
+
+**A2. Signup**
+- Fields: Full name, Nickname (displayed in activity feed, e.g. "Mom"), Email.
+- Authentication: email + 6-digit PIN. PIN is emailed at signup and re-entered to verify; used again for subsequent logins.
+- On success, user is prompted to either **create a household** or **join one** via an invite link/code.
+
+**A3. Budget creation (skippable)**
+- Fields: Budget name (default: "[Month] [Year] Budget"), monthly goal amount, cycle start day (default: 1st of month, editable).
+- Skipping this step routes straight to the empty Dashboard (see B, empty states) and **also skips Category Configuration**, per brief.
+
+**A4. Category configuration**
+- Only shown if A3 was completed.
+- Preset category list, multi-select, each with an icon: Groceries, Housing, Transportation, Utilities, Dining Out, Entertainment, Healthcare, Personal Care, Savings, Education, Miscellaneous.
+- User assigns a monthly limit per selected category, or chooses "Split budget evenly" to auto-divide the total goal across selected categories.
+- Custom categories can be added here or later.
+
+### B. Dashboard & Insights
+
+**B1. Overview gauge**
+- Linear progress bar (horizontal): total spent vs. total monthly budget, spanning the width of the dashboard header card.
+- Color states: teal (< 75% used), amber (75–99%), coral/red (≥ 100%, over budget).
+- Label above the bar shows amount spent vs. total ("$1,240 of $2,000"); label below (or trailing) shows amount remaining, or amount over in red if exceeded.
+
+**B2. Quick actions (FAB)**
+- Persistent floating action button, bottom-right, above nav bar.
+- Tap → Add Transaction form. Long-press (or tap-and-hold) reveals two shortcuts: "Add Expense" / "Add Income."
+
+**B3. Category snapshots**
+- Scrollable list of active categories, each showing: icon, name, mini progress bar, amount spent / limit, remaining balance.
+- Sorted by % utilized (descending) by default.
+- Tap → Category Detail screen (see C3).
+
+**B4. Family activity feed**
+- Reverse-chronological feed: avatar/nickname, action, amount, category, relative timestamp ("2m ago").
+- Updates in real time (push/websocket) as other members log transactions.
+- Tap an entry → opens that transaction's detail view.
+
+**B5. Empty states**
+- No budget created: card prompting "Set up your first budget" → routes to A3.
+- Budget exists, no transactions yet: prompt "Log your first transaction" → routes to D1.
+
+### C. Budget & Category Management
+
+**C1. Category limits screen**
+- List of all categories with editable monthly limit (currency-formatted numeric input).
+- Add new category (name, icon, limit) or delete existing.
+- Deleting a category with existing transactions requires reassigning those transactions to another category first (blocking delete otherwise).
+- Limits reset to the configured amount at the start of each new cycle — unused balance does not roll over. Each prior month's transactions and spend-vs-limit snapshot remain intact and viewable via date-range filtering (see D2).
+
+**C2. Visual tracking**
+- Same teal/amber/coral thresholds as B1, applied per-category.
+- Progress bar fill reflects % of limit used; overflow past 100% shown as a filled red bar with an "over by $X" label.
+
+**C3. Category detail**
+- Header: category name, icon, limit, spent, remaining, % utilized.
+- Transaction list scoped to that category, same grouped/searchable list as D2.
+- Edit limit inline from this screen (Admin only).
+
+### D. Transaction Management
+
+**D1. Add transaction**
+- Toggle: Expense / Income.
+- Fields: Amount (required), Merchant/description (required), Category (searchable picker, required for expenses), Date (defaults to today; future dates disallowed), Who Paid (household member picker, defaults to current user), Payment mode (Cash, Card, Bank Transfer/UPI, Other), Notes (optional), Receipt photo (optional, camera or library).
+- Save posts immediately to the shared household ledger and activity feed.
+
+**D2. Transaction history**
+- Full list, grouped by date (most recent first).
+- Search by merchant, category, or amount.
+- Filters: category, household member, date range, payment mode, expense/income.
+
+**D3. Detail & edit**
+- Full transaction detail: all fields from D1, plus who logged it and when.
+- Edit (own transactions for Members; any transaction for Admins) or delete (with confirmation dialog).
+- Full-screen receipt image viewer if a photo was attached.
+
+### E. Collaboration & Profile
+
+**E1. Family sharing**
+- Invite via email (sends a link) or a shareable join link/QR code with expiry (7 days).
+- Household hard cap: 3 members total (including the Admin) in v1. Invite flow disables/hides once the cap is reached.
+- Invitee: taps link → signup (if new) or login (if existing) → auto-joins the household as a Member.
+- Admin can revoke a pending invite or remove an existing member.
+
+**E2. Profile & preferences**
+- Editable: name, nickname, avatar photo.
+- Email shown read-only post-signup; editing is not allowed.
+- Household-level settings (Admin-editable): currency, language.
+- Personal settings: display mode (Light / Dark / System).
+
+---
+
+## 7. Non-Functional Requirements
+
+- **Platform:** iOS and Android, single cross-platform codebase.
+- **Offline support:** Transactions can be added offline and sync automatically on reconnect (queued writes, conflict-safe).
+- **Real-time sync:** Activity feed and dashboard reflect other members' actions within a few seconds.
+- **Performance:** Dashboard cold-load under 2 seconds on a mid-tier device.
+- **Security:** Household data scoped and access-controlled by role; authenticated API access; receipt images stored in access-controlled storage.
+- **Accessibility:** Text and status colors (teal/coral on slate) meet WCAG AA contrast; supports dynamic/system font scaling.
+- **Localization:** Architecture supports multiple languages at launch even if only one ships initially.
+
+---
+
+## 8. Design System Reference
+
+**Typography:** Manrope — Bold for headers/amounts, Medium for labels, Regular for body text.
+
+**Color tokens**
+| Token | Hex | Usage |
+|---|---|---|
+| Slate 900 (base) | `#0f172a` | Backgrounds, primary text (light mode) |
+| Teal (positive) | Brand teal | On-track budgets, positive progress |
+| Coral/Red (warning) | Brand coral | Near-limit / over-budget states |
+
+**Components:** 8px rounded corners; card-based grouping for all list items (categories, transactions); persistent bottom nav bar (Dashboard, Categories, Add [FAB], History, Profile); linear progress bar as the dashboard centerpiece.
+
+---
+
+## 9. Confirmed Product Decisions
+
+The following were open questions in the initial draft and have since been confirmed:
+
+1. **Auth method:** Email + 6-digit PIN (emailed at signup, re-entered for login).
+2. **Role granularity:** Admin + Member model. Multiple Admins per household are supported; a Member can be promoted to Admin (and demoted) by an existing Admin.
+3. **Budget cycle rollover:** No rollover — each new cycle resets category limits to the configured amount. Prior months' transaction and spend data remain intact and accessible.
+4. **Future-dated transactions:** Not required; disallowed in v1.
+5. **Household size:** Hard cap of 3 members per household (including the Admin) in v1. Raising the cap is flagged as a future monetization opportunity (see Section 10).
+6. **Currency scope:** One currency per household, set at setup — not per-transaction.
+7. **Invite link expiry:** 7 days.
+8. **Email edit post-signup:** Not allowed; email is permanently read-only after signup.
+
+---
+
+## 10. Release Phasing
+
+**v1 (MVP):** Everything in Section 4's "in scope" list.
+
+**Phase 2 (candidates):**
+- Push notifications (member activity, budget threshold alerts)
+- Receipt OCR for auto-filled transaction details
+- Savings goals and budget rollover
+- Exportable reports (CSV/PDF)
+- Multi-currency support
+- Spending trend charts across months
+- Paid tier to raise the 3-member household cap

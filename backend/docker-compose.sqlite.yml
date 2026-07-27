@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fam_ex_backend_sqlite
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_TYPE=sqlite
+      - SQLITE_DB_FILE=/app/data/fam_ex.db
+      - SECRET_KEY=${SECRET_KEY:-super-secret-local-dev-key}
+    volumes:
+      - sqlite_data:/app/data
+    restart: unless-stopped
+
+volumes:
+  sqlite_data:
