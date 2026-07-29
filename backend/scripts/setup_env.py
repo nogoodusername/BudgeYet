@@ -51,7 +51,10 @@ def setup_postgres():
     server = input("Postgres Host / Server (default: localhost): ").strip() or "localhost"
     port = input("Postgres Port (default: 5432): ").strip() or "5432"
     user = input("Postgres User (default: postgres): ").strip() or "postgres"
-    password = input("Postgres Password (default: postgres): ").strip() or "postgres"
+    password = input("Postgres Password (leave blank to auto-generate): ").strip()
+    if not password:
+        password = secrets.token_hex(16)
+        print(f"[INFO] Generated random Postgres password: {password}")
     dbname = input("Postgres Database Name (default: fam_ex): ").strip() or "fam_ex"
     ssl = input("Require SSL? (true/false) (default: false): ").strip().lower() or "false"
     
@@ -128,12 +131,16 @@ def setup_sqlite_non_interactive():
     }
 
 def setup_postgres_non_interactive():
+    password = os.getenv("POSTGRES_PASSWORD")
+    if not password:
+        password = secrets.token_hex(16)
+        print(f"[INFO] POSTGRES_PASSWORD not set — generated a random one: {password}")
     return {
         "DATABASE_TYPE": "postgres",
         "POSTGRES_SERVER": os.getenv("POSTGRES_SERVER", "localhost"),
         "POSTGRES_PORT": os.getenv("POSTGRES_PORT", "5432"),
         "POSTGRES_USER": os.getenv("POSTGRES_USER", "postgres"),
-        "POSTGRES_PASSWORD": os.getenv("POSTGRES_PASSWORD", "postgres"),
+        "POSTGRES_PASSWORD": password,
         "POSTGRES_DB": os.getenv("POSTGRES_DB", "fam_ex"),
         "POSTGRES_SSL": os.getenv("POSTGRES_SSL", "false"),
     }
