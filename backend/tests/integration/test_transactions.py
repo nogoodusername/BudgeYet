@@ -202,3 +202,75 @@ async def test_list_transactions_filters_by_category(client, monkeypatch):
     body = resp.json()
     assert body["total"] == 1
     assert body["items"][0]["merchant"] == "A"
+
+
+async def test_search_matches_merchant_or_category_name(client, monkeypatch):
+    admin_token, _, household, category = await _setup_household_with_two_members(
+        client, monkeypatch
+    )
+    other_category = (
+        await client.post(
+            f"/households/{household['id']}/categories",
+            json={"name": "Entertainment", "icon": "star", "monthly_limit": 100},
+            headers=auth_headers(admin_token),
+        )
+    ).json()
+
+    await client.post(
+        f"/households/{household['id']}/transactions",
+        json={"amount": 10, "merchant": "Whole Foods", "category_id": category["id"]},
+        headers=auth_headers(admin_token),
+    )
+    await client.post(
+        f"/households/{household['id']}/transactions",
+        json={"amount": 10, "merchant": "Netflix", "category_id": other_category["id"]},
+        headers=auth_headers(admin_token),
+    )
+
+    # Matches by merchant substring
+    resp = await client.get(
+        f"/households/{household['id']}/transactions",
+        params={"search": "whole"},
+        headers=auth_headers(admin_token),
+    )
+    body = resp.json()
+    assert body["total"] == 1
+    assert body["items"][0]["merchant"] == "Whole Foods"
+
+    # Matches by category name even though merchant doesn't contain the term
+    resp = await client.get(
+        f"/households/{household['id']}/transactions",
+        params={"search": "entertain"},
+        headers=auth_headers(admin_token),
+    )
+    body = resp.json()
+    assert body["total"] == 1
+    assert body["items"][0]["merchant"] == "Netflix"
+
+
+async def test_list_transactions_filters_by_amount_range(client, monkeypatch):
+    admin_token, _, household, category = await _setup_household_with_two_members(
+        client, monkeypatch
+    )
+    for amount, merchant in [(10, "Cheap"), (50, "Mid"), (200, "Expensive")]:
+        await client.post(
+            f"/households/{household['id']}/transactions",
+            json={"amount": amount, "merchant": merchant, "category_id": category["id"]},
+            headers=auth_headers(admin_token),
+        )
+
+    resp = await client.get(
+        f"/households/{household['id']}/transactions",
+        params={"amount_min": 20, "amount_max": 100},
+        headers=auth_headers(admin_token),
+    )
+    body = resp.json()
+    assert body["total"] == 1
+    assert body["items"][0]["merchant"] == "Mid"
+
+    resp = await client.get(
+        f"/households/{household['id']}/transactions",
+        params={"amount_min": 100, "amount_max": 20},
+        headers=auth_headers(admin_token),
+    )
+    assert resp.status_code == 422
