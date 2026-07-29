@@ -1,5 +1,6 @@
 from datetime import datetime
-from sqlalchemy import String, Float, Integer, DateTime, ForeignKey, func
+from decimal import Decimal
+from sqlalchemy import String, Numeric, Integer, DateTime, ForeignKey, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
@@ -9,7 +10,7 @@ class Budget(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     household_id: Mapped[int] = mapped_column(ForeignKey("households.id", ondelete="CASCADE"), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    monthly_goal_amount: Mapped[float] = mapped_column(Float, nullable=False)
+    monthly_goal_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     month: Mapped[int] = mapped_column(Integer, nullable=False)
     year: Mapped[int] = mapped_column(Integer, nullable=False)
     

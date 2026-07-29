@@ -25,7 +25,7 @@ async def test_create_and_list_categories_with_stats(client, monkeypatch):
     assert resp.status_code == 200
     [snapshot] = resp.json()
     assert snapshot["id"] == category["id"]
-    assert snapshot["spent"] == 0.0
+    assert snapshot["spent"] == "0"
     assert snapshot["status"] == "on_track"
 
 
@@ -97,4 +97,4 @@ async def test_update_category_limit(client, monkeypatch):
         headers=auth_headers(token),
     )
     assert resp.status_code == 200
-    assert resp.json()["monthly_limit"] == 750
+    assert resp.json()["monthly_limit"] == "750.00"

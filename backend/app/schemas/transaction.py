@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from decimal import Decimal
 from typing import Optional
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from app.models.transaction import TransactionType, PaymentMode
@@ -6,7 +7,7 @@ from app.schemas.category import CategoryResponse
 from app.schemas.user import UserResponse
 
 class TransactionBase(BaseModel):
-    amount: float = Field(gt=0)
+    amount: Decimal = Field(gt=0)
     merchant: str
     type: TransactionType = TransactionType.EXPENSE
     payment_mode: PaymentMode = PaymentMode.CARD
@@ -24,7 +25,7 @@ class TransactionCreate(TransactionBase):
         return self
 
 class TransactionUpdate(BaseModel):
-    amount: Optional[float] = Field(default=None, gt=0)
+    amount: Optional[Decimal] = Field(default=None, gt=0)
     merchant: Optional[str] = None
     type: Optional[TransactionType] = None
     category_id: Optional[int] = None

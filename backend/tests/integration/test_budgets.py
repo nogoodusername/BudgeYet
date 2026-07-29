@@ -60,8 +60,8 @@ async def test_current_budget_reflects_spend(client, monkeypatch):
         f"/households/{household['id']}/budgets/current", headers=auth_headers(token)
     )
     body = resp.json()
-    assert body["spent"] == 250
-    assert body["remaining"] == 750
+    assert body["spent"] == "250.00"
+    assert body["remaining"] == "750.00"
     assert body["percent_used"] == 25.0
     assert body["status"] == "on_track"
 
@@ -93,4 +93,4 @@ async def test_update_budget_goal_amount(client, monkeypatch):
         headers=auth_headers(token),
     )
     assert resp.status_code == 200
-    assert resp.json()["monthly_goal_amount"] == 1500
+    assert resp.json()["monthly_goal_amount"] == "1500.00"

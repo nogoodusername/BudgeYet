@@ -1,5 +1,6 @@
 from datetime import datetime
-from sqlalchemy import String, Float, DateTime, ForeignKey, Index, func
+from decimal import Decimal
+from sqlalchemy import String, Numeric, DateTime, ForeignKey, Index, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import enum
 from app.core.database import Base
@@ -28,7 +29,7 @@ class Transaction(Base):
     created_by_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
 
     type: Mapped[TransactionType] = mapped_column(String(20), default=TransactionType.EXPENSE, nullable=False)
-    amount: Mapped[float] = mapped_column(Float, nullable=False)
+    amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     merchant: Mapped[str] = mapped_column(String(255), nullable=False)
     payment_mode: Mapped[PaymentMode] = mapped_column(String(50), default=PaymentMode.CARD, nullable=False)
     notes: Mapped[str] = mapped_column(String(500), nullable=True)

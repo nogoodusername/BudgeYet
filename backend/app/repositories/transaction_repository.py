@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from decimal import Decimal
 from typing import Dict, Optional, Sequence, Tuple
 from sqlalchemy import func, or_, select, update as sql_update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -106,7 +107,7 @@ class TransactionRepository:
         paid_by_id: int,
         created_by_id: int,
         type: TransactionType,
-        amount: float,
+        amount: Decimal,
         merchant: str,
         payment_mode: PaymentMode,
         notes: Optional[str],
@@ -161,16 +162,16 @@ class TransactionRepository:
         date_from: datetime,
         date_to: datetime,
         type: TransactionType = TransactionType.EXPENSE,
-    ) -> float:
+    ) -> Decimal:
         result = await self.db.execute(
-            select(func.coalesce(func.sum(Transaction.amount), 0.0)).where(
+            select(func.coalesce(func.sum(Transaction.amount), 0)).where(
                 Transaction.household_id == household_id,
                 Transaction.type == type,
                 Transaction.transaction_date >= date_from,
                 Transaction.transaction_date < date_to,
             )
         )
-        return float(result.scalar_one())
+        return Decimal(result.scalar_one())
 
     async def sum_spent_by_category(
         self,
@@ -179,9 +180,9 @@ class TransactionRepository:
         date_from: datetime,
         date_to: datetime,
         type: TransactionType = TransactionType.EXPENSE,
-    ) -> Dict[int, float]:
+    ) -> Dict[int, Decimal]:
         result = await self.db.execute(
-            select(Transaction.category_id, func.coalesce(func.sum(Transaction.amount), 0.0))
+            select(Transaction.category_id, func.coalesce(func.sum(Transaction.amount), 0))
             .where(
                 Transaction.household_id == household_id,
                 Transaction.type == type,
@@ -191,4 +192,4 @@ class TransactionRepository:
             )
             .group_by(Transaction.category_id)
         )
-        return {category_id: float(total) for category_id, total in result.all()}
+        return {category_id: Decimal(total) for category_id, total in result.all()}

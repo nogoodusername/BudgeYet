@@ -1,3 +1,4 @@
+from decimal import Decimal
 from typing import Optional, Sequence
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,7 +31,7 @@ class BudgetRepository:
         return result.scalars().all()
 
     async def create(
-        self, *, household_id: int, name: str, monthly_goal_amount: float, month: int, year: int
+        self, *, household_id: int, name: str, monthly_goal_amount: Decimal, month: int, year: int
     ) -> Budget:
         budget = Budget(
             household_id=household_id,
