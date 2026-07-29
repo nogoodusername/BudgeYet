@@ -127,8 +127,9 @@ instead of editing `pyproject.toml` by hand — it keeps `uv.lock` in sync autom
 - All route handlers are `async def`; use the async session from `api/deps.get_db`, never a sync session.
 - Integer autoincrement PKs (see `models/user.py`), not UUIDs — stay consistent with existing models.
 - `created_at`/`updated_at` via `server_default=func.now()` / `onupdate=func.now()` on every table.
-- New DB schema changes need an Alembic migration (`alembic/`) — don't rely on `Base.metadata.create_all`
-  outside of the SQLite dev-convenience path in `main.py`'s lifespan.
+- New DB schema changes need an Alembic migration (`alembic/`) — don't rely on `Base.metadata.create_all`.
+  Alembic is the only schema authority for both SQLite and Postgres; run `alembic upgrade head` after
+  pulling new migrations or setting up a fresh DB.
 - Run `uv run ruff check app/` before considering backend work done; CI will fail otherwise.
 
 ## Frontend (`frontend/`)

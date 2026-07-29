@@ -48,6 +48,17 @@ This generates `.env` with the chosen database configuration. `uv run` transpare
 
 ---
 
+## 🧬 Applying Database Migrations
+
+Alembic is the single source of schema truth for both SQLite and Postgres — the app never
+auto-creates tables. After setup (or whenever new migrations land), apply them:
+
+```bash
+uv run alembic upgrade head
+```
+
+---
+
 ## 🐳 Running with Docker
 
 ### PostgreSQL Setup (Default)
@@ -58,6 +69,11 @@ docker-compose up --build -d
 ### SQLite Setup
 ```bash
 docker-compose -f docker-compose.sqlite.yml up --build -d
+```
+
+Either way, apply migrations inside the running container before using the API:
+```bash
+docker-compose exec backend alembic upgrade head
 ```
 
 ---

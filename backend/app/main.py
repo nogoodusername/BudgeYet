@@ -3,7 +3,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app.core.config import settings
-from app.core.database import async_engine, Base
+from app.core.database import async_engine
 from app.core.exceptions import (
     AppError,
     AuthenticationError,
@@ -17,10 +17,6 @@ from app.api.v1.router import api_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Create tables if using SQLite for simple local dev
-    if settings.DATABASE_TYPE == "sqlite":
-        async with async_engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
     yield
     # Shutdown
     await async_engine.dispose()
