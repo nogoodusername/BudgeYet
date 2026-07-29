@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
 from app.controllers import auth_controller
-from app.schemas.auth import LoginRequest, LoginResponse
+from app.schemas.auth import ForgotPinRequest, LoginRequest, LoginResponse
 from app.schemas.user import UserCreate, UserResponse
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
@@ -19,3 +19,13 @@ async def signup(payload: UserCreate, db: AsyncSession = Depends(get_db)):
 async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
     """Exchange email + PIN for a bearer access token."""
     return await auth_controller.login(db, payload)
+
+
+@router.post("/forgot-pin", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
+async def forgot_pin(payload: ForgotPinRequest, db: AsyncSession = Depends(get_db)):
+    """Issue and email a new PIN, invalidating the old one.
+
+    Always responds 204 regardless of whether the email is registered, so the
+    endpoint can't be used to enumerate accounts.
+    """
+    await auth_controller.forgot_pin(db, payload)
