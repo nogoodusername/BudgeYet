@@ -50,7 +50,7 @@ A collaborative, cross-platform mobile app that lets households manage shared fi
 ## 4. Scope
 
 ### In scope (v1 / MVP)
-- Email-based signup and household creation/joining
+- Email-based signup, login, and PIN recovery ("Forgot PIN"), plus household creation/joining
 - Single monthly budget per household, with categories and limits
 - Manual transaction logging (expenses and income)
 - Dashboard with spend-vs-budget gauge, category snapshots, activity feed
@@ -96,6 +96,12 @@ The household creator is the default Admin. An existing Admin can promote a Memb
 - Fields: Full name, Nickname (displayed in activity feed, e.g. "Mom"), Email.
 - Authentication: email + 6-digit PIN. PIN is emailed at signup and re-entered to verify; used again for subsequent logins.
 - On success, user is prompted to either **create a household** or **join one** via an invite link/code.
+
+**A2a. Forgot PIN**
+- "Forgot PIN?" link on the Login screen; user enters their email.
+- If the email matches an account, a new 6-digit PIN is generated and emailed, immediately replacing (invalidating) the old one. The old PIN no longer authenticates once a new one has been issued.
+- The response is identical regardless of whether the email is registered ("If an account exists for this email, a new PIN has been sent") — this prevents an attacker from using the flow to discover which emails have accounts.
+- No separate reset token/link: since the PIN is itself delivered over email, reissuing it re-uses the same trusted channel established at signup rather than adding a second secret to manage.
 
 **A3. Budget creation (skippable)**
 - Fields: Budget name (default: "[Month] [Year] Budget"), monthly goal amount, cycle start day (default: 1st of month, editable).
@@ -214,6 +220,7 @@ The household creator is the default Admin. An existing Admin can promote a Memb
 The following were open questions in the initial draft and have since been confirmed:
 
 1. **Auth method:** Email + 6-digit PIN (emailed at signup, re-entered for login).
+   - **Forgot PIN:** Requesting a reset by email issues and emails a brand-new PIN, invalidating the old one. No separate reset token — the email channel itself is the recovery mechanism. Response is generic (doesn't reveal whether the email is registered).
 2. **Role granularity:** Admin + Member model. Multiple Admins per household are supported; a Member can be promoted to Admin (and demoted) by an existing Admin.
 3. **Budget cycle rollover:** No rollover — each new cycle resets category limits to the configured amount. Prior months' transaction and spend data remain intact and accessible.
 4. **Future-dated transactions:** Not required; disallowed in v1.

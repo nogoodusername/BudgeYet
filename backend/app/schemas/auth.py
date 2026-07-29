@@ -8,3 +8,6 @@ class LoginRequest(BaseModel):
 
 class LoginResponse(Token):
     user: UserResponse
+
+class ForgotPinRequest(BaseModel):
+    email: EmailStr

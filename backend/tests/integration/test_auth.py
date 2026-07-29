@@ -43,3 +43,26 @@ async def test_login_unknown_email_fails(client, monkeypatch):
 async def test_protected_endpoint_requires_token(client):
     resp = await client.get("/users/me")
     assert resp.status_code == 401
+
+
+async def test_forgot_pin_issues_new_pin_and_invalidates_old_one(client, monkeypatch):
+    await signup(client, monkeypatch, "ada@example.com")
+
+    monkeypatch.setattr("app.services.auth_service.generate_pin", lambda: "654321")
+    resp = await client.post("/auth/forgot-pin", json={"email": "ada@example.com"})
+    assert resp.status_code == 204
+
+    old_pin_resp = await client.post(
+        "/auth/login", json={"email": "ada@example.com", "pin": FIXED_PIN}
+    )
+    assert old_pin_resp.status_code == 401
+
+    new_pin_resp = await client.post(
+        "/auth/login", json={"email": "ada@example.com", "pin": "654321"}
+    )
+    assert new_pin_resp.status_code == 200
+
+
+async def test_forgot_pin_unknown_email_does_not_leak_existence(client):
+    resp = await client.post("/auth/forgot-pin", json={"email": "nobody@example.com"})
+    assert resp.status_code == 204

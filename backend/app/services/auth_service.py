@@ -35,3 +35,17 @@ class AuthService:
 
         token = create_access_token(subject=user.id)
         return user, token
+
+    async def forgot_pin(self, email: str) -> None:
+        """Issue a fresh PIN and email it, mirroring the signup flow.
+
+        Silently no-ops for unknown emails so the endpoint can't be used to
+        enumerate registered accounts.
+        """
+        user = await self.users.get_by_email(email)
+        if user is None:
+            return
+
+        pin = generate_pin()
+        await self.users.update(user, pin_hash=hash_pin(pin))
+        send_pin_email(user.email, pin)
