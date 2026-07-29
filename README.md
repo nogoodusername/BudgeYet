@@ -4,12 +4,40 @@
 
 ---
 
+## 🚀 Deploy the Backend on a Server (one command)
+
+Spin up the backend API on any fresh Linux/macOS server — no need to clone the repo yourself first.
+The installer clones it, walks you through database setup, and starts everything with Docker Compose:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/nogoodusername/fam-ex/main/scripts/install.sh | bash
+```
+
+You'll be prompted to choose **SQLite** (simplest, file-based) or **PostgreSQL** (a bundled Postgres
+container, credentials generated for you). Prerequisites: `git`, `docker` (with Compose), and `python3`
+— all otherwise-typical on a Linux server. Once it finishes, the API is live at `:8000/docs`.
+
+For unattended/automated provisioning (Ansible, cloud-init, etc.), skip every prompt:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/nogoodusername/fam-ex/main/scripts/install.sh | bash -s -- \
+  --yes --db sqlite            # or: --db postgres --postgres-password '...'
+```
+
+Run it again against the same `--dir` later to pull the latest code and redeploy — it reuses your
+existing `backend/.env` (secret key, DB credentials) unless you pass `--reconfigure`. See
+`scripts/install.sh --help` for the full flag/env-var reference (`--dir`, `--branch`, `--repo`, etc.).
+
+---
+
 ## 🏗️ Repository Architecture
 
 This repository is structured as a **monorepo** housing both the backend service and the multiplatform frontend clients, each with independent build systems, configuration, and CI/CD pipelines.
 
 ```
 fam-ex/
+├── scripts/
+│   └── install.sh                    # One-command server installer (clone + env setup + docker up)
 ├── docs/                             # PRD and Architecture documentation
 │   ├── household-budget-app-prd.md   # Product Requirements Document
 │   └── architecture.md               # Technical Architecture Specification

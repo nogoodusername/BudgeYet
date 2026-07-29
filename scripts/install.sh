@@ -101,6 +101,7 @@ require_cmd() {
 
 require_cmd git "Install it via your package manager (e.g. apt install git / yum install git)."
 require_cmd python3 "Install it via your package manager (e.g. apt install python3)."
+require_cmd curl "Install it via your package manager (e.g. apt install curl)."
 require_cmd docker "Install Docker first: https://docs.docker.com/engine/install/"
 
 if docker compose version >/dev/null 2>&1; then
@@ -148,6 +149,7 @@ fi
 
 BACKEND_DIR="$INSTALL_DIR/backend"
 [ -d "$BACKEND_DIR" ] || die "Expected a 'backend/' directory in the clone but didn't find one."
+ABS_INSTALL_DIR="$(cd "$INSTALL_DIR" && pwd)"
 cd "$BACKEND_DIR"
 
 # ---------------------------------------------------------------------------
@@ -219,6 +221,22 @@ if [ "$SKIP_ENV_SETUP" != "1" ]; then
     info "Writing backend/.env for SQLite..."
     python3 scripts/setup_env.py sqlite
   fi
+fi
+
+# ---------------------------------------------------------------------------
+# Pin a stable, install-specific Docker Compose project name. Compose defaults
+# the project name to the compose file's directory basename — since every
+# clone's compose file lives in a directory literally called "backend", two
+# separate installs on the same host (e.g. staging + prod) would otherwise
+# collide on the same project name and start stomping on each other's
+# containers/networks/volumes. Appended post-generation since setup_env.py
+# overwrites .env wholesale, and skipped if a prior run already set one.
+# ---------------------------------------------------------------------------
+if ! grep -q '^COMPOSE_PROJECT_NAME=' .env 2>/dev/null; then
+  # printf (not echo/basename's own trailing newline piped through tr) — `tr -c`
+  # would otherwise translate that trailing newline into a stray literal '-' too.
+  project_slug="$(printf '%s' "$(basename "$ABS_INSTALL_DIR")" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9_.-' '-')"
+  echo "COMPOSE_PROJECT_NAME=famex-${project_slug}" >> .env
 fi
 
 # ---------------------------------------------------------------------------
