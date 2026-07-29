@@ -22,6 +22,71 @@ async def test_v1_caps_a_user_to_one_household(client, monkeypatch):
     assert resp.status_code == 409
 
 
+async def test_member_slot_reservation_cannot_be_pushed_past_the_cap(client, monkeypatch):
+    """try_reserve_member_slot is a single conditional UPDATE, not a count-then-insert --
+    there's no read-then-decide gap left for concurrent joins to race through. Calling
+    it repeatedly (standing in for N concurrent requests all attempting it against the
+    same household) can never succeed more than HOUSEHOLD_MEMBER_CAP times, because each
+    call's WHERE clause is evaluated against the row's current, live state, not a stale
+    snapshot read earlier.
+    """
+    from app.core.constants import HOUSEHOLD_MEMBER_CAP
+    from app.repositories.household_repository import HouseholdRepository
+    from tests.conftest import TestSessionLocal
+
+    admin_token, _ = await signup_and_login(client, monkeypatch, "cap-admin@example.com")
+    household = await create_household(client, admin_token, "Cap House")
+
+    async with TestSessionLocal() as session:
+        repo = HouseholdRepository(session)
+        # The creator already occupies one slot, so only HOUSEHOLD_MEMBER_CAP - 1 of
+        # these attempts should succeed however many times it's called.
+        results = [
+            await repo.try_reserve_member_slot(household["id"], HOUSEHOLD_MEMBER_CAP)
+            for _ in range(10)
+        ]
+        await session.commit()
+
+    assert sum(results) == HOUSEHOLD_MEMBER_CAP - 1
+    assert results.count(False) == 10 - (HOUSEHOLD_MEMBER_CAP - 1)
+
+
+async def test_member_slot_reservation_is_a_single_atomic_statement(client, monkeypatch):
+    """The property that actually closes the race isn't "the cap is respected" (a
+    sequential test can't tell a single atomic UPDATE apart from a SELECT-then-UPDATE,
+    since sequential calls never interleave either way) -- it's that the check and the
+    write happen in one indivisible SQL statement. Two concurrent requests can't both
+    read a stale count and both decide to proceed if there's no separate read step to
+    race through. This asserts try_reserve_member_slot issues exactly one statement, so
+    a regression back to count-then-conditional-update would fail this test even though
+    it could still pass the boundary test above.
+    """
+    from sqlalchemy import event
+
+    from app.repositories.household_repository import HouseholdRepository
+    from tests.conftest import TestSessionLocal, engine
+
+    admin_token, _ = await signup_and_login(client, monkeypatch, "atomic-admin@example.com")
+    household = await create_household(client, admin_token, "Atomic House")
+
+    statement_count = 0
+
+    def _count_statements(conn, cursor, statement, parameters, context, executemany):
+        nonlocal statement_count
+        statement_count += 1
+
+    event.listen(engine.sync_engine, "before_cursor_execute", _count_statements)
+    try:
+        async with TestSessionLocal() as session:
+            repo = HouseholdRepository(session)
+            await repo.try_reserve_member_slot(household["id"], 3)
+            await session.commit()
+    finally:
+        event.remove(engine.sync_engine, "before_cursor_execute", _count_statements)
+
+    assert statement_count == 1
+
+
 async def test_concurrent_household_creation_hits_unique_constraint_cleanly(client, monkeypatch):
     """Simulates a race: another request's membership insert lands in between this
     request's existing_membership check and its own insert. The check alone can't

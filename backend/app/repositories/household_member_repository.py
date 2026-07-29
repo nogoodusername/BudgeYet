@@ -45,12 +45,6 @@ class HouseholdMemberRepository:
         )
         return result.scalars().all()
 
-    async def count_by_household(self, household_id: int) -> int:
-        result = await self.db.execute(
-            select(func.count()).where(HouseholdMember.household_id == household_id)
-        )
-        return result.scalar_one()
-
     async def count_admins(self, household_id: int) -> int:
         result = await self.db.execute(
             select(func.count()).where(
