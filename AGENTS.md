@@ -58,6 +58,17 @@ router and frontend screens first.
 (`asyncpg`) selected via `DATABASE_TYPE` env var — code must stay driver-agnostic (no SQLite- or
 Postgres-only SQL/features) since both are supported deployment targets.
 
+**One-command server installer:** [`scripts/install.sh`](scripts/install.sh) (top-level, not
+`backend/scripts/`) is a standalone `curl | bash`-able installer for deploying the backend on a fresh
+server — clones the repo, drives `backend/scripts/setup_env.py` for DB setup, and runs the right
+`docker-compose*.yml` file. It shells out to `setup_env.py sqlite|postgres` and reads
+`POSTGRES_USER`/`POSTGRES_PASSWORD`/`POSTGRES_DB`/`DATABASE_TYPE` back out of the generated `.env`, so
+if you change that script's CLI (arg names, non-interactive env var names) or either compose file's
+name/service names/port mapping, update `install.sh` to match — nothing type-checks that coupling.
+It also patches a `COMPOSE_PROJECT_NAME` into `.env` (compose otherwise derives it from the `backend/`
+dirname, which collides across separate installs on one host) — don't remove that without accounting
+for the collision it fixes.
+
 **Layout convention** (`app/`) — strict Router → Controller → Service → Repository layering:
 - `models/` — SQLAlchemy ORM classes (one file per aggregate: `user.py`, `household.py` (also holds
   `HouseholdMember`), `invite.py`, `budget.py`, `category.py`, `transaction.py`). Declare
