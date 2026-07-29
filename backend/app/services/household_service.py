@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Optional, Sequence
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.constants import HOUSEHOLD_MEMBER_CAP, INVITE_EXPIRY_DAYS
@@ -34,7 +35,17 @@ class HouseholdService:
             language=payload.language,
             cycle_start_day=payload.cycle_start_day,
         )
-        await self.members.create(household_id=household.id, user_id=user.id, role=MemberRole.ADMIN)
+        try:
+            await self.members.create(
+                household_id=household.id, user_id=user.id, role=MemberRole.ADMIN
+            )
+        except IntegrityError as exc:
+            # The get_by_user check above is a fast-path — a concurrent request can
+            # still slip past it before either commits. household_members.user_id has
+            # a unique constraint as the real guard, so a race lands here instead.
+            raise ConflictError(
+                "You already belong to a household — v1 supports only one per user"
+            ) from exc
         return await self.households.get_by_id(household.id)
 
     async def get_household_or_404(self, household_id: int) -> Household:
@@ -102,9 +113,14 @@ class HouseholdService:
                 f"Household already has the maximum of {HOUSEHOLD_MEMBER_CAP} members"
             )
 
-        membership = await self.members.create(
-            household_id=invite.household_id, user_id=user.id, role=MemberRole.MEMBER
-        )
+        try:
+            membership = await self.members.create(
+                household_id=invite.household_id, user_id=user.id, role=MemberRole.MEMBER
+            )
+        except IntegrityError as exc:
+            raise ConflictError(
+                "You already belong to a household — v1 supports only one per user"
+            ) from exc
         await self.invites.mark_accepted(invite)
         return membership
 
