@@ -17,7 +17,6 @@ class User(Base):
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
     nickname: Mapped[str] = mapped_column(String(100), nullable=False)
     pin_hash: Mapped[str] = mapped_column(String(255), nullable=False)
-    avatar_url: Mapped[str] = mapped_column(String(500), nullable=True)
     display_mode: Mapped[DisplayMode] = mapped_column(String(20), default=DisplayMode.SYSTEM, nullable=False)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)

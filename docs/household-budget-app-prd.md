@@ -181,7 +181,7 @@ The household creator is the default Admin. An existing Admin can promote a Memb
 - Admin can revoke a pending invite or remove an existing member.
 
 **E2. Profile & preferences**
-- Editable: name, nickname, avatar photo.
+- Editable: name, nickname. No photo upload in v1 — avatars are rendered from profile initials.
 - Email shown read-only post-signup; editing is not allowed.
 - Household-level settings (Admin-editable): currency, language.
 - Personal settings: display mode (Light / Dark / System).
