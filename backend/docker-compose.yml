@@ -11,9 +11,9 @@ services:
       - POSTGRES_SERVER=postgres
       - POSTGRES_PORT=5432
       - POSTGRES_USER=${POSTGRES_USER:-postgres}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in backend/.env (run scripts/setup_env.py postgres first) or export it before running compose}
       - POSTGRES_DB=${POSTGRES_DB:-fam_ex}
-      - SECRET_KEY=${SECRET_KEY:-super-secret-local-dev-key}
+      - SECRET_KEY=${SECRET_KEY:?Set SECRET_KEY in backend/.env (run scripts/setup_env.py first) or export it before running compose}
     depends_on:
       postgres:
         condition: service_healthy
@@ -26,7 +26,7 @@ services:
       - "5432:5432"
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-postgres}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in backend/.env (run scripts/setup_env.py postgres first) or export it before running compose}
       - POSTGRES_DB=${POSTGRES_DB:-fam_ex}
     volumes:
       - postgres_data:/var/lib/postgresql/data
