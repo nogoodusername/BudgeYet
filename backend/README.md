@@ -10,7 +10,21 @@ FastAPI-powered REST API backend for the `fam-ex` collaborative household budget
 - **SQLAlchemy 2.0 Async ORM**: Asynchronous data access layer.
 - **Database Driver Choice**: Configurable at setup time for **Local SQLite (`aiosqlite`)** or **PostgreSQL (`asyncpg`)** (Supabase / Aiven / Local Postgres).
 - **Alembic**: Database migration management.
+- **[uv](https://docs.astral.sh/uv/)**: Dependency & virtualenv management (`uv.lock` is committed — don't hand-edit `.venv`).
 - **Docker**: Containerized deployment for local development and production.
+
+---
+
+## 📦 Installing uv
+
+If you don't have it yet:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+See the [uv install docs](https://docs.astral.sh/uv/getting-started/installation/) for other platforms.
+uv reads `.python-version` (3.11) and will fetch that interpreter automatically if it's missing locally.
 
 ---
 
@@ -20,16 +34,17 @@ Run the setup helper script to configure your environment and database engine ch
 
 ```bash
 # Interactive setup
-python3 scripts/setup_env.py
+uv run python scripts/setup_env.py
 
 # Non-interactive SQLite setup
-python3 scripts/setup_env.py sqlite
+uv run python scripts/setup_env.py sqlite
 
 # Non-interactive Postgres setup
-python3 scripts/setup_env.py postgres
+uv run python scripts/setup_env.py postgres
 ```
 
-This generates `.env` with the chosen database configuration.
+This generates `.env` with the chosen database configuration. `uv run` transparently syncs `.venv` from
+`uv.lock` first if it's out of date, so there's no separate "install" step to remember.
 
 ---
 
@@ -50,16 +65,15 @@ docker-compose -f docker-compose.sqlite.yml up --build -d
 ## 💻 Running Locally without Docker
 
 ```bash
-# Create virtual environment
-python3 -m venv .venv
-source .venv/bin/activate
-
-# Install dependencies in editable mode
-pip install -e ".[dev]"
+# Creates/updates .venv from pyproject.toml + uv.lock (installs the dev group too)
+uv sync
 
 # Run FastAPI server
-uvicorn app.main:app --reload --port 8000
+uv run uvicorn app.main:app --reload --port 8000
 ```
+
+Prefer an activated shell instead of prefixing every command with `uv run`?
+`source .venv/bin/activate` still works — `uv sync` manages that same `.venv`.
 
 - API Documentation: [http://localhost:8000/docs](http://localhost:8000/docs)
 - Health Endpoint: [http://localhost:8000/health](http://localhost:8000/health)
@@ -69,7 +83,7 @@ uvicorn app.main:app --reload --port 8000
 ## 🧪 Running Tests
 
 ```bash
-pytest -v
+uv run pytest -v
 ```
 
 Integration tests spin up an in-memory SQLite DB per test (see `tests/conftest.py`) and drive the API

@@ -38,22 +38,20 @@ fam-ex/
 
 ### 1. Backend Setup (`backend/`)
 
-The backend is built with **FastAPI** and **SQLAlchemy 2.0**. At setup time, you can choose between **Local SQLite** or **Remote PostgreSQL (Supabase / Aiven)**.
+The backend is built with **FastAPI** and **SQLAlchemy 2.0**, with dependencies managed by **[uv](https://docs.astral.sh/uv/)**. At setup time, you can choose between **Local SQLite** or **Remote PostgreSQL (Supabase / Aiven)**.
 
 ```bash
 cd backend
 
 # Run setup script to configure environment & database driver
-python3 scripts/setup_env.py
+uv run python scripts/setup_env.py
 
 # Launch using Docker Compose (Recommended)
 docker-compose up --build -d
 
-# Or run locally using Python virtual environment
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e .
-uvicorn app.main:app --reload --port 8000
+# Or run locally — uv creates/updates .venv and installs from uv.lock automatically
+uv sync
+uv run uvicorn app.main:app --reload --port 8000
 ```
 
 - **OpenAPI / Swagger UI**: [http://localhost:8000/docs](http://localhost:8000/docs)

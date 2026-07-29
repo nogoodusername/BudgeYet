@@ -88,17 +88,29 @@ Postgres-only SQL/features) since both are supported deployment targets.
   self-test breaks under bcrypt ≥ 4.1, a live incompatibility, not a hypothetical) and JWT issue/decode.
 - `core/email.py` — stub email "sender" (logs only) — see "Known gaps" above before assuming it sends.
 
+**Dependency management is [uv](https://docs.astral.sh/uv/), not pip/venv.** `pyproject.toml` +
+`uv.lock` (committed) are the source of truth; don't `pip install` anything directly or hand-edit
+`.venv`. Runtime deps live in `[project.dependencies]`; dev-only tools (pytest, ruff, httpx) live in
+`[dependency-groups].dev`, which `uv sync` installs by default (use `--no-dev` to skip, as the
+Dockerfile does).
+
 **Commands:**
 ```bash
 cd backend
-python3 scripts/setup_env.py sqlite   # or: postgres — generates .env non-interactively
-pip install -e ".[dev]"
-uvicorn app.main:app --reload --port 8000
-ruff check app/                       # lint — CI runs this, must be clean
-pytest -v                             # CI runs this; create backend/tests/ if it doesn't exist
+uv sync                                        # creates/updates .venv from uv.lock (incl. dev group)
+uv run python scripts/setup_env.py sqlite      # or: postgres — generates .env non-interactively
+uv run uvicorn app.main:app --reload --port 8000
+uv run ruff check app/                         # lint — CI runs this, must be clean
+uv run pytest -v                                # CI runs this
 ```
 Swagger UI at `/docs`, health check at `/health`. Docker: `docker-compose up --build -d` (Postgres) or
-`docker-compose -f docker-compose.sqlite.yml up --build -d` (SQLite).
+`docker-compose -f docker-compose.sqlite.yml up --build -d` (SQLite) — the Dockerfile also uses uv
+internally (multi-stage: installs the locked deps via `uv sync --frozen --no-dev`, then copies the
+resulting `.venv` into the runtime image).
+
+Added a new dependency? Run `uv add <package>` (or `uv add --group dev <package>` for dev-only tools)
+instead of editing `pyproject.toml` by hand — it keeps `uv.lock` in sync automatically. If you do edit
+`pyproject.toml` directly, run `uv lock` afterward and commit the updated `uv.lock`.
 
 **Conventions:**
 - All route handlers are `async def`; use the async session from `api/deps.get_db`, never a sync session.
@@ -106,7 +118,7 @@ Swagger UI at `/docs`, health check at `/health`. Docker: `docker-compose up --b
 - `created_at`/`updated_at` via `server_default=func.now()` / `onupdate=func.now()` on every table.
 - New DB schema changes need an Alembic migration (`alembic/`) — don't rely on `Base.metadata.create_all`
   outside of the SQLite dev-convenience path in `main.py`'s lifespan.
-- Run `ruff check app/` before considering backend work done; CI will fail otherwise.
+- Run `uv run ruff check app/` before considering backend work done; CI will fail otherwise.
 
 ## Frontend (`frontend/`)
 
@@ -154,17 +166,21 @@ assumptions:
 
 ## CI expectations
 
-- `backend-ci.yml`: `ruff check app/`, `pytest -v` (against a fresh SQLite env via `setup_env.py sqlite`),
-  then a Docker build. Keep backend changes lint-clean and test-covered.
+- `backend-ci.yml`: installs uv (`astral-sh/setup-uv`), `uv sync --frozen`, `uv run ruff check app/`,
+  `uv run pytest -v` (against a fresh SQLite env via `setup_env.py sqlite`), then a Docker build. Keep
+  backend changes lint-clean and test-covered.
 - `pyproject.toml` pins `[tool.ruff.lint] select = ["E4", "E7", "E9", "F"]` explicitly. Newer ruff
   releases expand their implicit default rule set well beyond that (hundreds of extra rules, including
   a false-positive on every FastAPI `Depends(...)` default argument) — pinning keeps `ruff check`
   deterministic across ruff versions instead of silently growing scope on every dependency bump.
 - `pyproject.toml` also sets `[tool.setuptools.packages.find] include = ["app*"]`. Without it, a flat
-  local install (`pip install -e .`) fails with "Multiple top-level packages discovered" once both
-  `app/` and `alembic/` exist side by side — this doesn't affect the Docker build (its builder stage
-  only ever sees `pyproject.toml` before copying source), but it blocks local dev installs and would
-  have blocked CI's `pip install .[dev]` step too.
+  local install (`uv sync`) fails with "Multiple top-level packages discovered" once both `app/` and
+  `alembic/` exist side by side — this doesn't affect the Docker build (its builder stage runs
+  `uv sync --no-install-project`, so it never builds the local package at all, only the third-party
+  deps from the lockfile), but it would otherwise block local dev syncs and CI.
+- `uv.lock` is committed and CI runs `uv sync --frozen` (fails instead of silently re-resolving if the
+  lockfile is stale) — if you add/bump a dependency, run `uv lock` (or `uv add`/`uv add --group dev`,
+  which updates the lock for you) and commit the result alongside the `pyproject.toml` change.
 - `frontend-ci.yml`: validates Gradle build graph for Android, Web Wasm, and iOS framework compile targets
   on every PR touching `frontend/**`.
 
