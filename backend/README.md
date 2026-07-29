@@ -63,3 +63,21 @@ uvicorn app.main:app --reload --port 8000
 
 - API Documentation: [http://localhost:8000/docs](http://localhost:8000/docs)
 - Health Endpoint: [http://localhost:8000/health](http://localhost:8000/health)
+
+---
+
+## 🧪 Running Tests
+
+```bash
+pytest -v
+```
+
+Integration tests spin up an in-memory SQLite DB per test (see `tests/conftest.py`) and drive the API
+through `httpx.AsyncClient` — no `.env`/local DB setup required to run them.
+
+## 📚 API Overview
+
+See `/docs` for the full interactive schema. Resource groups: `auth`, `users`, `households` (incl.
+invites and member roles), `budgets`, `categories`, `transactions`, and a per-household `dashboard` +
+`activity-feed`. Auth is email + 6-digit PIN (JWT bearer token thereafter) — PIN/invite delivery is
+currently a log-only stub, see [AGENTS.md](../AGENTS.md#known-gaps-deliberately-deferred-see-pr-discussion).
