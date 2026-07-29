@@ -1,5 +1,6 @@
 from typing import Optional, Sequence
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ConflictError, NotFoundError
@@ -38,13 +39,21 @@ class BudgetService:
                 f"A budget already exists for {month}/{year} — update it instead of creating a new one"
             )
 
-        return await self.budgets.create(
-            household_id=household.id,
-            name=payload.name,
-            monthly_goal_amount=payload.monthly_goal_amount,
-            month=month,
-            year=year,
-        )
+        try:
+            return await self.budgets.create(
+                household_id=household.id,
+                name=payload.name,
+                monthly_goal_amount=payload.monthly_goal_amount,
+                month=month,
+                year=year,
+            )
+        except IntegrityError as exc:
+            # The get_for_cycle check above is a fast-path — a concurrent request can
+            # still slip past it before either commits. The (household_id, month, year)
+            # unique constraint is the real guard, so a race lands here instead.
+            raise ConflictError(
+                f"A budget already exists for {month}/{year} — update it instead of creating a new one"
+            ) from exc
 
     async def update_budget(self, budget: Budget, payload: BudgetUpdate) -> Budget:
         return await self.budgets.update(

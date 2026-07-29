@@ -1,12 +1,15 @@
 from datetime import datetime
 from decimal import Decimal
-from sqlalchemy import String, Numeric, Integer, DateTime, ForeignKey, func
+from sqlalchemy import String, Numeric, Integer, DateTime, ForeignKey, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
 class Budget(Base):
     __tablename__ = "budgets"
-    
+    __table_args__ = (
+        UniqueConstraint("household_id", "month", "year", name="uq_budgets_household_cycle"),
+    )
+
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     household_id: Mapped[int] = mapped_column(ForeignKey("households.id", ondelete="CASCADE"), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)

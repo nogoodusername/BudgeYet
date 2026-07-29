@@ -35,6 +35,47 @@ async def test_duplicate_budget_for_same_cycle_conflicts(client, monkeypatch):
     assert second.status_code == 409
 
 
+async def test_concurrent_budget_creation_hits_unique_constraint_cleanly(client, monkeypatch):
+    """Simulates a race: another request's budget insert lands in between this
+    request's get_for_cycle check and its own insert. The check alone can't catch
+    that -- the (household_id, month, year) unique constraint is the real guard,
+    so this exercises the IntegrityError -> ConflictError translation path rather
+    than the check-then-act fast path.
+    """
+    from app.models.budget import Budget
+    from app.repositories.budget_repository import BudgetRepository
+    from app.services.cycle_utils import get_current_cycle_bounds
+    from tests.conftest import TestSessionLocal
+
+    token, _ = await signup_and_login(client, monkeypatch, "admin@example.com")
+    household = await create_household(client, token)
+    bounds = get_current_cycle_bounds(household["cycle_start_day"])
+
+    async with TestSessionLocal() as session:
+        session.add(
+            Budget(
+                household_id=household["id"],
+                name="Racing budget",
+                monthly_goal_amount=500,
+                month=bounds.label_month,
+                year=bounds.label_year,
+            )
+        )
+        await session.commit()
+
+    async def _fake_get_for_cycle(self, household_id, month, year):
+        return None
+
+    monkeypatch.setattr(BudgetRepository, "get_for_cycle", _fake_get_for_cycle)
+
+    resp = await client.post(
+        f"/households/{household['id']}/budgets",
+        json={"name": "This month", "monthly_goal_amount": 2000},
+        headers=auth_headers(token),
+    )
+    assert resp.status_code == 409
+
+
 async def test_current_budget_reflects_spend(client, monkeypatch):
     token, _ = await signup_and_login(client, monkeypatch, "admin@example.com")
     household = await create_household(client, token)
