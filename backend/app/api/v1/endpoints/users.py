@@ -20,5 +20,5 @@ async def update_me(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Editable: name, nickname, avatar, display mode. Email is permanently read-only."""
+    """Editable: name, nickname, display mode. Email is permanently read-only."""
     return await user_controller.update_me(db, current_user, payload)

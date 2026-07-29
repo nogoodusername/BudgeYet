@@ -14,12 +14,10 @@ class UserCreate(UserBase):
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     nickname: Optional[str] = None
-    avatar_url: Optional[str] = None
     display_mode: Optional[DisplayMode] = None
 
 class UserResponse(UserBase):
     id: int
-    avatar_url: Optional[str] = None
     display_mode: DisplayMode
     created_at: datetime
 

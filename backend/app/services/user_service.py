@@ -15,6 +15,5 @@ class UserService:
             user,
             full_name=payload.full_name,
             nickname=payload.nickname,
-            avatar_url=payload.avatar_url,
             display_mode=payload.display_mode,
         )
