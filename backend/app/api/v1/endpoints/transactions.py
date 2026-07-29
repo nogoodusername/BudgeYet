@@ -40,6 +40,8 @@ async def list_transactions(
     date_from: Optional[date] = None,
     date_to: Optional[date] = None,
     search: Optional[str] = None,
+    amount_min: Optional[float] = None,
+    amount_max: Optional[float] = None,
     limit: int = 50,
     offset: int = 0,
     _membership: HouseholdMember = Depends(get_household_membership),
@@ -54,6 +56,8 @@ async def list_transactions(
         date_from=date_from,
         date_to=date_to,
         search=search,
+        amount_min=amount_min,
+        amount_max=amount_max,
         limit=limit,
         offset=offset,
     )

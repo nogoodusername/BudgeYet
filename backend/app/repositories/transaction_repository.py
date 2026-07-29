@@ -1,9 +1,10 @@
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Dict, Optional, Sequence, Tuple
-from sqlalchemy import func, select, update as sql_update
+from sqlalchemy import func, or_, select, update as sql_update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from app.models.category import Category
 from app.models.transaction import PaymentMode, Transaction, TransactionType
 
 
@@ -35,6 +36,8 @@ class TransactionRepository:
         date_from: Optional[date] = None,
         date_to: Optional[date] = None,
         search: Optional[str] = None,
+        amount_min: Optional[float] = None,
+        amount_max: Optional[float] = None,
         limit: int = 50,
         offset: int = 0,
     ) -> Tuple[Sequence[Transaction], int]:
@@ -51,16 +54,25 @@ class TransactionRepository:
             conditions.append(Transaction.transaction_date >= date_from)
         if date_to is not None:
             conditions.append(Transaction.transaction_date < date_to)
+        if amount_min is not None:
+            conditions.append(Transaction.amount >= amount_min)
+        if amount_max is not None:
+            conditions.append(Transaction.amount <= amount_max)
         if search:
-            conditions.append(Transaction.merchant.ilike(f"%{search}%"))
+            pattern = f"%{search}%"
+            conditions.append(or_(Transaction.merchant.ilike(pattern), Category.name.ilike(pattern)))
+
+        def _base(stmt):
+            # Only needed to match search text against the category name.
+            return stmt.outerjoin(Category, Transaction.category_id == Category.id) if search else stmt
 
         count_result = await self.db.execute(
-            select(func.count()).select_from(Transaction).where(*conditions)
+            _base(select(func.count()).select_from(Transaction)).where(*conditions)
         )
         total = count_result.scalar_one()
 
         result = await self.db.execute(
-            self._with_relations(select(Transaction))
+            _base(self._with_relations(select(Transaction)))
             .where(*conditions)
             .order_by(Transaction.transaction_date.desc(), Transaction.id.desc())
             .limit(limit)
