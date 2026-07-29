@@ -22,6 +22,76 @@ async def test_v1_caps_a_user_to_one_household(client, monkeypatch):
     assert resp.status_code == 409
 
 
+async def test_concurrent_household_creation_hits_unique_constraint_cleanly(client, monkeypatch):
+    """Simulates a race: another request's membership insert lands in between this
+    request's existing_membership check and its own insert. The check alone can't
+    catch that — household_members.user_id's unique constraint is the real guard,
+    so this exercises the IntegrityError -> ConflictError translation path rather
+    than the check-then-act fast path.
+    """
+    from app.models.household import HouseholdMember, MemberRole
+    from app.repositories.household_member_repository import HouseholdMemberRepository
+    from tests.conftest import TestSessionLocal
+
+    other_token, _ = await signup_and_login(client, monkeypatch, "other-admin@example.com")
+    other_household = await create_household(client, other_token, "Other House")
+
+    token, user = await signup_and_login(client, monkeypatch, "racer@example.com")
+
+    async with TestSessionLocal() as session:
+        session.add(
+            HouseholdMember(
+                household_id=other_household["id"], user_id=user["id"], role=MemberRole.MEMBER
+            )
+        )
+        await session.commit()
+
+    async def _fake_get_by_user(self, user_id):
+        return None
+
+    monkeypatch.setattr(HouseholdMemberRepository, "get_by_user", _fake_get_by_user)
+
+    resp = await client.post(
+        "/households",
+        json={"name": "Second", "currency": "USD", "language": "en", "cycle_start_day": 1},
+        headers=auth_headers(token),
+    )
+    assert resp.status_code == 409
+
+
+async def test_concurrent_join_hits_unique_constraint_cleanly(client, monkeypatch):
+    from app.models.household import HouseholdMember, MemberRole
+    from app.repositories.household_member_repository import HouseholdMemberRepository
+    from tests.conftest import TestSessionLocal
+
+    admin_token, _ = await signup_and_login(client, monkeypatch, "admin2@example.com")
+    household = await create_household(client, admin_token, "Racer House")
+    _, token_str = await create_invite(client, admin_token, household["id"])
+
+    other_admin_token, _ = await signup_and_login(client, monkeypatch, "other-admin2@example.com")
+    other_household = await create_household(client, other_admin_token, "Other House 2")
+
+    member_token, member_user = await signup_and_login(client, monkeypatch, "racer2@example.com")
+
+    async with TestSessionLocal() as session:
+        session.add(
+            HouseholdMember(
+                household_id=other_household["id"], user_id=member_user["id"], role=MemberRole.MEMBER
+            )
+        )
+        await session.commit()
+
+    async def _fake_get_by_user(self, user_id):
+        return None
+
+    monkeypatch.setattr(HouseholdMemberRepository, "get_by_user", _fake_get_by_user)
+
+    resp = await client.post(
+        "/households/join", json={"token": token_str}, headers=auth_headers(member_token)
+    )
+    assert resp.status_code == 409
+
+
 async def test_join_via_invite_adds_member(client, monkeypatch):
     admin_token, _ = await signup_and_login(client, monkeypatch, "admin@example.com")
     household = await create_household(client, admin_token)

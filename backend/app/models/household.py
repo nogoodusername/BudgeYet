@@ -35,7 +35,9 @@ class HouseholdMember(Base):
     
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     household_id: Mapped[int] = mapped_column(ForeignKey("households.id", ondelete="CASCADE"), nullable=False)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), unique=True, index=True, nullable=False
+    )
     role: Mapped[MemberRole] = mapped_column(String(20), default=MemberRole.MEMBER, nullable=False)
     joined_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
     
