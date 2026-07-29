@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.schemas.auth import LoginRequest, LoginResponse
+from app.schemas.auth import ForgotPinRequest, LoginRequest, LoginResponse
 from app.schemas.user import UserCreate, UserResponse
 from app.services.auth_service import AuthService
 
@@ -15,3 +15,7 @@ async def login(db: AsyncSession, payload: LoginRequest) -> LoginResponse:
     return LoginResponse(
         access_token=token, user=UserResponse.model_validate(user)
     )
+
+
+async def forgot_pin(db: AsyncSession, payload: ForgotPinRequest) -> None:
+    await AuthService(db).forgot_pin(payload.email)
