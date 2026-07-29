@@ -72,6 +72,13 @@ class TransactionService:
     async def list_transactions(
         self, household_id: int, filters: TransactionFilterParams
     ) -> Tuple[Sequence[Transaction], int]:
+        if (
+            filters.amount_min is not None
+            and filters.amount_max is not None
+            and filters.amount_min > filters.amount_max
+        ):
+            raise ValidationAppError("amount_min must not be greater than amount_max")
+
         return await self.transactions.list(
             household_id,
             category_id=filters.category_id,
@@ -81,6 +88,8 @@ class TransactionService:
             date_from=filters.date_from,
             date_to=filters.date_to,
             search=filters.search,
+            amount_min=filters.amount_min,
+            amount_max=filters.amount_max,
             limit=filters.limit,
             offset=filters.offset,
         )

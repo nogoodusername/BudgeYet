@@ -52,5 +52,7 @@ class TransactionFilterParams(BaseModel):
     date_from: Optional[date] = None
     date_to: Optional[date] = None
     search: Optional[str] = None
+    amount_min: Optional[float] = Field(default=None, ge=0)
+    amount_max: Optional[float] = Field(default=None, ge=0)
     limit: int = Field(default=50, ge=1, le=200)
     offset: int = Field(default=0, ge=0)

@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import String, Float, DateTime, ForeignKey, func
+from sqlalchemy import String, Float, DateTime, ForeignKey, Index, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import enum
 from app.core.database import Base
@@ -16,7 +16,11 @@ class PaymentMode(str, enum.Enum):
 
 class Transaction(Base):
     __tablename__ = "transactions"
-    
+    __table_args__ = (
+        Index("ix_transactions_household_id_transaction_date", "household_id", "transaction_date"),
+        Index("ix_transactions_category_id", "category_id"),
+    )
+
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     household_id: Mapped[int] = mapped_column(ForeignKey("households.id", ondelete="CASCADE"), nullable=False)
     category_id: Mapped[int] = mapped_column(ForeignKey("categories.id", ondelete="SET NULL"), nullable=True)
