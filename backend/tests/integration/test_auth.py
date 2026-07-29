@@ -66,3 +66,58 @@ async def test_forgot_pin_issues_new_pin_and_invalidates_old_one(client, monkeyp
 async def test_forgot_pin_unknown_email_does_not_leak_existence(client):
     resp = await client.post("/auth/forgot-pin", json={"email": "nobody@example.com"})
     assert resp.status_code == 204
+
+
+async def test_login_locks_account_after_max_failed_attempts(client, monkeypatch):
+    await signup(client, monkeypatch, "ada@example.com")
+
+    for _ in range(5):
+        resp = await client.post(
+            "/auth/login", json={"email": "ada@example.com", "pin": "000000"}
+        )
+        assert resp.status_code == 401
+
+    # Correct PIN is rejected once the account is locked.
+    resp = await client.post("/auth/login", json={"email": "ada@example.com", "pin": FIXED_PIN})
+    assert resp.status_code == 401
+    assert "too many" in resp.json()["detail"].lower()
+
+
+async def test_login_resets_attempt_counter_after_success(client, monkeypatch):
+    await signup(client, monkeypatch, "ada@example.com")
+
+    for _ in range(4):
+        resp = await client.post(
+            "/auth/login", json={"email": "ada@example.com", "pin": "000000"}
+        )
+        assert resp.status_code == 401
+
+    resp = await client.post("/auth/login", json={"email": "ada@example.com", "pin": FIXED_PIN})
+    assert resp.status_code == 200
+
+    # Counter should have reset, so another 4 bad attempts don't trigger a lockout yet.
+    for _ in range(4):
+        resp = await client.post(
+            "/auth/login", json={"email": "ada@example.com", "pin": "000000"}
+        )
+        assert resp.status_code == 401
+
+    resp = await client.post("/auth/login", json={"email": "ada@example.com", "pin": FIXED_PIN})
+    assert resp.status_code == 200
+
+
+async def test_forgot_pin_clears_existing_lockout(client, monkeypatch):
+    await signup(client, monkeypatch, "ada@example.com")
+
+    for _ in range(5):
+        resp = await client.post(
+            "/auth/login", json={"email": "ada@example.com", "pin": "000000"}
+        )
+        assert resp.status_code == 401
+
+    monkeypatch.setattr("app.services.auth_service.generate_pin", lambda: "654321")
+    resp = await client.post("/auth/forgot-pin", json={"email": "ada@example.com"})
+    assert resp.status_code == 204
+
+    resp = await client.post("/auth/login", json={"email": "ada@example.com", "pin": "654321"})
+    assert resp.status_code == 200

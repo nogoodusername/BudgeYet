@@ -1,5 +1,6 @@
 from datetime import datetime
-from sqlalchemy import String, DateTime, func
+from typing import Optional
+from sqlalchemy import Integer, String, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import enum
 from app.core.database import Base
@@ -18,6 +19,8 @@ class User(Base):
     nickname: Mapped[str] = mapped_column(String(100), nullable=False)
     pin_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     display_mode: Mapped[DisplayMode] = mapped_column(String(20), default=DisplayMode.SYSTEM, nullable=False)
+    failed_login_attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    locked_until: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
