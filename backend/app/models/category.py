@@ -1,5 +1,6 @@
 from datetime import datetime
-from sqlalchemy import String, Float, DateTime, ForeignKey, func
+from decimal import Decimal
+from sqlalchemy import String, Numeric, DateTime, ForeignKey, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
@@ -10,7 +11,7 @@ class Category(Base):
     household_id: Mapped[int] = mapped_column(ForeignKey("households.id", ondelete="CASCADE"), nullable=False)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     icon: Mapped[str] = mapped_column(String(50), default="default_category", nullable=False)
-    monthly_limit: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    monthly_limit: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0, nullable=False)
     
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(

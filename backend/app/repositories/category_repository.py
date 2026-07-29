@@ -1,3 +1,4 @@
+from decimal import Decimal
 from typing import Optional, Sequence
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,7 +19,7 @@ class CategoryRepository:
         return result.scalars().all()
 
     async def create(
-        self, *, household_id: int, name: str, icon: str, monthly_limit: float
+        self, *, household_id: int, name: str, icon: str, monthly_limit: Decimal
     ) -> Category:
         category = Category(
             household_id=household_id, name=name, icon=icon, monthly_limit=monthly_limit

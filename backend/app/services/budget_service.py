@@ -65,7 +65,7 @@ class BudgetService:
             date_to=bounds.end,
             type=TransactionType.EXPENSE,
         )
-        percent_used = (spent / budget.monthly_goal_amount) * 100
+        percent_used = float(spent / budget.monthly_goal_amount) * 100
         base = BudgetResponse.model_validate(budget).model_dump()
         return BudgetWithStats(
             **base,

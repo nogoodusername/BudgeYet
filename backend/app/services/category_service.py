@@ -1,3 +1,4 @@
+from decimal import Decimal
 from typing import List, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -59,10 +60,12 @@ class CategoryService:
         await self.categories.delete(category)
 
     async def _with_stats(
-        self, category: Category, spent_by_category: dict[int, float]
+        self, category: Category, spent_by_category: dict[int, Decimal]
     ) -> CategoryWithStats:
-        spent = spent_by_category.get(category.id, 0.0)
-        percent_used = (spent / category.monthly_limit * 100) if category.monthly_limit > 0 else 0.0
+        spent = spent_by_category.get(category.id, Decimal("0"))
+        percent_used = (
+            float(spent / category.monthly_limit) * 100 if category.monthly_limit > 0 else 0.0
+        )
         base = CategoryResponse.model_validate(category).model_dump()
         return CategoryWithStats(
             **base,

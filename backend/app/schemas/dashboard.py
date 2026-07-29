@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 from typing import List, Optional
 from pydantic import BaseModel, ConfigDict
 from app.models.transaction import TransactionType
@@ -15,7 +16,7 @@ class DashboardResponse(BaseModel):
 class ActivityFeedItem(BaseModel):
     id: int
     type: TransactionType
-    amount: float
+    amount: Decimal
     merchant: str
     category_name: Optional[str] = None
     user: UserResponse
