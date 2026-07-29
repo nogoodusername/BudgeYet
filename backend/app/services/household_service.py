@@ -24,6 +24,27 @@ class HouseholdService:
         self.members = HouseholdMemberRepository(db)
         self.invites = InviteRepository(db)
 
+    async def _add_member_or_raise(
+        self, household_id: int, user_id: int, role: MemberRole
+    ) -> HouseholdMember:
+        """Shared by create_household/join_household: reserve a member slot and
+        insert the membership, translating either guard's failure into the same
+        ConflictError a check-then-act read would have raised.
+        """
+        if not await self.households.try_reserve_member_slot(household_id, HOUSEHOLD_MEMBER_CAP):
+            raise ConflictError(
+                f"Household already has the maximum of {HOUSEHOLD_MEMBER_CAP} members"
+            )
+        try:
+            return await self.members.create(household_id=household_id, user_id=user_id, role=role)
+        except IntegrityError as exc:
+            # The caller's get_by_user check is a fast-path — a concurrent request can
+            # still slip past it before either commits. household_members.user_id has
+            # a unique constraint as the real guard, so a race lands here instead.
+            raise ConflictError(
+                "You already belong to a household — v1 supports only one per user"
+            ) from exc
+
     async def create_household(self, user: User, payload: HouseholdCreate) -> Household:
         existing_membership = await self.members.get_by_user(user.id)
         if existing_membership is not None:
@@ -35,17 +56,7 @@ class HouseholdService:
             language=payload.language,
             cycle_start_day=payload.cycle_start_day,
         )
-        try:
-            await self.members.create(
-                household_id=household.id, user_id=user.id, role=MemberRole.ADMIN
-            )
-        except IntegrityError as exc:
-            # The get_by_user check above is a fast-path — a concurrent request can
-            # still slip past it before either commits. household_members.user_id has
-            # a unique constraint as the real guard, so a race lands here instead.
-            raise ConflictError(
-                "You already belong to a household — v1 supports only one per user"
-            ) from exc
+        await self._add_member_or_raise(household.id, user.id, MemberRole.ADMIN)
         return await self.households.get_by_id(household.id)
 
     async def get_household_or_404(self, household_id: int) -> Household:
@@ -66,8 +77,10 @@ class HouseholdService:
     async def create_invite(
         self, household: Household, invited_by: User, payload: InviteCreate
     ) -> Invite:
-        member_count = await self.members.count_by_household(household.id)
-        if member_count >= HOUSEHOLD_MEMBER_CAP:
+        # A friendly pre-check only — it saves generating a useless invite, but the
+        # cap is actually enforced atomically at join time (see _add_member_or_raise),
+        # since another invite could still fill the last slot before this one is used.
+        if household.member_count >= HOUSEHOLD_MEMBER_CAP:
             raise ConflictError(
                 f"Household already has the maximum of {HOUSEHOLD_MEMBER_CAP} members"
             )
@@ -107,20 +120,9 @@ class HouseholdService:
         if existing_membership is not None:
             raise ConflictError("You already belong to a household — v1 supports only one per user")
 
-        member_count = await self.members.count_by_household(invite.household_id)
-        if member_count >= HOUSEHOLD_MEMBER_CAP:
-            raise ConflictError(
-                f"Household already has the maximum of {HOUSEHOLD_MEMBER_CAP} members"
-            )
-
-        try:
-            membership = await self.members.create(
-                household_id=invite.household_id, user_id=user.id, role=MemberRole.MEMBER
-            )
-        except IntegrityError as exc:
-            raise ConflictError(
-                "You already belong to a household — v1 supports only one per user"
-            ) from exc
+        membership = await self._add_member_or_raise(
+            invite.household_id, user.id, MemberRole.MEMBER
+        )
         await self.invites.mark_accepted(invite)
         return membership
 
@@ -133,6 +135,7 @@ class HouseholdService:
             if admin_count <= 1:
                 raise ConflictError("Cannot remove the household's only admin")
         await self.members.delete(member)
+        await self.households.release_member_slot(household_id)
 
     async def leave_household(self, membership: HouseholdMember) -> None:
         if membership.role == MemberRole.ADMIN:
@@ -142,6 +145,7 @@ class HouseholdService:
                     "Promote another member to admin before leaving — a household must keep an admin"
                 )
         await self.members.delete(membership)
+        await self.households.release_member_slot(membership.household_id)
 
     async def update_member_role(
         self, household_id: int, member_id: int, new_role: MemberRole
