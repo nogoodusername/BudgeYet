@@ -1,6 +1,6 @@
 # AGENTS.md — fam-ex
 
-Instructions for AI coding agents working in this repository. Read this before making changes.
+Instructions for AI coding agents working in this repository. Read this before making changes. Update the AGENTS.md regularly to reflect new reality.
 
 ## What this is
 
@@ -24,17 +24,33 @@ Backend and frontend have separate CI pipelines gated by path (`backend/**`, `fr
 
 ## Current state (important)
 
-This is a fresh scaffold, not a mature codebase — most PRD functionality is **not yet implemented**:
-- Backend: only `health` endpoint exists under `app/api/v1/endpoints/`. Models exist for
-  `users`, `households`, `budgets`, `categories`, `transactions` but most have no corresponding
-  endpoints, services, or Alembic migrations yet. No `backend/tests/` directory exists yet even though
-  `pyproject.toml` points `pytest` at `testpaths = ["tests"]` — create it when you add the first test.
-- Frontend: only a single `DashboardScreen.kt` composable and shared `Models.kt` exist in `commonMain`.
-  No networking, navigation, or auth flow wired up yet.
-- No auth/JWT issuance is implemented despite `SECRET_KEY` / `ACCESS_TOKEN_EXPIRE_MINUTES` config existing.
+- Backend: v1 MVP REST surface is implemented — auth (email + 6-digit PIN, JWT), households
+  (create/update, invites, join, member roles, leave/remove), budgets, categories (with
+  reassign-before-delete), transactions (role-scoped edit/delete), dashboard, and a polling
+  activity feed. Follows a Router → Controller → Service → Repository layering under `app/`
+  (`api/v1/endpoints/` → `controllers/` → `services/` → `repositories/`). One Alembic migration
+  (`alembic/versions/`) covers the full schema. `backend/tests/` has unit tests (`tests/unit/`) for
+  `core/security.py` and `services/cycle_utils.py`, and integration tests (`tests/integration/`)
+  per resource group hitting the API via `httpx.AsyncClient` against an in-memory SQLite DB.
+- Frontend: still only a single `DashboardScreen.kt` composable and shared `Models.kt` exist in
+  `commonMain`. No networking, navigation, or auth flow wired up yet — the backend above is ready
+  for it to consume.
 
 Don't assume a feature exists because it's in the PRD or in a model/schema — check the actual endpoint
 router and frontend screens first.
+
+### Known gaps (deliberately deferred, see PR discussion)
+
+- **Email delivery is a stub.** `app/core/email.py` logs PIN and invite messages instead of sending
+  them (no SMTP/SES integration yet). Signup/login PINs and invite tokens are **not** echoed back in
+  any API response — until real delivery is wired up, retrieving them requires reading server logs or
+  querying the DB directly (see how `backend/tests/helpers.py` does it for tests, by monkeypatching the
+  generators). Real delivery must land before this is usable outside local dev.
+- **Real-time activity feed is REST-only.** `GET /households/{id}/activity-feed` is polled, not pushed.
+  The PRD's WebSocket/live-push behavior (B4) was explicitly deferred to a follow-up.
+- **Receipt photo upload is fully out of scope**, backend and frontend. `Transaction.receipt_url`
+  exists on the model but there is no upload endpoint or storage integration, and no client-side
+  capture flow either.
 
 ## Backend (`backend/`)
 
@@ -42,29 +58,70 @@ router and frontend screens first.
 (`asyncpg`) selected via `DATABASE_TYPE` env var — code must stay driver-agnostic (no SQLite- or
 Postgres-only SQL/features) since both are supported deployment targets.
 
-**Layout convention** (`app/`):
-- `models/` — SQLAlchemy ORM classes (one file per aggregate: `user.py`, `household.py`, `budget.py`,
-  `category.py`, `transaction.py`). Declare `Mapped[...]`/`mapped_column` style, not legacy `Column`.
+**One-command server installer:** [`scripts/install.sh`](scripts/install.sh) (top-level, not
+`backend/scripts/`) is a standalone `curl | bash`-able installer for deploying the backend on a fresh
+server — clones the repo, drives `backend/scripts/setup_env.py` for DB setup, and runs the right
+`docker-compose*.yml` file. It shells out to `setup_env.py sqlite|postgres` and reads
+`POSTGRES_USER`/`POSTGRES_PASSWORD`/`POSTGRES_DB`/`DATABASE_TYPE` back out of the generated `.env`, so
+if you change that script's CLI (arg names, non-interactive env var names) or either compose file's
+name/service names/port mapping, update `install.sh` to match — nothing type-checks that coupling.
+It also patches a `COMPOSE_PROJECT_NAME` into `.env` (compose otherwise derives it from the `backend/`
+dirname, which collides across separate installs on one host) — don't remove that without accounting
+for the collision it fixes.
+
+**Layout convention** (`app/`) — strict Router → Controller → Service → Repository layering:
+- `models/` — SQLAlchemy ORM classes (one file per aggregate: `user.py`, `household.py` (also holds
+  `HouseholdMember`), `invite.py`, `budget.py`, `category.py`, `transaction.py`). Declare
+  `Mapped[...]`/`mapped_column` style, not legacy `Column`.
 - `schemas/` — Pydantic request/response models, mirroring `models/` filenames. Follow the existing
-  `XBase` / `XCreate` / `XResponse` naming split (see `schemas/user.py`).
-- `api/v1/endpoints/` — one router module per resource; registered in `api/v1/router.py`.
-  New endpoints must be added to that router, not mounted ad hoc in `main.py`.
-- `api/deps.py` — shared FastAPI dependencies (DB session, auth, etc.).
+  `XBase` / `XCreate` / `XUpdate` / `XResponse` naming split (see `schemas/user.py`). `common.py` has
+  the generic `Page[T]` pagination envelope.
+- `api/v1/endpoints/` — one router module per resource; registered in `api/v1/router.py`. Routers only
+  do HTTP concerns (path/query/body parsing, status codes, `Depends`) and call into `controllers/` —
+  they never touch a repository or session-scoped business rule directly.
+- `api/deps.py` — shared FastAPI dependencies: `get_db`, `get_current_user` (JWT bearer), and household
+  access-control deps (`get_household_membership`, `require_admin_membership`, `get_current_household`).
+- `controllers/` — thin orchestration between routers and services; maps request schemas to service
+  calls and service results back to response schemas. No SQLAlchemy imports here.
+- `services/` — business rules (role permissions, the 3-member cap, future-date rejection, cycle
+  math in `cycle_utils.py`, delete-blocked-by-transactions, invite expiry, "always one admin"). Raises
+  the domain exceptions in `core/exceptions.py` (`NotFoundError`, `ConflictError`,
+  `PermissionDeniedError`, `ValidationAppError`, `AuthenticationError`) — never `fastapi.HTTPException`
+  directly. `main.py` registers exception handlers that translate these to HTTP responses.
+- `repositories/` — the only layer that touches `AsyncSession`/SQLAlchemy queries directly. No business
+  logic — just CRUD and filtered/aggregated reads.
 - `core/config.py` — `Settings` (pydantic-settings), loaded from `.env`. Add new config here, not as
   scattered `os.environ` reads.
-- `core/database.py` — async engine/session setup and `Base`.
+- `core/database.py` — async engine/session setup and `Base`. `get_async_db` commits once at the end of
+  a request if the handler didn't raise, and rolls back otherwise — repositories only ever `flush()`,
+  they never commit, so don't add commits anywhere else.
+- `core/security.py` — PIN hashing (via `bcrypt` directly, **not** `passlib`: passlib's bcrypt backend
+  self-test breaks under bcrypt ≥ 4.1, a live incompatibility, not a hypothetical) and JWT issue/decode.
+- `core/email.py` — stub email "sender" (logs only) — see "Known gaps" above before assuming it sends.
+
+**Dependency management is [uv](https://docs.astral.sh/uv/), not pip/venv.** `pyproject.toml` +
+`uv.lock` (committed) are the source of truth; don't `pip install` anything directly or hand-edit
+`.venv`. Runtime deps live in `[project.dependencies]`; dev-only tools (pytest, ruff, httpx) live in
+`[dependency-groups].dev`, which `uv sync` installs by default (use `--no-dev` to skip, as the
+Dockerfile does).
 
 **Commands:**
 ```bash
 cd backend
-python3 scripts/setup_env.py sqlite   # or: postgres — generates .env non-interactively
-pip install -e ".[dev]"
-uvicorn app.main:app --reload --port 8000
-ruff check app/                       # lint — CI runs this, must be clean
-pytest -v                             # CI runs this; create backend/tests/ if it doesn't exist
+uv sync                                        # creates/updates .venv from uv.lock (incl. dev group)
+uv run python scripts/setup_env.py sqlite      # or: postgres — generates .env non-interactively
+uv run uvicorn app.main:app --reload --port 8000
+uv run ruff check app/                         # lint — CI runs this, must be clean
+uv run pytest -v                                # CI runs this
 ```
 Swagger UI at `/docs`, health check at `/health`. Docker: `docker-compose up --build -d` (Postgres) or
-`docker-compose -f docker-compose.sqlite.yml up --build -d` (SQLite).
+`docker-compose -f docker-compose.sqlite.yml up --build -d` (SQLite) — the Dockerfile also uses uv
+internally (multi-stage: installs the locked deps via `uv sync --frozen --no-dev`, then copies the
+resulting `.venv` into the runtime image).
+
+Added a new dependency? Run `uv add <package>` (or `uv add --group dev <package>` for dev-only tools)
+instead of editing `pyproject.toml` by hand — it keeps `uv.lock` in sync automatically. If you do edit
+`pyproject.toml` directly, run `uv lock` afterward and commit the updated `uv.lock`.
 
 **Conventions:**
 - All route handlers are `async def`; use the async session from `api/deps.get_db`, never a sync session.
@@ -72,7 +129,7 @@ Swagger UI at `/docs`, health check at `/health`. Docker: `docker-compose up --b
 - `created_at`/`updated_at` via `server_default=func.now()` / `onupdate=func.now()` on every table.
 - New DB schema changes need an Alembic migration (`alembic/`) — don't rely on `Base.metadata.create_all`
   outside of the SQLite dev-convenience path in `main.py`'s lifespan.
-- Run `ruff check app/` before considering backend work done; CI will fail otherwise.
+- Run `uv run ruff check app/` before considering backend work done; CI will fail otherwise.
 
 ## Frontend (`frontend/`)
 
@@ -120,8 +177,21 @@ assumptions:
 
 ## CI expectations
 
-- `backend-ci.yml`: `ruff check app/`, `pytest -v` (against a fresh SQLite env via `setup_env.py sqlite`),
-  then a Docker build. Keep backend changes lint-clean and test-covered.
+- `backend-ci.yml`: installs uv (`astral-sh/setup-uv`), `uv sync --frozen`, `uv run ruff check app/`,
+  `uv run pytest -v` (against a fresh SQLite env via `setup_env.py sqlite`), then a Docker build. Keep
+  backend changes lint-clean and test-covered.
+- `pyproject.toml` pins `[tool.ruff.lint] select = ["E4", "E7", "E9", "F"]` explicitly. Newer ruff
+  releases expand their implicit default rule set well beyond that (hundreds of extra rules, including
+  a false-positive on every FastAPI `Depends(...)` default argument) — pinning keeps `ruff check`
+  deterministic across ruff versions instead of silently growing scope on every dependency bump.
+- `pyproject.toml` also sets `[tool.setuptools.packages.find] include = ["app*"]`. Without it, a flat
+  local install (`uv sync`) fails with "Multiple top-level packages discovered" once both `app/` and
+  `alembic/` exist side by side — this doesn't affect the Docker build (its builder stage runs
+  `uv sync --no-install-project`, so it never builds the local package at all, only the third-party
+  deps from the lockfile), but it would otherwise block local dev syncs and CI.
+- `uv.lock` is committed and CI runs `uv sync --frozen` (fails instead of silently re-resolving if the
+  lockfile is stale) — if you add/bump a dependency, run `uv lock` (or `uv add`/`uv add --group dev`,
+  which updates the lock for you) and commit the result alongside the `pyproject.toml` change.
 - `frontend-ci.yml`: validates Gradle build graph for Android, Web Wasm, and iOS framework compile targets
   on every PR touching `frontend/**`.
 

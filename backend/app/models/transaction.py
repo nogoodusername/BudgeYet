@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import String, Float, DateTime, ForeignKey, Enum, func
+from sqlalchemy import String, Float, DateTime, ForeignKey, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import enum
 from app.core.database import Base
@@ -21,7 +21,8 @@ class Transaction(Base):
     household_id: Mapped[int] = mapped_column(ForeignKey("households.id", ondelete="CASCADE"), nullable=False)
     category_id: Mapped[int] = mapped_column(ForeignKey("categories.id", ondelete="SET NULL"), nullable=True)
     paid_by_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    
+    created_by_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+
     type: Mapped[TransactionType] = mapped_column(String(20), default=TransactionType.EXPENSE, nullable=False)
     amount: Mapped[float] = mapped_column(Float, nullable=False)
     merchant: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -35,4 +36,5 @@ class Transaction(Base):
     # Relationships
     household = relationship("Household", back_populates="transactions")
     category = relationship("Category", back_populates="transactions")
-    paid_by_user = relationship("User", back_populates="transactions")
+    paid_by_user = relationship("User", foreign_keys=[paid_by_id], back_populates="transactions")
+    created_by_user = relationship("User", foreign_keys=[created_by_id])

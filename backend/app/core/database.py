@@ -36,9 +36,18 @@ AsyncSessionLocal = async_sessionmaker(
 )
 
 async def get_async_db() -> AsyncGenerator[AsyncSession, None]:
-    """Dependency provider yielding async SQLAlchemy database sessions."""
+    """Dependency provider yielding async SQLAlchemy database sessions.
+
+    Commits once at the end of a request if the handler completed without raising,
+    and rolls back otherwise — repositories/services only `flush()`, they never
+    commit, so this is the single place a request's writes actually land.
+    """
     async with AsyncSessionLocal() as session:
         try:
             yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
         finally:
             await session.close()

@@ -21,32 +21,31 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
         with:
-          python-version: '3.11'
-          cache: 'pip'
+          enable-cache: true
+          cache-dependency-glob: 'backend/uv.lock'
 
       - name: Install Backend Dependencies
         run: |
           cd backend
-          python -m pip install --upgrade pip
-          pip install .[dev]
+          uv sync --frozen
 
       - name: Non-interactive Setup SQLite Environment
         run: |
           cd backend
-          python scripts/setup_env.py sqlite
+          uv run python scripts/setup_env.py sqlite
 
       - name: Run Ruff Linter
         run: |
           cd backend
-          ruff check app/
+          uv run ruff check app/
 
       - name: Run Pytest Suite
         run: |
           cd backend
-          pytest -v
+          uv run pytest -v
 
   docker-build:
     name: Backend Docker Image Build

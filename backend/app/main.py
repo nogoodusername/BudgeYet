@@ -1,8 +1,18 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from app.core.config import settings
 from app.core.database import async_engine, Base
+from app.core.exceptions import (
+    AppError,
+    AuthenticationError,
+    ConflictError,
+    NotFoundError,
+    PermissionDeniedError,
+    ValidationAppError,
+)
+from app.api.v1.endpoints import health
 from app.api.v1.router import api_router
 
 @asynccontextmanager
@@ -25,6 +35,31 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+_ERROR_STATUS_CODES = {
+    NotFoundError: 404,
+    PermissionDeniedError: 403,
+    AuthenticationError: 401,
+    ConflictError: 409,
+    ValidationAppError: 422,
+}
+
+
+def _register_exception_handlers(app: FastAPI) -> None:
+    for exc_class, status_code in _ERROR_STATUS_CODES.items():
+
+        def make_handler(code: int):
+            async def handler(request: Request, exc: AppError):
+                return JSONResponse(status_code=code, content={"detail": exc.message})
+
+            return handler
+
+        app.add_exception_handler(exc_class, make_handler(status_code))
+
+    @app.exception_handler(AppError)
+    async def fallback_app_error_handler(request: Request, exc: AppError):
+        return JSONResponse(status_code=400, content={"detail": exc.message})
+
+
 # Configure CORS for KMP/CMP Frontend targets (Android, iOS, Web)
 app.add_middleware(
     CORSMiddleware,
@@ -33,6 +68,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+_register_exception_handlers(app)
 
 # Root status route
 @app.get("/", summary="Root API Welcome")
@@ -46,8 +83,8 @@ async def root():
 
 # Include API v1 routes
 app.include_router(api_router, prefix=settings.API_V1_STR)
-# Top-level health endpoint alias
-app.include_router(api_router)
+# Top-level health endpoint alias (unprefixed, for load balancers/uptime checks)
+app.include_router(health.router)
 
 if __name__ == "__main__":
     import uvicorn
