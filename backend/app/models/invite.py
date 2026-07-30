@@ -1,10 +1,13 @@
 from datetime import datetime
-from sqlalchemy import String, DateTime, Boolean, ForeignKey, func
+from sqlalchemy import String, DateTime, Boolean, ForeignKey, Index, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
 class Invite(Base):
     __tablename__ = "invites"
+    __table_args__ = (
+        Index("ix_invites_household_id", "household_id"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     household_id: Mapped[int] = mapped_column(ForeignKey("households.id", ondelete="CASCADE"), nullable=False)

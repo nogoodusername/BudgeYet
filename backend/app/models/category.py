@@ -1,12 +1,15 @@
 from datetime import datetime
 from decimal import Decimal
-from sqlalchemy import String, Numeric, DateTime, ForeignKey, func
+from sqlalchemy import String, Numeric, DateTime, ForeignKey, Index, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
 class Category(Base):
     __tablename__ = "categories"
-    
+    __table_args__ = (
+        Index("ix_categories_household_id", "household_id"),
+    )
+
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     household_id: Mapped[int] = mapped_column(ForeignKey("households.id", ondelete="CASCADE"), nullable=False)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
