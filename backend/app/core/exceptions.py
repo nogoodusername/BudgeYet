@@ -28,4 +28,14 @@ class ValidationAppError(AppError):
 
 
 class AuthenticationError(AppError):
+    """Raising this commits the session instead of rolling it back.
+
+    `get_async_db` (core/database.py) special-cases this type so login-failure
+    bookkeeping (e.g. the failed-attempt counter in `AuthService.login`) survives
+    the very error it triggers. That carve-out is keyed on the exception type, not
+    the call site — if you add a new place that raises `AuthenticationError` after
+    some unrelated flush, that write will get committed too. Check
+    `get_async_db`'s docstring before doing that.
+    """
+
     pass
