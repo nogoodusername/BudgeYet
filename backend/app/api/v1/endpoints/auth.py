@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
 from app.controllers import auth_controller
+from app.core.security import get_client_ip
 from app.schemas.auth import ForgotPinRequest, LoginRequest, LoginResponse
 from app.schemas.user import UserCreate, UserResponse
 
@@ -18,7 +19,7 @@ async def signup(payload: UserCreate, db: AsyncSession = Depends(get_db)):
 @router.post("/login", response_model=LoginResponse)
 async def login(payload: LoginRequest, request: Request, db: AsyncSession = Depends(get_db)):
     """Exchange email + PIN for a bearer access token."""
-    ip_address = request.client.host if request.client else "unknown"
+    ip_address = get_client_ip(request)
     return await auth_controller.login(db, payload, ip_address)
 
 

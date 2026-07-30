@@ -3,11 +3,38 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import bcrypt
+from fastapi import Request
 from jose import JWTError, jwt
 
 from app.core.config import settings
 
 JWT_ALGORITHM = "HS256"
+
+
+def get_client_ip(request: Request) -> str:
+    """Resolve the real client IP, accounting for CDNs/load balancers (Cloudflare,
+    AWS ALB/CloudFront, Azure Front Door/App Gateway, etc.) that terminate the
+    connection themselves — `request.client.host` would otherwise return the
+    proxy's IP rather than the actual client's, defeating IP-based rate limiting.
+    """
+    cf_connecting_ip = request.headers.get("CF-Connecting-IP")
+    if cf_connecting_ip:
+        return cf_connecting_ip.strip()
+
+    real_ip = request.headers.get("X-Real-IP")
+    if real_ip:
+        return real_ip.strip()
+
+    forwarded_for = request.headers.get("X-Forwarded-For")
+    if forwarded_for:
+        # Each proxy hop appends the address it received the request from, so the
+        # last entry is the one added by our own (trusted) proxy/LB. Earlier
+        # entries are client-supplied and therefore spoofable.
+        last_hop = forwarded_for.split(",")[-1].strip()
+        if last_hop:
+            return last_hop
+
+    return request.client.host if request.client else "unknown"
 
 
 def generate_pin() -> str:
