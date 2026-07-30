@@ -10,7 +10,9 @@ e.g.:
 """
 
 import asyncio
+import logging
 import sys
+import time
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -19,6 +21,16 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.repositories.login_attempt_repository import LoginAttemptRepository
+
+logger = logging.getLogger("fam_ex.cleanup_login_failures")
+logger.setLevel(logging.INFO)
+if not logger.handlers:
+    # Own handler so run output is visible on stdout when this runs standalone
+    # (cron/compose sidecar), regardless of any app-wide logging config.
+    _handler = logging.StreamHandler()
+    _handler.setFormatter(logging.Formatter("%(asctime)s %(name)s %(message)s"))
+    logger.addHandler(_handler)
+    logger.propagate = False
 
 
 async def cleanup_login_failures() -> int:
@@ -30,9 +42,14 @@ async def cleanup_login_failures() -> int:
 
 
 def main() -> None:
-    deleted = asyncio.run(cleanup_login_failures())
-    print(f"[cleanup_login_failures] deleted {deleted} row(s) older than "
-          f"{settings.LOGIN_FAILURE_RETENTION_DAYS} day(s)")
+    logger.info("run started (retention=%dd)", settings.LOGIN_FAILURE_RETENTION_DAYS)
+    started = time.monotonic()
+    try:
+        deleted = asyncio.run(cleanup_login_failures())
+    except Exception:
+        logger.exception("run failed after %.2fs", time.monotonic() - started)
+        raise
+    logger.info("run finished in %.2fs, deleted %d row(s)", time.monotonic() - started, deleted)
 
 
 if __name__ == "__main__":
