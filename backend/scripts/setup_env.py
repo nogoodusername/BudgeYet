@@ -16,6 +16,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 ENV_FILE = BASE_DIR / ".env"
 EXAMPLE_ENV = BASE_DIR / ".env.example"
 
+DEFAULT_CORS_ORIGINS = "http://localhost:8080,http://127.0.0.1:8080,http://localhost:3000"
+
 def print_banner():
     print("=" * 60)
     print("      fam-ex Backend Project Setup & Database Configuration   ")
@@ -68,6 +70,23 @@ def setup_postgres():
         "POSTGRES_SSL": ssl,
     }
 
+def prompt_cors_origins():
+    print("\n--- Configuring CORS Allowed Origins ---")
+    print("Local dev origins (Web target) are always included:")
+    print(f"  {DEFAULT_CORS_ORIGINS}")
+    domains = input(
+        "Enter production frontend domain(s) to allow, comma-separated\n"
+        "(e.g. https://app.fam-ex.com) — leave blank if not deploying yet: "
+    ).strip()
+
+    origins = [DEFAULT_CORS_ORIGINS]
+    if domains:
+        origins.append(domains)
+    else:
+        print("[WARN] No production domain provided — only local dev origins will be allowed.")
+        print("       Re-run this script or set CORS_ORIGINS in .env before deploying.")
+    return ",".join(origins)
+
 def write_env_file(config: dict):
     # SECRET_KEY env var lets automated/repeat runs (e.g. a redeploy) pin a stable key;
     # otherwise generate a fresh random one so we never ship a well-known placeholder
@@ -81,6 +100,7 @@ def write_env_file(config: dict):
         'API_V1_STR="/api/v1"',
         f'SECRET_KEY="{secret_key}"',
         "ACCESS_TOKEN_EXPIRE_MINUTES=10080",
+        f"CORS_ORIGINS={config['CORS_ORIGINS']}",
         "",
         f"DATABASE_TYPE={config['DATABASE_TYPE']}",
     ]
@@ -113,13 +133,15 @@ def main():
         else:
             print(f"Unknown mode '{mode}'. Use 'sqlite' or 'postgres'.")
             sys.exit(1)
+        config["CORS_ORIGINS"] = os.getenv("CORS_ORIGINS", DEFAULT_CORS_ORIGINS)
     else:
         choice = prompt_db_choice()
         if choice == "2":
             config = setup_postgres()
         else:
             config = setup_sqlite()
-            
+        config["CORS_ORIGINS"] = prompt_cors_origins()
+
     write_env_file(config)
 
 def setup_sqlite_non_interactive():
