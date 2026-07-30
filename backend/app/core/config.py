@@ -27,7 +27,14 @@ class Settings(BaseSettings):
     LOGIN_LOCKOUT_MINUTES: int = 15
     MAX_LOGIN_FAILURES_PER_IP: int = 20
     IP_LOCKOUT_WINDOW_MINUTES: int = 15
-    
+
+    # CORS - comma-separated list of allowed origins (KMP/CMP Web target, local dev tools)
+    CORS_ORIGINS: str = "http://localhost:8080,http://127.0.0.1:8080,http://localhost:3000"
+
+    @property
+    def CORS_ORIGINS_LIST(self) -> list[str]:
+        return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+
     @property
     def ASYNC_DATABASE_URI(self) -> str:
         """Dynamically build async database connection URI based on DATABASE_TYPE."""
