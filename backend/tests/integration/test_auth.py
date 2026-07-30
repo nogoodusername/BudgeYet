@@ -128,6 +128,24 @@ async def test_login_lockout_message_reports_multi_day_wait_correctly(client, mo
     assert minutes_reported > 1440
 
 
+async def test_login_throttles_by_ip_across_distinct_emails(client, monkeypatch):
+    # An attacker spraying guesses across many emails (or many unregistered
+    # emails) never trips the per-account lockout, since that counter lives on
+    # the targeted account. The IP-level throttle catches this instead.
+    monkeypatch.setattr(settings, "MAX_LOGIN_FAILURES_PER_IP", 3)
+
+    for _ in range(3):
+        resp = await client.post(
+            "/auth/login", json={"email": "nobody@example.com", "pin": "000000"}
+        )
+        assert resp.status_code == 401
+
+    resp = await client.post(
+        "/auth/login", json={"email": "somebody-else@example.com", "pin": "000000"}
+    )
+    assert resp.status_code == 429
+
+
 async def test_forgot_pin_clears_existing_lockout(client, monkeypatch):
     await signup(client, monkeypatch, "ada@example.com")
 

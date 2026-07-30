@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
@@ -16,9 +16,10 @@ async def signup(payload: UserCreate, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/login", response_model=LoginResponse)
-async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
+async def login(payload: LoginRequest, request: Request, db: AsyncSession = Depends(get_db)):
     """Exchange email + PIN for a bearer access token."""
-    return await auth_controller.login(db, payload)
+    ip_address = request.client.host if request.client else "unknown"
+    return await auth_controller.login(db, payload, ip_address)
 
 
 @router.post("/forgot-pin", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
