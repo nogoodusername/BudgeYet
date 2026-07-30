@@ -24,14 +24,30 @@ Backend and frontend have separate CI pipelines gated by path (`backend/**`, `fr
 
 ## Current state (important)
 
-- Backend: v1 MVP REST surface is implemented — auth (email + 6-digit PIN, JWT), households
-  (create/update, invites, join, member roles, leave/remove), budgets, categories (with
-  reassign-before-delete), transactions (role-scoped edit/delete), dashboard, and a polling
-  activity feed. Follows a Router → Controller → Service → Repository layering under `app/`
-  (`api/v1/endpoints/` → `controllers/` → `services/` → `repositories/`). One Alembic migration
-  (`alembic/versions/`) covers the full schema. `backend/tests/` has unit tests (`tests/unit/`) for
+- Backend: v1 MVP REST surface is implemented — auth (email + 6-digit PIN, JWT, forgot-PIN
+  reissue), households (create/update, invites, join, member roles, leave/remove), budgets,
+  categories (with reassign-before-delete), transactions (role-scoped edit/delete, filterable by
+  category/payer/type/payment mode/date range/amount range/merchant-or-category search), dashboard,
+  and a polling activity feed. Follows a Router → Controller → Service → Repository layering under
+  `app/` (`api/v1/endpoints/` → `controllers/` → `services/` → `repositories/`). `alembic/versions/`
+  now holds a full migration chain (not a single initial migration) — schema has evolved
+  incrementally (login lockout fields, per-IP login-failure table, denormalized/atomic household
+  member counter, unique constraints, Numeric money columns, indexes) since the original v1 cut; see
+  "Auth hardening" below and the Alembic note under Backend conventions before assuming the schema
+  matches `e2eaf9009180_initial_schema.py` alone. `backend/tests/` has unit tests (`tests/unit/`) for
   `core/security.py` and `services/cycle_utils.py`, and integration tests (`tests/integration/`)
   per resource group hitting the API via `httpx.AsyncClient` against an in-memory SQLite DB.
+- **Auth hardening (since v1):** login now has two independent throttles — a per-account lockout
+  (`User.failed_login_attempts`/`locked_until`, tunable via `MAX_LOGIN_ATTEMPTS`/
+  `LOGIN_LOCKOUT_MINUTES` in `core/config.py`) and a per-IP rate limit backed by the `login_failures`
+  table (`models/login_attempt.py`, `repositories/login_attempt_repository.py`), tunable via
+  `MAX_LOGIN_FAILURES_PER_IP`/`IP_LOCKOUT_WINDOW_MINUTES`. The IP throttle exists specifically to
+  catch an attacker spraying guesses across many accounts, which the per-account counter alone can't
+  see. Both live in `AuthService.login` (`services/auth_service.py`) and raise `RateLimitError`
+  (→ HTTP 429) or `AuthenticationError` (→ HTTP 401, and see the commit carve-out on
+  `AuthenticationError` under `core/database.py` below). Money amounts (`Transaction.amount`,
+  `Budget.monthly_goal_amount`) are `Numeric(12, 2)`/`Decimal`, not `Float` — keep new money columns
+  consistent with that.
 - Frontend: still only a single `DashboardScreen.kt` composable and shared `Models.kt` exist in
   `commonMain`. No networking, navigation, or auth flow wired up yet — the backend above is ready
   for it to consume.
@@ -71,7 +87,8 @@ for the collision it fixes.
 
 **Layout convention** (`app/`) — strict Router → Controller → Service → Repository layering:
 - `models/` — SQLAlchemy ORM classes (one file per aggregate: `user.py`, `household.py` (also holds
-  `HouseholdMember`), `invite.py`, `budget.py`, `category.py`, `transaction.py`). Declare
+  `HouseholdMember`), `invite.py`, `budget.py`, `category.py`, `transaction.py`, `login_attempt.py`
+  (holds `LoginFailure`, the per-IP login-throttle table — see "Auth hardening" above)). Declare
   `Mapped[...]`/`mapped_column` style, not legacy `Column`.
 - `schemas/` — Pydantic request/response models, mirroring `models/` filenames. Follow the existing
   `XBase` / `XCreate` / `XUpdate` / `XResponse` naming split (see `schemas/user.py`). `common.py` has
@@ -84,14 +101,27 @@ for the collision it fixes.
 - `controllers/` — thin orchestration between routers and services; maps request schemas to service
   calls and service results back to response schemas. No SQLAlchemy imports here.
 - `services/` — business rules (role permissions, the 3-member cap, future-date rejection, cycle
-  math in `cycle_utils.py`, delete-blocked-by-transactions, invite expiry, "always one admin"). Raises
-  the domain exceptions in `core/exceptions.py` (`NotFoundError`, `ConflictError`,
-  `PermissionDeniedError`, `ValidationAppError`, `AuthenticationError`) — never `fastapi.HTTPException`
-  directly. `main.py` registers exception handlers that translate these to HTTP responses.
+  math in `cycle_utils.py`, delete-blocked-by-transactions, invite expiry, "always one admin",
+  login lockout/rate-limit — see "Auth hardening" above). Raises the domain exceptions in
+  `core/exceptions.py` (`NotFoundError`, `ConflictError`, `PermissionDeniedError`,
+  `ValidationAppError`, `AuthenticationError`, `RateLimitError`) — never `fastapi.HTTPException`
+  directly. `main.py` registers exception handlers that translate these to HTTP responses
+  (`_ERROR_STATUS_CODES`; anything else raised as a bare `AppError` falls back to 400).
 - `repositories/` — the only layer that touches `AsyncSession`/SQLAlchemy queries directly. No business
-  logic — just CRUD and filtered/aggregated reads.
+  logic — just CRUD and filtered/aggregated reads. Includes `login_attempt_repository.py` (per-IP
+  failure counting/recording). Race-condition-prone invariants are enforced as atomic DB operations
+  here rather than check-then-act service code: the 3-member household cap is a conditional `UPDATE`
+  on `Household.member_count` (`HouseholdRepository.try_reserve_member_slot`/`release_member_slot`,
+  backed by a `CheckConstraint`), one-household-per-user is a `unique=True` on
+  `HouseholdMember.user_id`, and one-budget-per-household-per-cycle is a `UniqueConstraint` on
+  `Budget(household_id, month, year)` — don't reintroduce a read-then-insert check for any of these.
 - `core/config.py` — `Settings` (pydantic-settings), loaded from `.env`. Add new config here, not as
-  scattered `os.environ` reads.
+  scattered `os.environ` reads. Includes login-throttle knobs (`MAX_LOGIN_ATTEMPTS`,
+  `LOGIN_LOCKOUT_MINUTES`, `MAX_LOGIN_FAILURES_PER_IP`, `IP_LOCKOUT_WINDOW_MINUTES`). `SECRET_KEY`
+  still has an in-code default, but `docker-compose.yml`/`docker-compose.sqlite.yml` require
+  `SECRET_KEY`/`POSTGRES_PASSWORD` to be set (`${VAR:?...}`) and fail fast with a pointer to
+  `scripts/setup_env.py` instead of silently falling back to a repo-committed value — don't
+  reintroduce a `:-default` fallback for either in the compose files.
 - `core/database.py` — async engine/session setup and `Base`. `get_async_db` commits once at the end of
   a request if the handler didn't raise, and rolls back otherwise — repositories only ever `flush()`,
   they never commit, so don't add commits anywhere else. One deliberate carve-out: it also commits (rather
@@ -131,9 +161,14 @@ instead of editing `pyproject.toml` by hand — it keeps `uv.lock` in sync autom
 - All route handlers are `async def`; use the async session from `api/deps.get_db`, never a sync session.
 - Integer autoincrement PKs (see `models/user.py`), not UUIDs — stay consistent with existing models.
 - `created_at`/`updated_at` via `server_default=func.now()` / `onupdate=func.now()` on every table.
-- New DB schema changes need an Alembic migration (`alembic/`) — don't rely on `Base.metadata.create_all`.
-  Alembic is the only schema authority for both SQLite and Postgres; run `alembic upgrade head` after
-  pulling new migrations or setting up a fresh DB.
+- New DB schema changes need an Alembic migration (`alembic/`) — don't rely on `Base.metadata.create_all`
+  (nothing calls it; SQLite schema creation via `create_all` was deliberately removed so SQLite and
+  Postgres go through the identical migration path). Alembic is the only schema authority for both
+  SQLite and Postgres; run `alembic upgrade head` after pulling new migrations or setting up a fresh DB.
+  If two branches each add a migration off the same parent, you'll get divergent heads on merge
+  (`alembic heads` shows more than one) — resolve with `alembic merge heads` (see
+  `448438686134_merge_heads.py` / `91bd6c67df47_merge_login_lockout_and_missing_indexes_.py` for
+  precedent) rather than hand-editing `down_revision`.
 - Run `uv run ruff check app/` before considering backend work done; CI will fail otherwise.
 
 ## Frontend (`frontend/`)
