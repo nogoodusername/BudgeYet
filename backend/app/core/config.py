@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
     MAX_LOGIN_ATTEMPTS: int = 5
     LOGIN_LOCKOUT_MINUTES: int = 15
+    MAX_LOGIN_FAILURES_PER_IP: int = 20
+    IP_LOCKOUT_WINDOW_MINUTES: int = 15
     
     @property
     def ASYNC_DATABASE_URI(self) -> str:

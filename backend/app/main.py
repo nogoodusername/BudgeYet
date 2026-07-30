@@ -10,6 +10,7 @@ from app.core.exceptions import (
     ConflictError,
     NotFoundError,
     PermissionDeniedError,
+    RateLimitError,
     ValidationAppError,
 )
 from app.api.v1.endpoints import health
@@ -36,6 +37,7 @@ _ERROR_STATUS_CODES = {
     PermissionDeniedError: 403,
     AuthenticationError: 401,
     ConflictError: 409,
+    RateLimitError: 429,
     ValidationAppError: 422,
 }
 

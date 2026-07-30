@@ -10,8 +10,8 @@ async def signup(db: AsyncSession, payload: UserCreate) -> UserResponse:
     return UserResponse.model_validate(user)
 
 
-async def login(db: AsyncSession, payload: LoginRequest) -> LoginResponse:
-    user, token = await AuthService(db).login(payload.email, payload.pin)
+async def login(db: AsyncSession, payload: LoginRequest, ip_address: str) -> LoginResponse:
+    user, token = await AuthService(db).login(payload.email, payload.pin, ip_address)
     return LoginResponse(
         access_token=token, user=UserResponse.model_validate(user)
     )

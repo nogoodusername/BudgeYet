@@ -27,6 +27,10 @@ class ValidationAppError(AppError):
     pass
 
 
+class RateLimitError(AppError):
+    pass
+
+
 class AuthenticationError(AppError):
     """Raising this commits the session instead of rolling it back.
 

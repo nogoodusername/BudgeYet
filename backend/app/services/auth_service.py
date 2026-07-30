@@ -4,9 +4,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.email import send_pin_email
-from app.core.exceptions import AuthenticationError, ConflictError
+from app.core.exceptions import AuthenticationError, ConflictError, RateLimitError
 from app.core.security import create_access_token, generate_pin, hash_pin, verify_pin
 from app.models.user import User
+from app.repositories.login_attempt_repository import LoginAttemptRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.user import UserCreate
 
@@ -15,6 +16,7 @@ class AuthService:
     def __init__(self, db: AsyncSession):
         self.db = db
         self.users = UserRepository(db)
+        self.login_attempts = LoginAttemptRepository(db)
 
     async def signup(self, payload: UserCreate) -> User:
         existing = await self.users.get_by_email(payload.email)
@@ -31,12 +33,20 @@ class AuthService:
         send_pin_email(user.email, pin)
         return user
 
-    async def login(self, email: str, pin: str) -> tuple[User, str]:
+    async def login(self, email: str, pin: str, ip_address: str) -> tuple[User, str]:
+        now = datetime.utcnow()
+        window_start = now - timedelta(minutes=settings.IP_LOCKOUT_WINDOW_MINUTES)
+        recent_ip_failures = await self.login_attempts.count_recent_failures(
+            ip_address, since=window_start
+        )
+        if recent_ip_failures >= settings.MAX_LOGIN_FAILURES_PER_IP:
+            raise RateLimitError("Too many failed login attempts. Try again later.")
+
         user = await self.users.get_by_email(email)
         if user is None:
+            await self.login_attempts.record_failure(ip_address)
             raise AuthenticationError("Invalid email or PIN")
 
-        now = datetime.utcnow()
         if user.locked_until is not None and user.locked_until > now:
             minutes_left = max(1, int((user.locked_until - now).total_seconds() // 60))
             raise AuthenticationError(
@@ -48,6 +58,7 @@ class AuthService:
             if user.failed_login_attempts + 1 >= settings.MAX_LOGIN_ATTEMPTS:
                 locked_until = now + timedelta(minutes=settings.LOGIN_LOCKOUT_MINUTES)
             await self.users.record_failed_login(user, locked_until=locked_until)
+            await self.login_attempts.record_failure(ip_address)
             raise AuthenticationError("Invalid email or PIN")
 
         if user.failed_login_attempts or user.locked_until is not None:
