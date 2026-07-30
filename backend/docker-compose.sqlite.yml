@@ -14,5 +14,22 @@ services:
       - sqlite_data:/app/data
     restart: unless-stopped
 
+  login-cleanup:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fam_ex_login_cleanup_sqlite
+    environment:
+      - DATABASE_TYPE=sqlite
+      - SQLITE_DB_FILE=/app/data/fam_ex.db
+    volumes:
+      - sqlite_data:/app/data
+    # No cron daemon in the image, so this loops the purge script once a day
+    # itself — good enough for a job that just needs to run roughly daily.
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - "while true; do python scripts/cleanup_login_failures.py; sleep 86400; done"
+    restart: unless-stopped
+
 volumes:
   sqlite_data:
