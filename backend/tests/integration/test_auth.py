@@ -1,5 +1,8 @@
+import re
+
 import pytest
 
+from app.core.config import settings
 from tests.helpers import FIXED_PIN, signup
 
 pytestmark = pytest.mark.asyncio
@@ -104,6 +107,25 @@ async def test_login_resets_attempt_counter_after_success(client, monkeypatch):
 
     resp = await client.post("/auth/login", json={"email": "ada@example.com", "pin": FIXED_PIN})
     assert resp.status_code == 200
+
+
+async def test_login_lockout_message_reports_multi_day_wait_correctly(client, monkeypatch):
+    # Regression test: timedelta.seconds is the sub-day remainder, not the total
+    # duration, so a lockout window past 1440 minutes would previously be
+    # under-reported (e.g. ~1500 minutes silently became ~60).
+    monkeypatch.setattr(settings, "LOGIN_LOCKOUT_MINUTES", 1500)
+    await signup(client, monkeypatch, "ada@example.com")
+
+    for _ in range(5):
+        resp = await client.post(
+            "/auth/login", json={"email": "ada@example.com", "pin": "000000"}
+        )
+        assert resp.status_code == 401
+
+    resp = await client.post("/auth/login", json={"email": "ada@example.com", "pin": FIXED_PIN})
+    assert resp.status_code == 401
+    minutes_reported = int(re.search(r"(\d+) minute", resp.json()["detail"]).group(1))
+    assert minutes_reported > 1440
 
 
 async def test_forgot_pin_clears_existing_lockout(client, monkeypatch):

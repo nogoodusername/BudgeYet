@@ -38,7 +38,7 @@ class AuthService:
 
         now = datetime.utcnow()
         if user.locked_until is not None and user.locked_until > now:
-            minutes_left = max(1, (user.locked_until - now).seconds // 60)
+            minutes_left = max(1, int((user.locked_until - now).total_seconds() // 60))
             raise AuthenticationError(
                 f"Too many failed attempts. Try again in {minutes_left} minute(s)."
             )
