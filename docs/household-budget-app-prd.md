@@ -88,6 +88,16 @@ The household creator is the default Admin. An existing Admin can promote a Memb
 
 ### A. Onboarding & Setup
 
+**A0. Backend endpoint selection**
+- Before the Welcome journey, first launch lets the user choose which backend the app talks to: the
+  hosted backend operated by us (**default**, zero configuration required) or a **custom URL** pointing
+  at their own self-hosted deployment (e.g. via `scripts/install.sh`).
+- Choosing "custom" prompts for a base URL and validates it's reachable (health check) before letting
+  the user continue; a failed check surfaces an inline error rather than silently falling back to the
+  default.
+- This is a device-level setting, not a household/account setting — it's stored locally and can be
+  changed later from app settings, independent of any signed-in household's data.
+
 **A1. Welcome journey**
 - 2–3 screen intro (swipeable) communicating the value proposition: shared visibility, fast logging, real-time family activity.
 - Skippable at any point; last screen leads to Signup.
@@ -228,6 +238,9 @@ The following were open questions in the initial draft and have since been confi
 6. **Currency scope:** One currency per household, set at setup — not per-transaction.
 7. **Invite link expiry:** 7 days.
 8. **Email edit post-signup:** Not allowed; email is permanently read-only after signup.
+9. **Backend endpoint:** Configurable at onboarding (see A0) — defaults to our hosted backend, with an
+   option to point the client at a self-hosted deployment instead. A device-level setting, not synced
+   per-household.
 
 ---
 

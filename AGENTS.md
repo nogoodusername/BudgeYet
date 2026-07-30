@@ -50,7 +50,10 @@ Backend and frontend have separate CI pipelines gated by path (`backend/**`, `fr
   consistent with that.
 - Frontend: still only a single `DashboardScreen.kt` composable and shared `Models.kt` exist in
   `commonMain`. No networking, navigation, or auth flow wired up yet — the backend above is ready
-  for it to consume.
+  for it to consume. When the networking layer lands, the backend base URL must be user-configurable
+  at onboarding (PRD A0/Section 9.9): default to our hosted backend, but let the user point the app
+  at their own self-hosted deployment instead. Store it as a device-level setting (not per-household)
+  and don't hardcode the hosted URL as the only option.
 
 Don't assume a feature exists because it's in the PRD or in a model/schema — check the actual endpoint
 router and frontend screens first.
