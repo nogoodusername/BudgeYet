@@ -48,11 +48,6 @@ class AuthService:
             if user.failed_login_attempts + 1 >= settings.MAX_LOGIN_ATTEMPTS:
                 locked_until = now + timedelta(minutes=settings.LOGIN_LOCKOUT_MINUTES)
             await self.users.record_failed_login(user, locked_until=locked_until)
-            # Commit explicitly: the exception raised below unwinds through
-            # get_async_db (core/database.py), which rolls back the session on
-            # any exception — without this the attempt count would never
-            # survive the very failure it's meant to track.
-            await self.db.commit()
             raise AuthenticationError("Invalid email or PIN")
 
         if user.failed_login_attempts or user.locked_until is not None:
