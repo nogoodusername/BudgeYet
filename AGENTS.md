@@ -48,8 +48,9 @@ Backend and frontend have separate CI pipelines gated by path (`backend/**`, `fr
   `AuthenticationError` under `core/database.py` below). Money amounts (`Transaction.amount`,
   `Budget.monthly_goal_amount`) are `Numeric(12, 2)`/`Decimal`, not `Float` — keep new money columns
   consistent with that.
-- Frontend: still only a single `DashboardScreen.kt` composable and shared `Models.kt` exist in
-  `commonMain`. No networking, navigation, or auth flow wired up yet — the backend above is ready
+- Frontend: Phase 1 has landed (see "Frontend build plan" below) — feature-based navigation
+  (Dashboard/Categories/History/Add Transaction/Profile) backed by fake repositories and dummy data
+  scenarios, no real networking yet. No auth flow wired up yet either — the backend above is ready
   for it to consume. When the networking layer lands, the backend base URL must be user-configurable
   at onboarding (PRD A0/Section 9.9): default to our hosted backend, but let the user point the app
   at their own self-hosted deployment instead. Store it as a device-level setting (not per-household)
@@ -211,6 +212,45 @@ centrally in `gradle/libs.versions.toml` — add new dependencies there, referen
 (`#0f172a`) base; Teal `#0d9488` = on-track/positive; Amber `#d97706` = 75–99% of a budget/limit used;
 Coral `#e11d48` = at/over 100% (over-budget warning). 8px rounded corners, card-based lists, persistent
 bottom nav + FAB. Reuse these tokens for any new UI — don't hardcode new colors ad hoc.
+
+## Frontend build plan
+
+The full PRD frontend surface (~18 screens: onboarding/auth, dashboard, categories, transactions,
+collaboration, profile) is being built in three phases, backed by dummy/fake repository data until
+real Ktor networking is wired up (see "Frontend dummy data scenarios" below). Update this section's
+checkboxes as phases land so the plan survives across sessions.
+
+- [x] **Phase 1 — Core daily-use loop (PRD B/C/D).** Dashboard (empty states, FAB long-press
+  Add Expense/Income shortcuts, tap-through), Category Limits (C1, admin-gated) + Category Detail
+  (C3), Transaction History (D2, grouped/search/filter) + Transaction Detail (D3, role-gated edit/
+  delete) + Add Transaction (D1). Persistent bottom nav (Dashboard, Categories, Add [FAB], History,
+  Profile) with a minimal read-only Profile stub — full profile editing is Phase 3. Feature-based
+  folders under `composeApp/src/commonMain/kotlin/com/famex/feature/{dashboard,category,transaction,
+  profile}/{data,domain,presentation}`, shared bits in `core/` (`navigation`, `model`, `ui`, `util`,
+  `di`), dummy scenarios in `fixtures/`.
+- [ ] **Phase 2 — Onboarding & auth funnel (PRD A).** Welcome/intro, signup, PIN verify, login,
+  forgot PIN, household create/join, budget creation (skippable), category configuration
+  (skippable, tied to budget creation per PRD A3/A4).
+- [ ] **Phase 3 — Collaboration & full profile (PRD E1/E2).** Household member list/roles, invite via
+  email/link (7-day expiry, 3-member cap enforcement), revoke invite/remove member, editable profile
+  (name/nickname, read-only email), household currency/language (admin), display mode preference.
+
+**Architecture choices made in Phase 1 (carry forward into later phases):**
+- Navigation is a hand-rolled `core/navigation/AppNavController` (sealed `Screen` + back-stack list),
+  not `androidx.navigation.compose` — avoids version risk against the pinned Kotlin 1.9.23/Compose
+  Multiplatform 1.6.1 toolchain. Keep using it rather than introducing a nav library mid-build.
+- DI is a manual `core/di/AppContainer` (composition root + `CompositionLocal`), not Koin — repos are
+  interface-first (`XRepository` + `FakeXRepository`) so swapping in Koin + real Ktor implementations
+  later only touches the container, not screens.
+- State holders are plain Kotlin classes exposing `StateFlow<UiState>`/`SharedFlow<Event>` with a
+  manually-scoped `CoroutineScope`, not `androidx.lifecycle.ViewModel` (same version-risk reasoning).
+
+**Frontend dummy data scenarios** (`fixtures/DummyScenario.kt`) — code-level switch only (change the
+constant in `App.kt` and rebuild; no in-app dev switcher by design): `NoBudgetSetup`,
+`EmptyBudgetNoTransactions`, `HealthyMidMonth`, `NearLimitAmber`, `OverBudgetCoral`, `SoloBudgeter`,
+`FullHouseholdThreeMembers`, `LongTransactionHistory`, `SimulatedLoadingAndError`. Fake repos add a
+short `delay()` before returning so Loading states are real, and `SimulatedLoadingAndError` forces a
+throw once so Error/retry UI is exercised too — these aren't just Success-state fixtures.
 
 ## Key business rules to respect (from the PRD)
 
