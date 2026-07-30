@@ -67,6 +67,16 @@ router and frontend screens first.
 - **Receipt photo upload is fully out of scope**, backend and frontend. `Transaction.receipt_url`
   exists on the model but there is no upload endpoint or storage integration, and no client-side
   capture flow either.
+- **Per-IP login rate limit is bypassable on a bare deployment.** `get_client_ip` (`core/security.py`)
+  unconditionally trusts `CF-Connecting-IP`/`X-Real-IP`/`X-Forwarded-For` from the incoming request,
+  with no check that the request actually passed through a trusted proxy that sets/overwrites those
+  headers. This is safe behind a CDN that strips client-supplied versions of them (Cloudflare, etc.),
+  but on the installer's default path (`install.sh` → `docker-compose up` on a bare VPS, no CDN
+  required) any client can spoof a different `X-Forwarded-For` on every request and evade
+  `MAX_LOGIN_FAILURES_PER_IP` entirely — the per-account lockout (`User.failed_login_attempts`) still
+  holds, but the per-IP throttle doesn't. Fix is to gate header-trust behind an explicit
+  `TRUSTED_PROXY_COUNT`/`BEHIND_PROXY` setting (off by default), falling back to `request.client.host`
+  when unset — see `core/security.py`.
 
 ## Backend (`backend/`)
 
