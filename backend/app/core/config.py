@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     LOGIN_LOCKOUT_MINUTES: int = 15
     MAX_LOGIN_FAILURES_PER_IP: int = 20
     IP_LOCKOUT_WINDOW_MINUTES: int = 15
+    LOGIN_FAILURE_RETENTION_DAYS: int = 30
 
     # CORS - comma-separated list of allowed origins (KMP/CMP Web target, local dev tools)
     CORS_ORIGINS: str = "http://localhost:8080,http://127.0.0.1:8080,http://localhost:3000"
