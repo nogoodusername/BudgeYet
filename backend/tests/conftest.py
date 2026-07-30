@@ -6,6 +6,7 @@ from sqlalchemy.pool import StaticPool
 import app.models  # noqa: F401  ensure every model is registered on Base.metadata
 from app.api.deps import get_db
 from app.core.database import Base
+from app.core.exceptions import AuthenticationError
 from app.main import app
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
@@ -19,10 +20,15 @@ TestSessionLocal = async_sessionmaker(bind=engine, class_=AsyncSession, expire_o
 
 
 async def _override_get_db():
+    # Mirrors app.core.database.get_async_db, including its AuthenticationError
+    # carve-out (see that function's docstring) — keep the two in sync.
     async with TestSessionLocal() as session:
         try:
             yield session
             await session.commit()
+        except AuthenticationError:
+            await session.commit()
+            raise
         except Exception:
             await session.rollback()
             raise

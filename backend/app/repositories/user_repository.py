@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,6 +27,20 @@ class UserRepository:
         for key, value in fields.items():
             if value is not None:
                 setattr(user, key, value)
+        await self.db.flush()
+        await self.db.refresh(user)
+        return user
+
+    async def record_failed_login(self, user: User, *, locked_until: Optional[datetime]) -> User:
+        user.failed_login_attempts += 1
+        user.locked_until = locked_until
+        await self.db.flush()
+        await self.db.refresh(user)
+        return user
+
+    async def reset_login_attempts(self, user: User) -> User:
+        user.failed_login_attempts = 0
+        user.locked_until = None
         await self.db.flush()
         await self.db.refresh(user)
         return user

@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     # Auth & Security
     SECRET_KEY: str = "change-this-super-secret-key-in-production"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
+    MAX_LOGIN_ATTEMPTS: int = 5
+    LOGIN_LOCKOUT_MINUTES: int = 15
     
     @property
     def ASYNC_DATABASE_URI(self) -> str:

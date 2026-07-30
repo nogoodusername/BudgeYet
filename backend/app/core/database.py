@@ -4,6 +4,7 @@ from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy import event, engine
 
 from app.core.config import settings
+from app.core.exceptions import AuthenticationError
 
 class Base(DeclarativeBase):
     """Base declarative class for all SQLAlchemy ORM models."""
@@ -41,11 +42,20 @@ async def get_async_db() -> AsyncGenerator[AsyncSession, None]:
     Commits once at the end of a request if the handler completed without raising,
     and rolls back otherwise — repositories/services only `flush()`, they never
     commit, so this is the single place a request's writes actually land.
+
+    `AuthenticationError` is the one deliberate exception to "rolls back
+    otherwise": login failure bookkeeping (e.g. the failed-attempt counter in
+    `AuthService.login`) is flushed *before* that error is raised and must
+    survive it, or an account could never actually get locked out. Every other
+    error still rolls back in full.
     """
     async with AsyncSessionLocal() as session:
         try:
             yield session
             await session.commit()
+        except AuthenticationError:
+            await session.commit()
+            raise
         except Exception:
             await session.rollback()
             raise

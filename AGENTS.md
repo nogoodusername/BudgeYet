@@ -94,7 +94,11 @@ for the collision it fixes.
   scattered `os.environ` reads.
 - `core/database.py` — async engine/session setup and `Base`. `get_async_db` commits once at the end of
   a request if the handler didn't raise, and rolls back otherwise — repositories only ever `flush()`,
-  they never commit, so don't add commits anywhere else.
+  they never commit, so don't add commits anywhere else. One deliberate carve-out: it also commits (rather
+  than rolling back) on `AuthenticationError`, since login-failure bookkeeping (e.g. the failed-attempt
+  counter in `AuthService.login`) is flushed right before that error is raised and must survive it. If you
+  need writes to survive some other exception type, extend that one `except` clause — don't reach for a
+  manual `session.commit()` in a service.
 - `core/security.py` — PIN hashing (via `bcrypt` directly, **not** `passlib`: passlib's bcrypt backend
   self-test breaks under bcrypt ≥ 4.1, a live incompatibility, not a hypothetical) and JWT issue/decode.
 - `core/email.py` — stub email "sender" (logs only) — see "Known gaps" above before assuming it sends.
