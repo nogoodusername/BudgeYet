@@ -59,9 +59,12 @@ def _register_exception_handlers(app: FastAPI) -> None:
 
 
 # Configure CORS for KMP/CMP Frontend targets (Android, iOS, Web)
+# Android/iOS clients don't send an Origin header, so only the Web target is
+# actually gated by this list. allow_credentials=True forbids a wildcard origin,
+# so an explicit allowlist (settings.CORS_ORIGINS) is required.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.CORS_ORIGINS_LIST,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
