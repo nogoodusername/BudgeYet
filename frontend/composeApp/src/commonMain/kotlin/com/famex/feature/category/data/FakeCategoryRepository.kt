@@ -6,14 +6,25 @@ import com.famex.fixtures.DummyScenario
 import com.famex.fixtures.dummyCategories
 import kotlinx.coroutines.delay
 
-class FakeCategoryRepository(private val scenario: DummyScenario) : CategoryRepository {
+class FakeCategoryRepository(scenario: DummyScenario) : CategoryRepository {
+    // In-memory only — mutated by updateCategoryLimits so Save Changes persists for the
+    // rest of the app session (this repository instance lives as long as AppContainer).
+    private var categories: List<Category> = dummyCategories(scenario)
+
     override suspend fun getCategories(): List<Category> {
         delay(400)
-        return dummyCategories(scenario)
+        return categories
     }
 
     override suspend fun getCategory(categoryId: Long): Category? {
         delay(300)
-        return dummyCategories(scenario).find { it.id == categoryId }
+        return categories.find { it.id == categoryId }
+    }
+
+    override suspend fun updateCategoryLimits(limits: Map<Long, Double>) {
+        delay(300)
+        categories = categories.map { category ->
+            limits[category.id]?.let { newLimit -> category.copy(monthlyLimit = newLimit) } ?: category
+        }
     }
 }

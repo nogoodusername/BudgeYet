@@ -116,9 +116,7 @@ fun App() {
                             onNavigateToCategoryDetail = { navController.navigate(Screen.CategoryDetail(it)) },
                             onNavigateToHistory = { navController.switchTab(Screen.History) }
                         )
-                        Screen.Categories -> CategoryRoute(
-                            onCategoryClick = { navController.navigate(Screen.CategoryDetail(it)) }
-                        )
+                        Screen.Categories -> CategoryRoute()
                         is Screen.CategoryDetail -> CategoryDetailRoute(categoryId = screen.categoryId)
                         Screen.History -> HistoryRoute(
                             onTransactionClick = { navController.navigate(Screen.TransactionDetail(it)) }
