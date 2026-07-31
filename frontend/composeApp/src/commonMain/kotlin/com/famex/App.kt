@@ -113,7 +113,8 @@ fun App() {
                 Box(modifier = Modifier.padding(paddingValues)) {
                     when (val screen = current) {
                         Screen.Dashboard -> DashboardRoute(
-                            onNavigateToCategoryDetail = { navController.navigate(Screen.CategoryDetail(it)) }
+                            onNavigateToCategoryDetail = { navController.navigate(Screen.CategoryDetail(it)) },
+                            onNavigateToHistory = { navController.switchTab(Screen.History) }
                         )
                         Screen.Categories -> CategoryRoute(
                             onCategoryClick = { navController.navigate(Screen.CategoryDetail(it)) }
