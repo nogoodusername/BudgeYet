@@ -1,0 +1,8 @@
+package com.famex.feature.category.domain
+
+import com.famex.core.model.Category
+
+interface CategoryRepository {
+    suspend fun getCategories(): List<Category>
+    suspend fun getCategory(categoryId: Long): Category?
+}
