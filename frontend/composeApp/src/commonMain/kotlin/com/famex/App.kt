@@ -36,9 +36,9 @@ import com.famex.feature.category.presentation.CategoryDetailRoute
 import com.famex.feature.category.presentation.CategoryRoute
 import com.famex.feature.dashboard.presentation.DashboardRoute
 import com.famex.feature.profile.presentation.ProfileRoute
-import com.famex.feature.transaction.presentation.AddTransactionPlaceholderScreen
+import com.famex.feature.transaction.presentation.AddTransactionRoute
+import com.famex.feature.transaction.presentation.EditTransactionRoute
 import com.famex.feature.transaction.presentation.HistoryRoute
-import com.famex.feature.transaction.presentation.TransactionDetailRoute
 import com.famex.fixtures.DummyScenario
 import com.famex.theme.BrandTeal
 import com.famex.theme.FamExTheme
@@ -99,13 +99,17 @@ fun App() {
                     }
                 },
                 floatingActionButton = {
-                    FloatingActionButton(
-                        onClick = { navController.navigate(Screen.AddTransaction) },
-                        containerColor = BrandTeal,
-                        contentColor = Color.White,
-                        shape = CircleShape
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = "Add Transaction")
+                    // Hidden on the add/edit transaction forms — it would float on top of
+                    // those screens' own Save button.
+                    if (current != Screen.AddTransaction && current !is Screen.TransactionDetail) {
+                        FloatingActionButton(
+                            onClick = { navController.navigate(Screen.AddTransaction) },
+                            containerColor = BrandTeal,
+                            contentColor = Color.White,
+                            shape = CircleShape
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = "Add Transaction")
+                        }
                     }
                 },
                 floatingActionButtonPosition = FabPosition.Center
@@ -121,8 +125,11 @@ fun App() {
                         Screen.History -> HistoryRoute(
                             onTransactionClick = { navController.navigate(Screen.TransactionDetail(it)) }
                         )
-                        is Screen.TransactionDetail -> TransactionDetailRoute(transactionId = screen.transactionId)
-                        Screen.AddTransaction -> AddTransactionPlaceholderScreen()
+                        is Screen.TransactionDetail -> EditTransactionRoute(
+                            transactionId = screen.transactionId,
+                            onDone = { navController.back() }
+                        )
+                        Screen.AddTransaction -> AddTransactionRoute(onSaved = { navController.back() })
                         Screen.Profile -> ProfileRoute()
                     }
                 }
@@ -136,7 +143,7 @@ private fun Screen.title(): String = when (this) {
     Screen.Categories -> "Category Limits"
     is Screen.CategoryDetail -> "Category Detail"
     Screen.History -> "Transaction History"
-    is Screen.TransactionDetail -> "Transaction Detail"
-    Screen.AddTransaction -> "Add Transaction"
+    is Screen.TransactionDetail -> "Edit Transaction"
+    Screen.AddTransaction -> "Log Expense"
     Screen.Profile -> "Profile"
 }
