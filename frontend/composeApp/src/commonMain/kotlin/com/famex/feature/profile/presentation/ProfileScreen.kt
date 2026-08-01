@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -356,11 +355,7 @@ private fun SettingsDropdownRow(
     var expanded by remember { mutableStateOf(false) }
     val selectedLabel = options.find { it.first == selectedValue }?.second ?: selectedValue
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Box(
                 modifier = Modifier.size(40.dp).clip(CircleShape).background(iconTint.copy(alpha = 0.12f)),
@@ -380,7 +375,7 @@ private fun SettingsDropdownRow(
                 onValueChange = {},
                 readOnly = true,
                 trailingIcon = { Icon(imageVector = Icons.Default.ExpandMore, contentDescription = null) },
-                modifier = Modifier.width(148.dp).menuAnchor(),
+                modifier = Modifier.fillMaxWidth().menuAnchor(),
                 textStyle = famExType.bodyMd,
                 singleLine = true,
                 shape = RoundedCornerShape(8.dp),
