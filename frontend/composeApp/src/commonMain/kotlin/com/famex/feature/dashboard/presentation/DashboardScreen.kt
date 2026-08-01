@@ -1,6 +1,7 @@
 package com.famex.feature.dashboard.presentation
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,14 +12,22 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -26,8 +35,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.famex.core.model.Budget
 import com.famex.core.model.Category
 import com.famex.core.model.SpendStatus
 import com.famex.core.ui.ActivityFeedRow
@@ -46,12 +57,74 @@ fun DashboardScreen(
     onCategoryClick: (Long) -> Unit,
     onRetry: () -> Unit,
     onViewAllActivityClick: () -> Unit = {},
+    onSetUpBudgetClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val data = uiState.data
+    val budget = data?.budget
     when {
-        uiState.isLoading && uiState.data == null -> DashboardLoading(modifier)
-        uiState.errorMessage != null && uiState.data == null -> DashboardError(uiState.errorMessage, onRetry, modifier)
-        uiState.data != null -> DashboardContent(uiState.data, onCategoryClick, onViewAllActivityClick, modifier)
+        uiState.isLoading && data == null -> DashboardLoading(modifier)
+        uiState.errorMessage != null && data == null -> DashboardError(uiState.errorMessage, onRetry, modifier)
+        data != null && budget == null -> DashboardEmptyBudgetState(onSetUpBudgetClick, modifier)
+        data != null && budget != null -> DashboardContent(data, budget, onCategoryClick, onViewAllActivityClick, modifier)
+    }
+}
+
+@Composable
+private fun DashboardEmptyBudgetState(onSetUpBudgetClick: () -> Unit, modifier: Modifier = Modifier) {
+    val famExType = LocalFamExTypography.current
+    Column(
+        modifier = modifier.fillMaxSize().padding(horizontal = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Box(
+            modifier = Modifier.size(96.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Filled.AccountBalanceWallet,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(40.dp)
+            )
+        }
+        Spacer(modifier = Modifier.height(24.dp))
+        Text(
+            text = "No Budget Set Up",
+            style = famExType.headlineLg,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Set your monthly targets to start tracking your family finances in perfect harmony.",
+            style = famExType.bodyMd,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(32.dp))
+        Button(
+            onClick = onSetUpBudgetClick,
+            modifier = Modifier.fillMaxWidth().height(52.dp),
+            shape = RoundedCornerShape(8.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            )
+        ) {
+            Text(text = "Set Up Budget", style = famExType.labelMd)
+            Spacer(modifier = Modifier.width(8.dp))
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        TextButton(onClick = {}) {
+            Text(text = "How does budgeting work?", style = famExType.labelSm, color = MaterialTheme.colorScheme.secondary)
+        }
     }
 }
 
@@ -78,6 +151,7 @@ private fun DashboardError(message: String, onRetry: () -> Unit, modifier: Modif
 @Composable
 private fun DashboardContent(
     data: DashboardData,
+    budget: Budget,
     onCategoryClick: (Long) -> Unit,
     onViewAllActivityClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -92,20 +166,15 @@ private fun DashboardContent(
         contentPadding = PaddingValues(top = 16.dp, bottom = 96.dp)
     ) {
         item {
-            val budget = data.budget
-            if (budget != null) {
-                BudgetOverviewCard(
-                    title = monthYearLabel(budget.month, budget.year),
-                    spent = budget.spentAmount,
-                    goal = budget.monthlyGoalAmount,
-                    remaining = budget.remainingAmount,
-                    percentUsed = budget.percentUsed,
-                    status = budget.status,
-                    currencySymbol = currencySymbol
-                )
-            } else {
-                NoBudgetCard()
-            }
+            BudgetOverviewCard(
+                title = monthYearLabel(budget.month, budget.year),
+                spent = budget.spentAmount,
+                goal = budget.monthlyGoalAmount,
+                remaining = budget.remainingAmount,
+                percentUsed = budget.percentUsed,
+                status = budget.status,
+                currencySymbol = currencySymbol
+            )
         }
 
         if (data.categories.isNotEmpty()) {
@@ -239,26 +308,6 @@ private fun BudgetOverviewCard(
                     textAlign = TextAlign.End
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun NoBudgetCard() {
-    val famExType = LocalFamExTypography.current
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant)
-    ) {
-        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(text = "No budget set up yet", style = famExType.headlineSm, color = MaterialTheme.colorScheme.onSurface)
-            Text(
-                text = "Set a monthly goal to start tracking your household spending.",
-                style = famExType.bodyMd,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
         }
     }
 }

@@ -78,7 +78,8 @@ fun App() {
                     when (val screen = current) {
                         Screen.Dashboard -> DashboardRoute(
                             onNavigateToCategoryDetail = { navController.navigate(Screen.CategoryDetail(it)) },
-                            onNavigateToHistory = { navController.switchTab(Screen.History) }
+                            onNavigateToHistory = { navController.switchTab(Screen.History) },
+                            onNavigateToSetUpBudget = { navController.switchTab(Screen.Categories) }
                         )
                         Screen.Categories -> CategoryRoute()
                         is Screen.CategoryDetail -> CategoryDetailRoute(categoryId = screen.categoryId)

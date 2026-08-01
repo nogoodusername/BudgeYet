@@ -54,8 +54,8 @@ private fun categoriesFor(scenario: DummyScenario): List<Category> = when (scena
     )
 
     DummyScenario.OverBudgetCoral -> listOf(
-        Category(1, "Groceries", "cart", 800.0, 910.0),
-        Category(2, "Dining Out", "restaurant", 400.0, 455.0),
+        Category(1, "Groceries", "cart", 800.0, 680.0),
+        Category(2, "Dining Out", "restaurant", 400.0, 420.0),
         Category(3, "Utilities", "flash", 350.0, 210.0),
         Category(4, "Transportation", "car", 300.0, 150.0),
     )
@@ -70,7 +70,7 @@ private fun categoriesFor(scenario: DummyScenario): List<Category> = when (scena
 
 private fun budgetFor(scenario: DummyScenario, categories: List<Category>): Budget? {
     if (scenario == DummyScenario.NoBudgetSetup) return null
-    val goal = if (scenario == DummyScenario.OverBudgetCoral) 1500.0 else 1850.0
+    val goal = if (scenario == DummyScenario.OverBudgetCoral) 1400.0 else 1850.0
     return Budget(
         id = 1,
         name = "This Month's Household Budget",

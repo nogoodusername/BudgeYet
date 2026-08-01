@@ -13,6 +13,7 @@ import com.famex.core.di.LocalAppContainer
 fun DashboardRoute(
     onNavigateToCategoryDetail: (Long) -> Unit,
     onNavigateToHistory: () -> Unit = {},
+    onNavigateToSetUpBudget: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val container = LocalAppContainer.current
@@ -34,6 +35,7 @@ fun DashboardRoute(
         onCategoryClick = controller::onCategoryClick,
         onRetry = controller::retry,
         onViewAllActivityClick = onNavigateToHistory,
+        onSetUpBudgetClick = onNavigateToSetUpBudget,
         modifier = modifier
     )
 }

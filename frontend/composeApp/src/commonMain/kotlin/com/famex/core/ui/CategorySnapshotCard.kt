@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.famex.core.model.Category
 import com.famex.core.model.SpendStatus
 import com.famex.theme.LocalFamExTypography
@@ -84,11 +85,20 @@ fun CategorySnapshotCard(
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    text = category.name,
-                    style = famExType.labelMd,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                    Text(
+                        text = category.name,
+                        style = famExType.labelMd,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    if (category.status == SpendStatus.OVER_BUDGET) {
+                        Text(
+                            text = "Over Budget",
+                            style = famExType.labelSm.copy(fontSize = 10.sp),
+                            color = statusColor
+                        )
+                    }
+                }
                 StatusProgressBar(percentUsed = category.percentUsed, status = category.status, barHeight = 6.dp)
             }
         }
