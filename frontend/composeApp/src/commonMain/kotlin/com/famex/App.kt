@@ -10,6 +10,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -30,6 +31,7 @@ import com.famex.feature.profile.presentation.ProfileRoute
 import com.famex.feature.transaction.presentation.AddTransactionRoute
 import com.famex.feature.transaction.presentation.EditTransactionRoute
 import com.famex.feature.transaction.presentation.HistoryRoute
+import com.famex.feature.transaction.presentation.TransactionDetailRoute
 import com.famex.fixtures.DummyScenario
 import com.famex.theme.FamExTheme
 
@@ -57,6 +59,13 @@ fun App() {
                                 }
                             }
                         },
+                        actions = {
+                            if (current is Screen.TransactionDetail) {
+                                TextButton(onClick = { navController.navigate(Screen.EditTransaction(current.transactionId)) }) {
+                                    Text(text = "Edit", fontWeight = FontWeight.SemiBold)
+                                }
+                            }
+                        },
                         colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
                     )
                 },
@@ -65,7 +74,7 @@ fun App() {
                         selectedTab = current.toBottomNavTab(),
                         // Hidden on the add/edit transaction forms — it would float on top of
                         // those screens' own Save button.
-                        showAddButton = current != Screen.AddTransaction && current !is Screen.TransactionDetail,
+                        showAddButton = current != Screen.AddTransaction && current !is Screen.EditTransaction,
                         onDashboard = { navController.switchTab(Screen.Dashboard) },
                         onCategories = { navController.switchTab(Screen.Categories) },
                         onAdd = { navController.navigate(Screen.AddTransaction) },
@@ -86,11 +95,18 @@ fun App() {
                         )
                         is Screen.CategoryDetail -> CategoryDetailRoute(categoryId = screen.categoryId)
                         Screen.History -> HistoryRoute(
-                            onTransactionClick = { navController.navigate(Screen.TransactionDetail(it)) }
+                            onTransactionClick = { navController.navigate(Screen.TransactionDetail(it)) },
+                            onNavigateToAddTransaction = { navController.navigate(Screen.AddTransaction) }
                         )
-                        is Screen.TransactionDetail -> EditTransactionRoute(
+                        is Screen.TransactionDetail -> TransactionDetailRoute(
                             transactionId = screen.transactionId,
-                            onDone = { navController.back() }
+                            onEdit = { navController.navigate(Screen.EditTransaction(it)) },
+                            onDeleted = { navController.switchTab(Screen.History) }
+                        )
+                        is Screen.EditTransaction -> EditTransactionRoute(
+                            transactionId = screen.transactionId,
+                            onSaved = { navController.back() },
+                            onDeleted = { navController.switchTab(Screen.History) }
                         )
                         Screen.AddTransaction -> AddTransactionRoute(onSaved = { navController.back() })
                         Screen.Profile -> ProfileRoute()
@@ -106,7 +122,8 @@ private fun Screen.title(): String = when (this) {
     Screen.Categories -> "Category Limits"
     is Screen.CategoryDetail -> "Category Detail"
     Screen.History -> "Transaction History"
-    is Screen.TransactionDetail -> "Edit Transaction"
+    is Screen.TransactionDetail -> "Transaction Detail"
+    is Screen.EditTransaction -> "Edit Transaction"
     Screen.AddTransaction -> "Log Expense"
     Screen.Profile -> "Profile"
 }
@@ -114,7 +131,7 @@ private fun Screen.title(): String = when (this) {
 private fun Screen.toBottomNavTab(): BottomNavTab = when (this) {
     Screen.Dashboard -> BottomNavTab.Dashboard
     Screen.Categories, is Screen.CategoryDetail -> BottomNavTab.Categories
-    Screen.History, is Screen.TransactionDetail -> BottomNavTab.History
+    Screen.History, is Screen.TransactionDetail, is Screen.EditTransaction -> BottomNavTab.History
     Screen.Profile -> BottomNavTab.Profile
     Screen.AddTransaction -> BottomNavTab.None
 }

@@ -122,6 +122,7 @@ class AddTransactionController(
                         categoryName = category?.name,
                         paidBy = payer!!.user,
                         notes = state.notes.trim().ifBlank { null },
+                        transactionDate = state.selectedDate,
                         transactionDateText = state.dateText,
                         createdAtText = "Just now"
                     )

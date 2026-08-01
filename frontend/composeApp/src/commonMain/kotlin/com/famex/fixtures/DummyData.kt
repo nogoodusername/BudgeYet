@@ -9,6 +9,9 @@ import com.famex.core.model.PaymentMode
 import com.famex.core.model.Transaction
 import com.famex.core.model.TransactionType
 import com.famex.core.model.User
+import com.famex.core.util.todayLocalDate
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.minus
 
 private val alex = User(1, "alex@example.com", "Alex Rivera", "Alex")
 private val sam = User(2, "sam@example.com", "Sam Rivera", "Sam")
@@ -95,8 +98,10 @@ private fun baseTransactions(scenario: DummyScenario): List<Transaction> {
         Triple("Uber", 24.00, "Transportation" to 4L),
         Triple("Trader Joe's", 76.40, "Groceries" to 1L),
     )
+    val paymentModes = listOf(PaymentMode.CARD, PaymentMode.BANK_TRANSFER, PaymentMode.CASH, PaymentMode.CARD, PaymentMode.OTHER)
 
     val count = if (scenario == DummyScenario.LongTransactionHistory) 40 else template.size
+    val today = todayLocalDate()
 
     return (0 until count).map { index ->
         val (merchant, amount, categoryPair) = template[index % template.size]
@@ -106,10 +111,11 @@ private fun baseTransactions(scenario: DummyScenario): List<Transaction> {
             merchant = merchant,
             amount = amount,
             type = TransactionType.EXPENSE,
-            paymentMode = PaymentMode.CARD,
+            paymentMode = paymentModes[index % paymentModes.size],
             categoryId = categoryId,
             categoryName = categoryName,
             paidBy = payers[index % payers.size],
+            transactionDate = today.minus(index + 1, DateTimeUnit.DAY),
             transactionDateText = "${index + 1}d ago",
             createdAtText = "${index + 1}d ago"
         )

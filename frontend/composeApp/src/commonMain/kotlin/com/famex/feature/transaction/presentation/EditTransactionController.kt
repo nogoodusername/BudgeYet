@@ -58,6 +58,7 @@ class EditTransactionController(
                         merchant = transaction.merchant,
                         categories = categories,
                         selectedCategoryId = transaction.categoryId,
+                        selectedDate = transaction.transactionDate,
                         householdMembers = household.members,
                         paidByMemberId = payerId,
                         paymentMode = transaction.paymentMode,
@@ -128,6 +129,7 @@ class EditTransactionController(
                         categoryName = category?.name,
                         paidBy = payer!!.user,
                         notes = state.notes.trim().ifBlank { null },
+                        transactionDate = state.selectedDate,
                         transactionDateText = state.dateText,
                         createdAtText = state.dateText
                     )

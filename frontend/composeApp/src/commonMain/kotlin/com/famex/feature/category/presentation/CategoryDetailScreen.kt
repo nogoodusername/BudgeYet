@@ -36,12 +36,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.famex.core.model.Category
-import com.famex.core.model.PaymentMode
 import com.famex.core.model.SpendStatus
 import com.famex.core.model.Transaction
 import com.famex.core.ui.StatusProgressBar
 import com.famex.core.ui.categoryIcon
 import com.famex.core.ui.colorFor
+import com.famex.core.ui.paymentModeLabel
 import com.famex.core.util.currencySymbolFor
 import com.famex.core.util.formatAmount
 import com.famex.theme.LocalFamExTypography
@@ -309,13 +309,6 @@ private fun CategoryTransactionCard(transaction: Transaction, category: Category
             }
         }
     }
-}
-
-private fun paymentModeLabel(mode: PaymentMode): String = when (mode) {
-    PaymentMode.CASH -> "Cash"
-    PaymentMode.CARD -> "Card"
-    PaymentMode.BANK_TRANSFER -> "Bank Transfer"
-    PaymentMode.OTHER -> "Other"
 }
 
 @Composable
