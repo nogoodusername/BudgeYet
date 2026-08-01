@@ -2,22 +2,12 @@ package com.famex
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FabPosition
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -26,12 +16,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import com.famex.core.di.AppContainer
 import com.famex.core.di.LocalAppContainer
 import com.famex.core.navigation.AppNavController
 import com.famex.core.navigation.Screen
+import com.famex.core.ui.BottomNavTab
+import com.famex.core.ui.FamExBottomNavBar
 import com.famex.feature.category.presentation.CategoryDetailRoute
 import com.famex.feature.category.presentation.CategoryRoute
 import com.famex.feature.dashboard.presentation.DashboardRoute
@@ -40,7 +31,6 @@ import com.famex.feature.transaction.presentation.AddTransactionRoute
 import com.famex.feature.transaction.presentation.EditTransactionRoute
 import com.famex.feature.transaction.presentation.HistoryRoute
 import com.famex.fixtures.DummyScenario
-import com.famex.theme.BrandTeal
 import com.famex.theme.FamExTheme
 
 // Code-level dummy-data switch (no in-app dev switcher by design) — change and rebuild to
@@ -71,48 +61,18 @@ fun App() {
                     )
                 },
                 bottomBar = {
-                    NavigationBar {
-                        NavigationBarItem(
-                            selected = current is Screen.Dashboard,
-                            onClick = { navController.switchTab(Screen.Dashboard) },
-                            icon = { Icon(Icons.Default.Home, contentDescription = "Dashboard") },
-                            label = { Text("Dashboard") }
-                        )
-                        NavigationBarItem(
-                            selected = current is Screen.Categories,
-                            onClick = { navController.switchTab(Screen.Categories) },
-                            icon = { Icon(Icons.Default.Menu, contentDescription = "Categories") },
-                            label = { Text("Categories") }
-                        )
-                        NavigationBarItem(
-                            selected = current is Screen.History,
-                            onClick = { navController.switchTab(Screen.History) },
-                            icon = { Icon(Icons.Default.Search, contentDescription = "History") },
-                            label = { Text("History") }
-                        )
-                        NavigationBarItem(
-                            selected = current is Screen.Profile,
-                            onClick = { navController.switchTab(Screen.Profile) },
-                            icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
-                            label = { Text("Profile") }
-                        )
-                    }
-                },
-                floatingActionButton = {
-                    // Hidden on the add/edit transaction forms — it would float on top of
-                    // those screens' own Save button.
-                    if (current != Screen.AddTransaction && current !is Screen.TransactionDetail) {
-                        FloatingActionButton(
-                            onClick = { navController.navigate(Screen.AddTransaction) },
-                            containerColor = BrandTeal,
-                            contentColor = Color.White,
-                            shape = CircleShape
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = "Add Transaction")
-                        }
-                    }
-                },
-                floatingActionButtonPosition = FabPosition.Center
+                    FamExBottomNavBar(
+                        selectedTab = current.toBottomNavTab(),
+                        // Hidden on the add/edit transaction forms — it would float on top of
+                        // those screens' own Save button.
+                        showAddButton = current != Screen.AddTransaction && current !is Screen.TransactionDetail,
+                        onDashboard = { navController.switchTab(Screen.Dashboard) },
+                        onCategories = { navController.switchTab(Screen.Categories) },
+                        onAdd = { navController.navigate(Screen.AddTransaction) },
+                        onHistory = { navController.switchTab(Screen.History) },
+                        onProfile = { navController.switchTab(Screen.Profile) }
+                    )
+                }
             ) { paddingValues ->
                 Box(modifier = Modifier.padding(paddingValues)) {
                     when (val screen = current) {
@@ -146,4 +106,12 @@ private fun Screen.title(): String = when (this) {
     is Screen.TransactionDetail -> "Edit Transaction"
     Screen.AddTransaction -> "Log Expense"
     Screen.Profile -> "Profile"
+}
+
+private fun Screen.toBottomNavTab(): BottomNavTab = when (this) {
+    Screen.Dashboard -> BottomNavTab.Dashboard
+    Screen.Categories, is Screen.CategoryDetail -> BottomNavTab.Categories
+    Screen.History, is Screen.TransactionDetail -> BottomNavTab.History
+    Screen.Profile -> BottomNavTab.Profile
+    Screen.AddTransaction -> BottomNavTab.None
 }
