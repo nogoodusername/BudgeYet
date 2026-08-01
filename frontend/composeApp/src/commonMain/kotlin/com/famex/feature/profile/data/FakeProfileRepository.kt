@@ -10,8 +10,8 @@ import com.famex.fixtures.dummyHousehold
 import kotlinx.coroutines.delay
 
 class FakeProfileRepository(scenario: DummyScenario) : ProfileRepository {
-    // In-memory only — mutated by the update* calls so Save Changes persists for the rest of
-    // the app session (this repository instance lives as long as AppContainer).
+    // In-memory only — mutated by the update* calls so changes persist for the rest of the
+    // app session (this repository instance lives as long as AppContainer).
     private var user: User = dummyCurrentUser()
     private var household: Household = dummyHousehold(scenario)
 
@@ -25,25 +25,33 @@ class FakeProfileRepository(scenario: DummyScenario) : ProfileRepository {
         return household
     }
 
-    override suspend fun updateUserProfile(
-        fullName: String,
-        nickname: String,
-        displayMode: DisplayMode,
-        pushNotificationsEnabled: Boolean
-    ): User {
+    override suspend fun updateProfileName(fullName: String, nickname: String): User {
         delay(300)
-        user = user.copy(
-            fullName = fullName,
-            nickname = nickname,
-            displayMode = displayMode,
-            pushNotificationsEnabled = pushNotificationsEnabled
-        )
+        user = user.copy(fullName = fullName, nickname = nickname)
         return user
     }
 
-    override suspend fun updateHouseholdSettings(currency: String, language: String): Household {
-        delay(300)
-        household = household.copy(currency = currency, language = language)
+    override suspend fun updateDisplayMode(displayMode: DisplayMode): User {
+        delay(150)
+        user = user.copy(displayMode = displayMode)
+        return user
+    }
+
+    override suspend fun updatePushNotifications(enabled: Boolean): User {
+        delay(150)
+        user = user.copy(pushNotificationsEnabled = enabled)
+        return user
+    }
+
+    override suspend fun updateCurrency(currency: String): Household {
+        delay(150)
+        household = household.copy(currency = currency)
+        return household
+    }
+
+    override suspend fun updateLanguage(language: String): Household {
+        delay(150)
+        household = household.copy(language = language)
         return household
     }
 }

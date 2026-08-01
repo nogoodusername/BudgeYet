@@ -28,11 +28,7 @@ class ProfileController(
                         user = user,
                         household = household,
                         fullNameDraft = user.fullName,
-                        nicknameDraft = user.nickname,
-                        displayModeDraft = user.displayMode,
-                        pushNotificationsDraft = user.pushNotificationsEnabled,
-                        currencyDraft = household.currency,
-                        languageDraft = household.language
+                        nicknameDraft = user.nickname
                     )
                 }
             } catch (t: Throwable) {
@@ -45,32 +41,7 @@ class ProfileController(
 
     fun onNicknameChange(value: String) = _uiState.update { it.copy(nicknameDraft = value) }
 
-    fun onCurrencyChange(value: String) = _uiState.update { it.copy(currencyDraft = value) }
-
-    fun onLanguageChange(value: String) = _uiState.update { it.copy(languageDraft = value) }
-
-    fun onDisplayModeChange(mode: DisplayMode) = _uiState.update { it.copy(displayModeDraft = mode) }
-
-    fun onPushNotificationsToggle(enabled: Boolean) = _uiState.update { it.copy(pushNotificationsDraft = enabled) }
-
-    fun onCancel() {
-        val state = _uiState.value
-        val user = state.user ?: return
-        val household = state.household ?: return
-        _uiState.update {
-            it.copy(
-                fullNameDraft = user.fullName,
-                nicknameDraft = user.nickname,
-                displayModeDraft = user.displayMode,
-                pushNotificationsDraft = user.pushNotificationsEnabled,
-                currencyDraft = household.currency,
-                languageDraft = household.language,
-                saveError = null
-            )
-        }
-    }
-
-    fun onSaveChanges() {
+    fun onSaveProfile() {
         val state = _uiState.value
         if (state.fullNameDraft.isBlank()) {
             _uiState.update { it.copy(saveError = "Enter your full name") }
@@ -82,22 +53,43 @@ class ProfileController(
         }
 
         scope.launch {
-            _uiState.update { it.copy(isSaving = true, saveError = null) }
+            _uiState.update { it.copy(isSavingProfile = true, saveError = null) }
             try {
-                val user = repository.updateUserProfile(
-                    fullName = state.fullNameDraft.trim(),
-                    nickname = state.nicknameDraft.trim(),
-                    displayMode = state.displayModeDraft,
-                    pushNotificationsEnabled = state.pushNotificationsDraft
-                )
-                val household = repository.updateHouseholdSettings(
-                    currency = state.currencyDraft,
-                    language = state.languageDraft
-                )
-                _uiState.update { it.copy(isSaving = false, user = user, household = household) }
+                val user = repository.updateProfileName(state.fullNameDraft.trim(), state.nicknameDraft.trim())
+                _uiState.update { it.copy(isSavingProfile = false, user = user) }
             } catch (t: Throwable) {
-                _uiState.update { it.copy(isSaving = false, saveError = t.message ?: "Couldn't save changes") }
+                _uiState.update { it.copy(isSavingProfile = false, saveError = t.message ?: "Couldn't save changes") }
             }
+        }
+    }
+
+    // Everything below applies immediately on selection — no separate Save step.
+
+    fun onCurrencyChange(value: String) {
+        scope.launch {
+            val household = repository.updateCurrency(value)
+            _uiState.update { it.copy(household = household) }
+        }
+    }
+
+    fun onLanguageChange(value: String) {
+        scope.launch {
+            val household = repository.updateLanguage(value)
+            _uiState.update { it.copy(household = household) }
+        }
+    }
+
+    fun onDisplayModeChange(mode: DisplayMode) {
+        scope.launch {
+            val user = repository.updateDisplayMode(mode)
+            _uiState.update { it.copy(user = user) }
+        }
+    }
+
+    fun onPushNotificationsToggle(enabled: Boolean) {
+        scope.launch {
+            val user = repository.updatePushNotifications(enabled)
+            _uiState.update { it.copy(user = user) }
         }
     }
 }

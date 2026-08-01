@@ -8,12 +8,11 @@ interface ProfileRepository {
     suspend fun getCurrentUser(): User
     suspend fun getHousehold(): Household
 
-    suspend fun updateUserProfile(
-        fullName: String,
-        nickname: String,
-        displayMode: DisplayMode,
-        pushNotificationsEnabled: Boolean
-    ): User
-
-    suspend fun updateHouseholdSettings(currency: String, language: String): Household
+    // Full name / nickname are edited as a draft and committed together via an explicit
+    // Save — everything else below applies immediately on selection, one field at a time.
+    suspend fun updateProfileName(fullName: String, nickname: String): User
+    suspend fun updateDisplayMode(displayMode: DisplayMode): User
+    suspend fun updatePushNotifications(enabled: Boolean): User
+    suspend fun updateCurrency(currency: String): Household
+    suspend fun updateLanguage(language: String): Household
 }

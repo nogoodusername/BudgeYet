@@ -39,7 +39,6 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Switch
@@ -69,12 +68,11 @@ fun ProfileScreen(
     uiState: ProfileUiState,
     onFullNameChange: (String) -> Unit,
     onNicknameChange: (String) -> Unit,
+    onSaveProfile: () -> Unit,
     onCurrencyChange: (String) -> Unit,
     onLanguageChange: (String) -> Unit,
     onDisplayModeChange: (DisplayMode) -> Unit,
     onPushNotificationsToggle: (Boolean) -> Unit,
-    onCancel: () -> Unit,
-    onSaveChanges: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     when {
@@ -90,12 +88,11 @@ fun ProfileScreen(
             uiState = uiState,
             onFullNameChange = onFullNameChange,
             onNicknameChange = onNicknameChange,
+            onSaveProfile = onSaveProfile,
             onCurrencyChange = onCurrencyChange,
             onLanguageChange = onLanguageChange,
             onDisplayModeChange = onDisplayModeChange,
             onPushNotificationsToggle = onPushNotificationsToggle,
-            onCancel = onCancel,
-            onSaveChanges = onSaveChanges,
             modifier = modifier
         )
     }
@@ -106,16 +103,16 @@ private fun ProfileContent(
     uiState: ProfileUiState,
     onFullNameChange: (String) -> Unit,
     onNicknameChange: (String) -> Unit,
+    onSaveProfile: () -> Unit,
     onCurrencyChange: (String) -> Unit,
     onLanguageChange: (String) -> Unit,
     onDisplayModeChange: (DisplayMode) -> Unit,
     onPushNotificationsToggle: (Boolean) -> Unit,
-    onCancel: () -> Unit,
-    onSaveChanges: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val famExType = LocalFamExTypography.current
     val user = uiState.user!!
+    val household = uiState.household!!
 
     LazyColumn(
         modifier = modifier.fillMaxSize().padding(horizontal = 16.dp),
@@ -128,7 +125,11 @@ private fun ProfileContent(
                 fullName = uiState.fullNameDraft,
                 nickname = uiState.nicknameDraft,
                 onFullNameChange = onFullNameChange,
-                onNicknameChange = onNicknameChange
+                onNicknameChange = onNicknameChange,
+                onSaveProfile = onSaveProfile,
+                isSaving = uiState.isSavingProfile,
+                hasUnsavedChanges = uiState.hasUnsavedNameChanges,
+                saveError = uiState.saveError
             )
         }
 
@@ -140,7 +141,7 @@ private fun ProfileContent(
                     title = "Primary Currency",
                     subtitle = "Used for all dashboard views",
                     options = currencyOptions,
-                    selectedValue = uiState.currencyDraft,
+                    selectedValue = household.currency,
                     onSelect = onCurrencyChange
                 )
                 HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
@@ -150,7 +151,7 @@ private fun ProfileContent(
                     title = "Language",
                     subtitle = "App interface language",
                     options = languageOptions,
-                    selectedValue = uiState.languageDraft,
+                    selectedValue = household.language,
                     onSelect = onLanguageChange
                 )
             }
@@ -166,7 +167,7 @@ private fun ProfileContent(
                             Text(text = "Choose your preferred theme", style = famExType.labelSm, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
-                    AppearancePicker(selected = uiState.displayModeDraft, onSelect = onDisplayModeChange)
+                    AppearancePicker(selected = user.displayMode, onSelect = onDisplayModeChange)
                 }
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
@@ -184,46 +185,11 @@ private fun ProfileContent(
                         }
                     }
                     Switch(
-                        checked = uiState.pushNotificationsDraft,
+                        checked = user.pushNotificationsEnabled,
                         onCheckedChange = onPushNotificationsToggle,
                         colors = SwitchDefaults.colors(checkedTrackColor = MaterialTheme.colorScheme.secondary)
                     )
                 }
-            }
-        }
-
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                OutlinedButton(
-                    onClick = onCancel,
-                    enabled = !uiState.isSaving,
-                    modifier = Modifier.weight(1f).height(48.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant)
-                ) {
-                    Text(text = "Cancel", style = famExType.labelMd, color = MaterialTheme.colorScheme.onSurface)
-                }
-                Button(
-                    onClick = onSaveChanges,
-                    enabled = !uiState.isSaving,
-                    modifier = Modifier.weight(1f).height(48.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    )
-                ) {
-                    Text(text = if (uiState.isSaving) "Saving…" else "Save Changes", style = famExType.labelMd)
-                }
-            }
-        }
-
-        uiState.saveError?.let { error ->
-            item {
-                Text(text = error, style = famExType.labelSm, color = MaterialTheme.colorScheme.error)
             }
         }
     }
@@ -235,7 +201,11 @@ private fun ProfileInfoCard(
     fullName: String,
     nickname: String,
     onFullNameChange: (String) -> Unit,
-    onNicknameChange: (String) -> Unit
+    onNicknameChange: (String) -> Unit,
+    onSaveProfile: () -> Unit,
+    isSaving: Boolean,
+    hasUnsavedChanges: Boolean,
+    saveError: String?
 ) {
     val famExType = LocalFamExTypography.current
 
@@ -293,6 +263,23 @@ private fun ProfileInfoCard(
                         )
                     )
                 }
+            }
+
+            Button(
+                onClick = onSaveProfile,
+                enabled = !isSaving && hasUnsavedChanges,
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            ) {
+                Text(text = if (isSaving) "Saving…" else "Save Changes", style = famExType.labelMd)
+            }
+
+            saveError?.let { error ->
+                Text(text = error, style = famExType.labelSm, color = MaterialTheme.colorScheme.error)
             }
         }
     }

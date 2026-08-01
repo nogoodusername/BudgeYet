@@ -22,12 +22,11 @@ fun ProfileRoute(modifier: Modifier = Modifier) {
         uiState = uiState,
         onFullNameChange = controller::onFullNameChange,
         onNicknameChange = controller::onNicknameChange,
+        onSaveProfile = controller::onSaveProfile,
         onCurrencyChange = controller::onCurrencyChange,
         onLanguageChange = controller::onLanguageChange,
         onDisplayModeChange = controller::onDisplayModeChange,
         onPushNotificationsToggle = controller::onPushNotificationsToggle,
-        onCancel = controller::onCancel,
-        onSaveChanges = controller::onSaveChanges,
         modifier = modifier
     )
 }
