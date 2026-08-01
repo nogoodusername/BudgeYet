@@ -20,8 +20,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.NotificationsActive
@@ -73,6 +75,7 @@ fun ProfileScreen(
     onLanguageChange: (String) -> Unit,
     onDisplayModeChange: (DisplayMode) -> Unit,
     onPushNotificationsToggle: (Boolean) -> Unit,
+    onManageMembers: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     when {
@@ -93,6 +96,7 @@ fun ProfileScreen(
             onLanguageChange = onLanguageChange,
             onDisplayModeChange = onDisplayModeChange,
             onPushNotificationsToggle = onPushNotificationsToggle,
+            onManageMembers = onManageMembers,
             modifier = modifier
         )
     }
@@ -108,6 +112,7 @@ private fun ProfileContent(
     onLanguageChange: (String) -> Unit,
     onDisplayModeChange: (DisplayMode) -> Unit,
     onPushNotificationsToggle: (Boolean) -> Unit,
+    onManageMembers: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val famExType = LocalFamExTypography.current
@@ -135,6 +140,8 @@ private fun ProfileContent(
 
         item {
             SettingsCard(title = "Household Settings") {
+                ManageMembersRow(onClick = onManageMembers)
+                HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
                 SettingsDropdownRow(
                     icon = Icons.Default.Payments,
                     iconTint = MaterialTheme.colorScheme.secondary,
@@ -314,6 +321,38 @@ private fun SettingsCard(title: String, content: @Composable ColumnScope.() -> U
             HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
             Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(20.dp), content = content)
         }
+    }
+}
+
+@Composable
+private fun ManageMembersRow(onClick: () -> Unit) {
+    val famExType = LocalFamExTypography.current
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(
+                modifier = Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(imageVector = Icons.Default.Group, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
+            }
+            Column {
+                Text(text = "Manage Members", style = famExType.labelMd, color = MaterialTheme.colorScheme.onSurface)
+                Text(
+                    text = "Invite family, promote admins, or remove members",
+                    style = famExType.labelSm,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        Icon(
+            imageVector = Icons.Default.ChevronRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 

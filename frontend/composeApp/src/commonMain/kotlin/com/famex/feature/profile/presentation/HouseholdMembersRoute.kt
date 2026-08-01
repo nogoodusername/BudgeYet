@@ -10,27 +10,26 @@ import androidx.compose.ui.Modifier
 import com.famex.core.di.LocalAppContainer
 
 @Composable
-fun ProfileRoute(
-    onNavigateToManageMembers: () -> Unit = {},
+fun HouseholdMembersRoute(
+    onNavigateToInvite: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val container = LocalAppContainer.current
     val scope = rememberCoroutineScope()
-    val controller = remember(container) { ProfileController(container.profileRepository, scope) }
+    val controller = remember(container) { HouseholdMembersController(container.profileRepository, scope) }
     val uiState by controller.uiState.collectAsState()
 
     LaunchedEffect(controller) { controller.load() }
 
-    ProfileScreen(
+    HouseholdMembersScreen(
         uiState = uiState,
-        onFullNameChange = controller::onFullNameChange,
-        onNicknameChange = controller::onNicknameChange,
-        onSaveProfile = controller::onSaveProfile,
-        onCurrencyChange = controller::onCurrencyChange,
-        onLanguageChange = controller::onLanguageChange,
-        onDisplayModeChange = controller::onDisplayModeChange,
-        onPushNotificationsToggle = controller::onPushNotificationsToggle,
-        onManageMembers = onNavigateToManageMembers,
+        onRequestPromote = controller::onRequestPromote,
+        onCancelPromote = controller::onCancelPromote,
+        onConfirmPromote = controller::onConfirmPromote,
+        onRequestRemove = controller::onRequestRemove,
+        onCancelRemove = controller::onCancelRemove,
+        onConfirmRemove = controller::onConfirmRemove,
+        onNavigateToInvite = onNavigateToInvite,
         modifier = modifier
     )
 }

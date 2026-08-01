@@ -27,6 +27,8 @@ import com.famex.core.ui.FamExBottomNavBar
 import com.famex.feature.category.presentation.CategoryDetailRoute
 import com.famex.feature.category.presentation.CategoryRoute
 import com.famex.feature.dashboard.presentation.DashboardRoute
+import com.famex.feature.profile.presentation.HouseholdMembersRoute
+import com.famex.feature.profile.presentation.InviteMemberRoute
 import com.famex.feature.profile.presentation.ProfileRoute
 import com.famex.feature.transaction.presentation.AddTransactionRoute
 import com.famex.feature.transaction.presentation.EditTransactionRoute
@@ -109,7 +111,13 @@ fun App() {
                             onDeleted = { navController.switchTab(Screen.History) }
                         )
                         Screen.AddTransaction -> AddTransactionRoute(onSaved = { navController.back() })
-                        Screen.Profile -> ProfileRoute()
+                        Screen.Profile -> ProfileRoute(
+                            onNavigateToManageMembers = { navController.navigate(Screen.HouseholdMembers) }
+                        )
+                        Screen.HouseholdMembers -> HouseholdMembersRoute(
+                            onNavigateToInvite = { navController.navigate(Screen.InviteMember) }
+                        )
+                        Screen.InviteMember -> InviteMemberRoute(onInvited = { navController.back() })
                     }
                 }
             }
@@ -126,12 +134,14 @@ private fun Screen.title(): String = when (this) {
     is Screen.EditTransaction -> "Edit Transaction"
     Screen.AddTransaction -> "Log Expense"
     Screen.Profile -> "Profile & Settings"
+    Screen.HouseholdMembers -> "Household Members"
+    Screen.InviteMember -> "Invite Member"
 }
 
 private fun Screen.toBottomNavTab(): BottomNavTab = when (this) {
     Screen.Dashboard -> BottomNavTab.Dashboard
     Screen.Categories, is Screen.CategoryDetail -> BottomNavTab.Categories
     Screen.History, is Screen.TransactionDetail, is Screen.EditTransaction -> BottomNavTab.History
-    Screen.Profile -> BottomNavTab.Profile
+    Screen.Profile, Screen.HouseholdMembers, Screen.InviteMember -> BottomNavTab.Profile
     Screen.AddTransaction -> BottomNavTab.None
 }

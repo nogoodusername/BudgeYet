@@ -15,4 +15,9 @@ interface ProfileRepository {
     suspend fun updatePushNotifications(enabled: Boolean): User
     suspend fun updateCurrency(currency: String): Household
     suspend fun updateLanguage(language: String): Household
+
+    // Household member management (Manage Members CTA on Profile & Settings).
+    suspend fun inviteMember(email: String): Household
+    suspend fun promoteToAdmin(memberId: Long): Household
+    suspend fun removeMember(memberId: Long): Household
 }

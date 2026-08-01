@@ -9,4 +9,6 @@ sealed interface Screen {
     data class EditTransaction(val transactionId: Long) : Screen
     data object AddTransaction : Screen
     data object Profile : Screen
+    data object HouseholdMembers : Screen
+    data object InviteMember : Screen
 }

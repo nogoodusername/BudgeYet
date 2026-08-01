@@ -17,4 +17,8 @@ data class Household(
     val language: String,
     val cycleStartDay: Int,
     val members: List<HouseholdMember>
-)
+) {
+    companion object {
+        const val MAX_MEMBERS = 3
+    }
+}
