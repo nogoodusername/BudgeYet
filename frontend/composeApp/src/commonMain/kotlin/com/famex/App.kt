@@ -125,7 +125,7 @@ private fun Screen.title(): String = when (this) {
     is Screen.TransactionDetail -> "Transaction Detail"
     is Screen.EditTransaction -> "Edit Transaction"
     Screen.AddTransaction -> "Log Expense"
-    Screen.Profile -> "Profile"
+    Screen.Profile -> "Profile & Settings"
 }
 
 private fun Screen.toBottomNavTab(): BottomNavTab = when (this) {

@@ -7,5 +7,6 @@ data class User(
     val email: String,
     val fullName: String,
     val nickname: String,
-    val displayMode: DisplayMode = DisplayMode.SYSTEM
+    val displayMode: DisplayMode = DisplayMode.SYSTEM,
+    val pushNotificationsEnabled: Boolean = true
 )

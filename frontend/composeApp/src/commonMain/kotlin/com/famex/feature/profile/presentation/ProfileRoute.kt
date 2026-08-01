@@ -18,5 +18,16 @@ fun ProfileRoute(modifier: Modifier = Modifier) {
 
     LaunchedEffect(controller) { controller.load() }
 
-    ProfileScreen(uiState = uiState, modifier = modifier)
+    ProfileScreen(
+        uiState = uiState,
+        onFullNameChange = controller::onFullNameChange,
+        onNicknameChange = controller::onNicknameChange,
+        onCurrencyChange = controller::onCurrencyChange,
+        onLanguageChange = controller::onLanguageChange,
+        onDisplayModeChange = controller::onDisplayModeChange,
+        onPushNotificationsToggle = controller::onPushNotificationsToggle,
+        onCancel = controller::onCancel,
+        onSaveChanges = controller::onSaveChanges,
+        modifier = modifier
+    )
 }

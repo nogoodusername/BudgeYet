@@ -1,5 +1,6 @@
 package com.famex.feature.profile.presentation
 
+import com.famex.core.model.DisplayMode
 import com.famex.feature.profile.domain.ProfileRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,9 +22,81 @@ class ProfileController(
             try {
                 val user = repository.getCurrentUser()
                 val household = repository.getHousehold()
-                _uiState.update { it.copy(isLoading = false, user = user, household = household) }
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        user = user,
+                        household = household,
+                        fullNameDraft = user.fullName,
+                        nicknameDraft = user.nickname,
+                        displayModeDraft = user.displayMode,
+                        pushNotificationsDraft = user.pushNotificationsEnabled,
+                        currencyDraft = household.currency,
+                        languageDraft = household.language
+                    )
+                }
             } catch (t: Throwable) {
                 _uiState.update { it.copy(isLoading = false, errorMessage = t.message ?: "Something went wrong") }
+            }
+        }
+    }
+
+    fun onFullNameChange(value: String) = _uiState.update { it.copy(fullNameDraft = value) }
+
+    fun onNicknameChange(value: String) = _uiState.update { it.copy(nicknameDraft = value) }
+
+    fun onCurrencyChange(value: String) = _uiState.update { it.copy(currencyDraft = value) }
+
+    fun onLanguageChange(value: String) = _uiState.update { it.copy(languageDraft = value) }
+
+    fun onDisplayModeChange(mode: DisplayMode) = _uiState.update { it.copy(displayModeDraft = mode) }
+
+    fun onPushNotificationsToggle(enabled: Boolean) = _uiState.update { it.copy(pushNotificationsDraft = enabled) }
+
+    fun onCancel() {
+        val state = _uiState.value
+        val user = state.user ?: return
+        val household = state.household ?: return
+        _uiState.update {
+            it.copy(
+                fullNameDraft = user.fullName,
+                nicknameDraft = user.nickname,
+                displayModeDraft = user.displayMode,
+                pushNotificationsDraft = user.pushNotificationsEnabled,
+                currencyDraft = household.currency,
+                languageDraft = household.language,
+                saveError = null
+            )
+        }
+    }
+
+    fun onSaveChanges() {
+        val state = _uiState.value
+        if (state.fullNameDraft.isBlank()) {
+            _uiState.update { it.copy(saveError = "Enter your full name") }
+            return
+        }
+        if (state.nicknameDraft.isBlank()) {
+            _uiState.update { it.copy(saveError = "Enter a nickname") }
+            return
+        }
+
+        scope.launch {
+            _uiState.update { it.copy(isSaving = true, saveError = null) }
+            try {
+                val user = repository.updateUserProfile(
+                    fullName = state.fullNameDraft.trim(),
+                    nickname = state.nicknameDraft.trim(),
+                    displayMode = state.displayModeDraft,
+                    pushNotificationsEnabled = state.pushNotificationsDraft
+                )
+                val household = repository.updateHouseholdSettings(
+                    currency = state.currencyDraft,
+                    language = state.languageDraft
+                )
+                _uiState.update { it.copy(isSaving = false, user = user, household = household) }
+            } catch (t: Throwable) {
+                _uiState.update { it.copy(isSaving = false, saveError = t.message ?: "Couldn't save changes") }
             }
         }
     }
