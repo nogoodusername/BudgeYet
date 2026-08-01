@@ -2,6 +2,7 @@ package com.famex.feature.category.presentation
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -56,6 +57,7 @@ fun CategoryListScreen(
     onSplitEvenly: () -> Unit,
     onSaveChanges: () -> Unit,
     onRetry: () -> Unit,
+    onCategoryClick: (Long) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     when {
@@ -83,6 +85,7 @@ fun CategoryListScreen(
             onLimitChange = onLimitChange,
             onSplitEvenly = onSplitEvenly,
             onSaveChanges = onSaveChanges,
+            onCategoryClick = onCategoryClick,
             modifier = modifier
         )
     }
@@ -94,6 +97,7 @@ private fun CategoryLimitsContent(
     onLimitChange: (Long, String) -> Unit,
     onSplitEvenly: () -> Unit,
     onSaveChanges: () -> Unit,
+    onCategoryClick: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val currencySymbol = currencySymbolFor("USD")
@@ -117,7 +121,8 @@ private fun CategoryLimitsContent(
                 category = category,
                 draftValue = uiState.limitDrafts[category.id] ?: "",
                 percentOfTotal = uiState.draftPercent(category),
-                onValueChange = { onLimitChange(category.id, it) }
+                onValueChange = { onLimitChange(category.id, it) },
+                onClick = { onCategoryClick(category.id) }
             )
         }
 
@@ -237,7 +242,8 @@ private fun CategoryLimitRow(
     category: Category,
     draftValue: String,
     percentOfTotal: Int,
-    onValueChange: (String) -> Unit
+    onValueChange: (String) -> Unit,
+    onClick: () -> Unit
 ) {
     val famExType = LocalFamExTypography.current
     val statusColor = colorFor(category.status)
@@ -254,20 +260,26 @@ private fun CategoryLimitRow(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier.size(48.dp).clip(CircleShape).background(statusColor.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center
+            Row(
+                modifier = Modifier.weight(1f).clickable(onClick = onClick),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(imageVector = categoryIcon(category.icon), contentDescription = category.name, tint = statusColor)
-            }
+                Box(
+                    modifier = Modifier.size(48.dp).clip(CircleShape).background(statusColor.copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(imageVector = categoryIcon(category.icon), contentDescription = category.name, tint = statusColor)
+                }
 
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = category.name, style = famExType.labelMd, color = MaterialTheme.colorScheme.onSurface)
-                Text(
-                    text = "$percentOfTotal% of total budget",
-                    style = famExType.bodyMd,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Column {
+                    Text(text = category.name, style = famExType.labelMd, color = MaterialTheme.colorScheme.onSurface)
+                    Text(
+                        text = "$percentOfTotal% of total budget",
+                        style = famExType.bodyMd,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
             OutlinedTextField(

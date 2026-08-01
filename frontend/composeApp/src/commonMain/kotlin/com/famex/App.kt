@@ -81,7 +81,9 @@ fun App() {
                             onNavigateToHistory = { navController.switchTab(Screen.History) },
                             onNavigateToSetUpBudget = { navController.switchTab(Screen.Categories) }
                         )
-                        Screen.Categories -> CategoryRoute()
+                        Screen.Categories -> CategoryRoute(
+                            onNavigateToCategoryDetail = { navController.navigate(Screen.CategoryDetail(it)) }
+                        )
                         is Screen.CategoryDetail -> CategoryDetailRoute(categoryId = screen.categoryId)
                         Screen.History -> HistoryRoute(
                             onTransactionClick = { navController.navigate(Screen.TransactionDetail(it)) }

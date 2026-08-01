@@ -10,7 +10,10 @@ import androidx.compose.ui.Modifier
 import com.famex.core.di.LocalAppContainer
 
 @Composable
-fun CategoryRoute(modifier: Modifier = Modifier) {
+fun CategoryRoute(
+    onNavigateToCategoryDetail: (Long) -> Unit = {},
+    modifier: Modifier = Modifier
+) {
     val container = LocalAppContainer.current
     val scope = rememberCoroutineScope()
     val controller = remember(container) { CategoryListController(container.categoryRepository, scope) }
@@ -24,6 +27,7 @@ fun CategoryRoute(modifier: Modifier = Modifier) {
         onSplitEvenly = controller::onSplitEvenly,
         onSaveChanges = controller::onSaveChanges,
         onRetry = controller::load,
+        onCategoryClick = onNavigateToCategoryDetail,
         modifier = modifier
     )
 }
