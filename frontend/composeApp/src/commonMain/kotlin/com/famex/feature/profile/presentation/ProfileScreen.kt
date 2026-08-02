@@ -20,7 +20,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Group
@@ -329,30 +328,23 @@ private fun ManageMembersRow(onClick: () -> Unit) {
     val famExType = LocalFamExTypography.current
     Row(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box(
-                modifier = Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(imageVector = Icons.Default.Group, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
-            }
-            Column {
-                Text(text = "Manage Members", style = famExType.labelMd, color = MaterialTheme.colorScheme.onSurface)
-                Text(
-                    text = "Invite family, promote admins, or remove members",
-                    style = famExType.labelSm,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+        Box(
+            modifier = Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(imageVector = Icons.Default.Group, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
         }
-        Icon(
-            imageVector = Icons.Default.ChevronRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        Column {
+            Text(text = "Manage Members", style = famExType.labelMd, color = MaterialTheme.colorScheme.onSurface)
+            Text(
+                text = "Invite family, promote admins, or remove members",
+                style = famExType.labelSm,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
