@@ -73,10 +73,18 @@ class FakeProfileRepository(scenario: DummyScenario) : ProfileRepository {
         return household
     }
 
-    override suspend fun promoteToAdmin(memberId: Long): Household {
+    override suspend fun updateMemberRole(memberId: Long, role: MemberRole): Household {
         delay(400)
         household = household.copy(
-            members = household.members.map { if (it.id == memberId) it.copy(role = MemberRole.ADMIN) else it }
+            members = household.members.map { m ->
+                when {
+                    m.id == memberId -> m.copy(role = role)
+                    // Owner is single-holder — promoting someone else to Owner transfers the
+                    // role, demoting the previous Owner to Admin rather than leaving two Owners.
+                    role == MemberRole.OWNER && m.role == MemberRole.OWNER -> m.copy(role = MemberRole.ADMIN)
+                    else -> m
+                }
+            }
         )
         return household
     }

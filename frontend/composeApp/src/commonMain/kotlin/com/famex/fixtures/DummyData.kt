@@ -21,13 +21,13 @@ private fun member(user: User, role: MemberRole) = HouseholdMember(user.id, user
 
 private fun householdFor(scenario: DummyScenario): Household {
     val members = when (scenario) {
-        DummyScenario.SoloBudgeter -> listOf(member(alex, MemberRole.ADMIN))
+        DummyScenario.SoloBudgeter -> listOf(member(alex, MemberRole.OWNER))
         DummyScenario.FullHouseholdThreeMembers -> listOf(
-            member(alex, MemberRole.ADMIN),
+            member(alex, MemberRole.OWNER),
             member(sam, MemberRole.MEMBER),
             member(jo, MemberRole.MEMBER)
         )
-        else -> listOf(member(alex, MemberRole.ADMIN), member(sam, MemberRole.MEMBER))
+        else -> listOf(member(alex, MemberRole.OWNER), member(sam, MemberRole.MEMBER))
     }
     return Household(
         id = 1,

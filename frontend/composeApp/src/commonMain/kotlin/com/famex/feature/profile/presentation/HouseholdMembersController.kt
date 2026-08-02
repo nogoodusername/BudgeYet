@@ -1,6 +1,7 @@
 package com.famex.feature.profile.presentation
 
 import com.famex.core.model.HouseholdMember
+import com.famex.core.model.MemberRole
 import com.famex.feature.profile.domain.ProfileRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,19 +29,20 @@ class HouseholdMembersController(
         }
     }
 
-    fun onRequestPromote(member: HouseholdMember) = _uiState.update { it.copy(pendingPromoteMember = member, actionError = null) }
+    fun onRequestRoleChange(member: HouseholdMember, newRole: MemberRole) =
+        _uiState.update { it.copy(pendingRoleChange = RoleChangeRequest(member, newRole), actionError = null) }
 
-    fun onCancelPromote() = _uiState.update { it.copy(pendingPromoteMember = null) }
+    fun onCancelRoleChange() = _uiState.update { it.copy(pendingRoleChange = null) }
 
-    fun onConfirmPromote() {
-        val member = _uiState.value.pendingPromoteMember ?: return
+    fun onConfirmRoleChange() {
+        val request = _uiState.value.pendingRoleChange ?: return
         scope.launch {
             _uiState.update { it.copy(isProcessing = true, actionError = null) }
             try {
-                val household = repository.promoteToAdmin(member.id)
-                _uiState.update { it.copy(isProcessing = false, household = household, pendingPromoteMember = null) }
+                val household = repository.updateMemberRole(request.member.id, request.newRole)
+                _uiState.update { it.copy(isProcessing = false, household = household, pendingRoleChange = null) }
             } catch (t: Throwable) {
-                _uiState.update { it.copy(isProcessing = false, actionError = t.message ?: "Couldn't promote member") }
+                _uiState.update { it.copy(isProcessing = false, actionError = t.message ?: "Couldn't update role") }
             }
         }
     }

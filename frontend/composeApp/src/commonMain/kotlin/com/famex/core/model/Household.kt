@@ -1,6 +1,9 @@
 package com.famex.core.model
 
-enum class MemberRole { ADMIN, MEMBER }
+// Ordered high-to-low: OWNER is a single-holder role (transferred, not duplicated) — see
+// FakeProfileRepository.updateMemberRole, which demotes the outgoing Owner to Admin whenever
+// a member is promoted to Owner.
+enum class MemberRole { OWNER, ADMIN, MEMBER }
 
 data class HouseholdMember(
     val id: Long,

@@ -23,9 +23,9 @@ fun HouseholdMembersRoute(
 
     HouseholdMembersScreen(
         uiState = uiState,
-        onRequestPromote = controller::onRequestPromote,
-        onCancelPromote = controller::onCancelPromote,
-        onConfirmPromote = controller::onConfirmPromote,
+        onRequestRoleChange = controller::onRequestRoleChange,
+        onCancelRoleChange = controller::onCancelRoleChange,
+        onConfirmRoleChange = controller::onConfirmRoleChange,
         onRequestRemove = controller::onRequestRemove,
         onCancelRemove = controller::onCancelRemove,
         onConfirmRemove = controller::onConfirmRemove,

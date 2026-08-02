@@ -2,6 +2,7 @@ package com.famex.feature.profile.domain
 
 import com.famex.core.model.DisplayMode
 import com.famex.core.model.Household
+import com.famex.core.model.MemberRole
 import com.famex.core.model.User
 
 interface ProfileRepository {
@@ -18,6 +19,8 @@ interface ProfileRepository {
 
     // Household member management (Manage Members CTA on Profile & Settings).
     suspend fun inviteMember(email: String): Household
-    suspend fun promoteToAdmin(memberId: Long): Household
+    // Covers promote-to-Admin, promote-to-Owner (transfers ownership — see
+    // FakeProfileRepository), and demote-to-Member.
+    suspend fun updateMemberRole(memberId: Long, role: MemberRole): Household
     suspend fun removeMember(memberId: Long): Household
 }

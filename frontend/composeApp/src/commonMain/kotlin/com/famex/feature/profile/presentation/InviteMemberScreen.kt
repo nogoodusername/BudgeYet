@@ -119,7 +119,11 @@ fun InviteMemberScreen(
                                     Column {
                                         Text(text = member.user.nickname, style = famExType.labelMd, color = MaterialTheme.colorScheme.onSurface)
                                         Text(
-                                            text = if (member.role == MemberRole.ADMIN) "Admin" else "Member",
+                                            text = when (member.role) {
+                                                MemberRole.OWNER -> "Owner"
+                                                MemberRole.ADMIN -> "Admin"
+                                                MemberRole.MEMBER -> "Member"
+                                            },
                                             style = famExType.labelSm,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
