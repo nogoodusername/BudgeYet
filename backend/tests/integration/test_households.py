@@ -5,10 +5,10 @@ from tests.helpers import auth_headers, create_household, create_invite, signup_
 pytestmark = pytest.mark.asyncio
 
 
-async def test_create_household_makes_creator_admin(client, monkeypatch):
+async def test_create_household_makes_creator_owner(client, monkeypatch):
     token, _ = await signup_and_login(client, monkeypatch, "ada@example.com")
     household = await create_household(client, token)
-    assert household["members"][0]["role"] == "admin"
+    assert household["members"][0]["role"] == "owner"
 
 
 async def test_v1_caps_a_user_to_one_household(client, monkeypatch):
@@ -229,33 +229,90 @@ async def test_expired_invite_cannot_be_joined(client, monkeypatch):
     assert resp.status_code == 422
 
 
-async def test_sole_admin_cannot_leave(client, monkeypatch):
-    admin_token, _ = await signup_and_login(client, monkeypatch, "admin@example.com")
-    household = await create_household(client, admin_token)
+async def test_sole_owner_cannot_leave(client, monkeypatch):
+    owner_token, _ = await signup_and_login(client, monkeypatch, "owner@example.com")
+    household = await create_household(client, owner_token)
 
     resp = await client.post(
-        f"/households/{household['id']}/leave", headers=auth_headers(admin_token)
+        f"/households/{household['id']}/leave", headers=auth_headers(owner_token)
     )
     assert resp.status_code == 409
 
 
-async def test_sole_admin_cannot_be_demoted(client, monkeypatch):
+async def test_owner_cannot_be_demoted_directly(client, monkeypatch):
+    owner_token, _ = await signup_and_login(client, monkeypatch, "owner@example.com")
+    household = await create_household(client, owner_token)
+    owner_member_id = household["members"][0]["id"]
+
+    resp = await client.patch(
+        f"/households/{household['id']}/members/{owner_member_id}/role",
+        json={"role": "member"},
+        headers=auth_headers(owner_token),
+    )
+    assert resp.status_code == 409
+
+
+async def test_owner_cannot_be_removed_directly(client, monkeypatch):
+    owner_token, _ = await signup_and_login(client, monkeypatch, "owner@example.com")
+    household = await create_household(client, owner_token)
+    owner_member_id = household["members"][0]["id"]
+
+    resp = await client.delete(
+        f"/households/{household['id']}/members/{owner_member_id}",
+        headers=auth_headers(owner_token),
+    )
+    assert resp.status_code == 409
+
+
+async def test_admin_cannot_transfer_ownership(client, monkeypatch):
+    """Only the Owner can transfer ownership — an Admin (even one managing other
+    members) doesn't get to hand out the Owner role."""
+    owner_token, _ = await signup_and_login(client, monkeypatch, "owner@example.com")
+    household = await create_household(client, owner_token)
+    _, token_str = await create_invite(client, owner_token, household["id"])
+
     admin_token, _ = await signup_and_login(client, monkeypatch, "admin@example.com")
-    household = await create_household(client, admin_token)
-    admin_member_id = household["members"][0]["id"]
+    join_resp = await client.post(
+        "/households/join", json={"token": token_str}, headers=auth_headers(admin_token)
+    )
+    admin_member_id = join_resp.json()["id"]
+    await client.patch(
+        f"/households/{household['id']}/members/{admin_member_id}/role",
+        json={"role": "admin"},
+        headers=auth_headers(owner_token),
+    )
 
     resp = await client.patch(
         f"/households/{household['id']}/members/{admin_member_id}/role",
-        json={"role": "member"},
+        json={"role": "owner"},
         headers=auth_headers(admin_token),
     )
-    assert resp.status_code == 409
+    assert resp.status_code == 403
 
 
-async def test_promote_member_then_original_admin_can_leave(client, monkeypatch):
-    admin_token, _ = await signup_and_login(client, monkeypatch, "admin@example.com")
-    household = await create_household(client, admin_token)
-    _, token_str = await create_invite(client, admin_token, household["id"])
+async def test_member_cannot_be_promoted_directly_to_owner(client, monkeypatch):
+    owner_token, _ = await signup_and_login(client, monkeypatch, "owner@example.com")
+    household = await create_household(client, owner_token)
+    _, token_str = await create_invite(client, owner_token, household["id"])
+
+    member_token, _ = await signup_and_login(client, monkeypatch, "member@example.com")
+    join_resp = await client.post(
+        "/households/join", json={"token": token_str}, headers=auth_headers(member_token)
+    )
+    member_id = join_resp.json()["id"]
+
+    resp = await client.patch(
+        f"/households/{household['id']}/members/{member_id}/role",
+        json={"role": "owner"},
+        headers=auth_headers(owner_token),
+    )
+    assert resp.status_code == 422
+
+
+async def test_transfer_ownership_demotes_previous_owner_and_allows_leave(client, monkeypatch):
+    owner_token, _ = await signup_and_login(client, monkeypatch, "owner@example.com")
+    household = await create_household(client, owner_token)
+    _, token_str = await create_invite(client, owner_token, household["id"])
 
     member_token, member_user = await signup_and_login(client, monkeypatch, "member@example.com")
     join_resp = await client.post(
@@ -266,12 +323,28 @@ async def test_promote_member_then_original_admin_can_leave(client, monkeypatch)
     promote_resp = await client.patch(
         f"/households/{household['id']}/members/{new_member_id}/role",
         json={"role": "admin"},
-        headers=auth_headers(admin_token),
+        headers=auth_headers(owner_token),
     )
     assert promote_resp.status_code == 200
 
+    transfer_resp = await client.patch(
+        f"/households/{household['id']}/members/{new_member_id}/role",
+        json={"role": "owner"},
+        headers=auth_headers(owner_token),
+    )
+    assert transfer_resp.status_code == 200
+    assert transfer_resp.json()["role"] == "owner"
+
+    get_resp = await client.get(
+        f"/households/{household['id']}", headers=auth_headers(owner_token)
+    )
+    roles_by_member = {m["id"]: m["role"] for m in get_resp.json()["members"]}
+    original_owner_id = household["members"][0]["id"]
+    assert roles_by_member[original_owner_id] == "admin"
+    assert roles_by_member[new_member_id] == "owner"
+
     leave_resp = await client.post(
-        f"/households/{household['id']}/leave", headers=auth_headers(admin_token)
+        f"/households/{household['id']}/leave", headers=auth_headers(owner_token)
     )
     assert leave_resp.status_code == 204
 
