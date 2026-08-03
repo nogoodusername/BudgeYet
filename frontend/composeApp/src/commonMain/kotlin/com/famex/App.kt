@@ -24,6 +24,7 @@ import com.famex.core.navigation.AppNavController
 import com.famex.core.navigation.Screen
 import com.famex.core.ui.BottomNavTab
 import com.famex.core.ui.FamExBottomNavBar
+import com.famex.feature.category.presentation.AddCategoryRoute
 import com.famex.feature.category.presentation.CategoryDetailRoute
 import com.famex.feature.category.presentation.CategoryRoute
 import com.famex.feature.dashboard.presentation.DashboardRoute
@@ -74,9 +75,10 @@ fun App() {
                 bottomBar = {
                     FamExBottomNavBar(
                         selectedTab = current.toBottomNavTab(),
-                        // Hidden on the add/edit transaction forms — it would float on top of
-                        // those screens' own Save button.
-                        showAddButton = current != Screen.AddTransaction && current !is Screen.EditTransaction,
+                        // Hidden on the add/edit transaction forms and Add Category — it would
+                        // float on top of those screens' own Save/Add button.
+                        showAddButton = current != Screen.AddTransaction && current !is Screen.EditTransaction &&
+                            current != Screen.AddCategory,
                         onDashboard = { navController.switchTab(Screen.Dashboard) },
                         onCategories = { navController.switchTab(Screen.Categories) },
                         onAdd = { navController.navigate(Screen.AddTransaction) },
@@ -93,9 +95,11 @@ fun App() {
                             onNavigateToSetUpBudget = { navController.switchTab(Screen.Categories) }
                         )
                         Screen.Categories -> CategoryRoute(
-                            onNavigateToCategoryDetail = { navController.navigate(Screen.CategoryDetail(it)) }
+                            onNavigateToCategoryDetail = { navController.navigate(Screen.CategoryDetail(it)) },
+                            onNavigateToAddCategory = { navController.navigate(Screen.AddCategory) }
                         )
                         is Screen.CategoryDetail -> CategoryDetailRoute(categoryId = screen.categoryId)
+                        Screen.AddCategory -> AddCategoryRoute(onSaved = { navController.back() })
                         Screen.History -> HistoryRoute(
                             onTransactionClick = { navController.navigate(Screen.TransactionDetail(it)) },
                             onNavigateToAddTransaction = { navController.navigate(Screen.AddTransaction) }
@@ -129,6 +133,7 @@ private fun Screen.title(): String = when (this) {
     Screen.Dashboard -> "fam-ex Dashboard"
     Screen.Categories -> "Category Limits"
     is Screen.CategoryDetail -> "Category Detail"
+    Screen.AddCategory -> "Add Category"
     Screen.History -> "Transaction History"
     is Screen.TransactionDetail -> "Transaction Detail"
     is Screen.EditTransaction -> "Edit Transaction"
@@ -140,7 +145,7 @@ private fun Screen.title(): String = when (this) {
 
 private fun Screen.toBottomNavTab(): BottomNavTab = when (this) {
     Screen.Dashboard -> BottomNavTab.Dashboard
-    Screen.Categories, is Screen.CategoryDetail -> BottomNavTab.Categories
+    Screen.Categories, is Screen.CategoryDetail, Screen.AddCategory -> BottomNavTab.Categories
     Screen.History, is Screen.TransactionDetail, is Screen.EditTransaction -> BottomNavTab.History
     Screen.Profile, Screen.HouseholdMembers, Screen.InviteMember -> BottomNavTab.Profile
     Screen.AddTransaction -> BottomNavTab.None

@@ -10,26 +10,29 @@ import androidx.compose.ui.Modifier
 import com.famex.core.di.LocalAppContainer
 
 @Composable
-fun CategoryRoute(
-    onNavigateToCategoryDetail: (Long) -> Unit = {},
-    onNavigateToAddCategory: () -> Unit = {},
+fun AddCategoryRoute(
+    onSaved: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val container = LocalAppContainer.current
     val scope = rememberCoroutineScope()
-    val controller = remember(container) { CategoryListController(container.categoryRepository, scope) }
+    val controller = remember(container) { AddCategoryController(container.categoryRepository, scope) }
     val uiState by controller.uiState.collectAsState()
 
-    LaunchedEffect(controller) { controller.load() }
+    LaunchedEffect(controller) {
+        controller.events.collect { event ->
+            when (event) {
+                AddCategoryEvent.Saved -> onSaved()
+            }
+        }
+    }
 
-    CategoryListScreen(
+    AddCategoryScreen(
         uiState = uiState,
-        onLimitChange = controller::onLimitChange,
-        onSplitEvenly = controller::onSplitEvenly,
-        onSaveChanges = controller::onSaveChanges,
-        onRetry = controller::load,
-        onCategoryClick = onNavigateToCategoryDetail,
-        onAddCategory = onNavigateToAddCategory,
+        onNameChange = controller::onNameChange,
+        onMonthlyLimitChange = controller::onMonthlyLimitChange,
+        onIconSelected = controller::onIconSelected,
+        onSave = controller::onSave,
         modifier = modifier
     )
 }

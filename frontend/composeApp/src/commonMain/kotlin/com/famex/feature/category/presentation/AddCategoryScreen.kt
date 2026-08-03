@@ -1,0 +1,219 @@
+package com.famex.feature.category.presentation
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import com.famex.core.ui.TextFieldCard
+import com.famex.core.ui.categoryIcon
+import com.famex.core.ui.categoryIconChoices
+import com.famex.core.ui.fieldColors
+import com.famex.core.util.currencySymbolFor
+import com.famex.core.util.formatAmount
+import com.famex.theme.LocalFamExTypography
+
+/**
+ * Stitch "Add Category Form" screen (58da6754f9344e67881ef3920c1bc16f). Reached from the
+ * Category Limits list's "Add Category" placeholder. The Stitch export's own TopAppBar and
+ * BottomNavBar are dropped — App.kt's shared Scaffold already renders both.
+ */
+@Composable
+fun AddCategoryScreen(
+    uiState: AddCategoryUiState,
+    onNameChange: (String) -> Unit,
+    onMonthlyLimitChange: (String) -> Unit,
+    onIconSelected: (String) -> Unit,
+    onSave: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val famExType = LocalFamExTypography.current
+    val currencySymbol = currencySymbolFor("USD")
+
+    LazyColumn(
+        modifier = modifier.fillMaxSize().padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(vertical = 16.dp)
+    ) {
+        item {
+            TextFieldCard(
+                label = "Category Name",
+                value = uiState.name,
+                onValueChange = onNameChange,
+                placeholder = "e.g. Groceries, Entertainment"
+            )
+        }
+
+        item { MonthlyLimitFieldCard(value = uiState.monthlyLimitText, onValueChange = onMonthlyLimitChange) }
+
+        item { IconSelectionCard(selectedIcon = uiState.selectedIcon, onIconSelected = onIconSelected) }
+
+        item {
+            PreviewCard(
+                iconKey = uiState.selectedIcon,
+                name = uiState.previewName,
+                limitText = "Budget: ${formatAmount(uiState.previewLimit, currencySymbol)}"
+            )
+        }
+
+        item {
+            Button(
+                onClick = onSave,
+                enabled = !uiState.isSaving,
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            ) {
+                Text(text = if (uiState.isSaving) "Adding…" else "Add Category", style = famExType.headlineSm)
+            }
+        }
+
+        uiState.saveError?.let { error ->
+            item {
+                Text(text = error, style = famExType.labelSm, color = MaterialTheme.colorScheme.error)
+            }
+        }
+    }
+}
+
+@Composable
+private fun MonthlyLimitFieldCard(value: String, onValueChange: (String) -> Unit) {
+    val famExType = LocalFamExTypography.current
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(text = "Monthly Limit", style = famExType.labelMd, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            OutlinedTextField(
+                value = value,
+                onValueChange = onValueChange,
+                placeholder = { Text(text = "0.00", style = famExType.bodyMd) },
+                leadingIcon = { Text(text = "$", style = famExType.headlineSm, color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(8.dp),
+                colors = fieldColors()
+            )
+        }
+    }
+}
+
+@Composable
+private fun IconSelectionCard(selectedIcon: String, onIconSelected: (String) -> Unit) {
+    val famExType = LocalFamExTypography.current
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(text = "Select Icon", style = famExType.labelMd, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(4),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                // Grid is a fixed 8-icon set (2 rows) — never scrolls on its own, so it can
+                // safely size itself inside the outer LazyColumn instead of nesting scroll.
+                modifier = Modifier.fillMaxWidth().height(160.dp)
+            ) {
+                items(categoryIconChoices) { iconKey ->
+                    IconGridItem(
+                        iconKey = iconKey,
+                        selected = iconKey == selectedIcon,
+                        onClick = { onIconSelected(iconKey) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun IconGridItem(iconKey: String, selected: Boolean, onClick: () -> Unit) {
+    val borderColor = if (selected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.surfaceVariant
+    val contentColor = if (selected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant
+    val containerColor = if (selected) MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.background
+
+    Box(
+        modifier = Modifier
+            .aspectRatio(1f)
+            .clip(RoundedCornerShape(12.dp))
+            .border(1.dp, borderColor, RoundedCornerShape(12.dp))
+            .background(containerColor)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(imageVector = categoryIcon(iconKey), contentDescription = iconKey, tint = contentColor)
+    }
+}
+
+@Composable
+private fun PreviewCard(iconKey: String, name: String, limitText: String) {
+    val famExType = LocalFamExTypography.current
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.05f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.secondary),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(imageVector = categoryIcon(iconKey), contentDescription = null, tint = MaterialTheme.colorScheme.onSecondary)
+            }
+            Column {
+                Text(text = name, style = famExType.headlineSm, color = MaterialTheme.colorScheme.onSurface)
+                Text(text = limitText, style = famExType.bodyMd, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}

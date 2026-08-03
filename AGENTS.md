@@ -221,13 +221,16 @@ real Ktor networking is wired up (see "Frontend dummy data scenarios" below). Up
 checkboxes as phases land so the plan survives across sessions.
 
 - [x] **Phase 1 — Core daily-use loop (PRD B/C/D).** Dashboard (empty states, FAB long-press
-  Add Expense/Income shortcuts, tap-through), Category Limits (C1, admin-gated) + Category Detail
-  (C3), Transaction History (D2, grouped/search/filter) + Transaction Detail (D3, role-gated edit/
-  delete) + Add Transaction (D1). Persistent bottom nav (Dashboard, Categories, Add [FAB], History,
-  Profile) with a minimal read-only Profile stub — full profile editing is Phase 3. Feature-based
-  folders under `composeApp/src/commonMain/kotlin/com/famex/feature/{dashboard,category,transaction,
+  Add Expense/Income shortcuts, tap-through), Category Limits (C1, admin-gated, including the
+  Add Category form — name/limit/icon-grid picker, `feature/category/presentation/AddCategory*`)
+  + Category Detail (C3), Transaction History (D2, grouped/search/filter) + Transaction Detail
+  (D3, role-gated edit/delete) + Add Transaction (D1). Persistent bottom nav (Dashboard,
+  Categories, Add [FAB], History, Profile) with a minimal read-only Profile stub — full profile
+  editing is Phase 3. Feature-based folders under
+  `composeApp/src/commonMain/kotlin/com/famex/feature/{dashboard,category,transaction,
   profile}/{data,domain,presentation}`, shared bits in `core/` (`navigation`, `model`, `ui`, `util`,
-  `di`), dummy scenarios in `fixtures/`.
+  `di`), dummy scenarios in `fixtures/`. Category deletion (also part of C1) is not yet implemented
+  on the frontend, even though the backend supports it with reassign-before-delete.
 - [ ] **Phase 2 — Onboarding & auth funnel (PRD A).** Welcome/intro, signup, PIN verify, login,
   forgot PIN, household create/join, budget creation (skippable), category configuration
   (skippable, tied to budget creation per PRD A3/A4).

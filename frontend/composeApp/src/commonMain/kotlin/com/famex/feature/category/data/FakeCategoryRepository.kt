@@ -27,4 +27,16 @@ class FakeCategoryRepository(scenario: DummyScenario) : CategoryRepository {
             limits[category.id]?.let { newLimit -> category.copy(monthlyLimit = newLimit) } ?: category
         }
     }
+
+    override suspend fun createCategory(name: String, icon: String, monthlyLimit: Double): Category {
+        delay(300)
+        val newCategory = Category(
+            id = (categories.maxOfOrNull { it.id } ?: 0L) + 1,
+            name = name,
+            icon = icon,
+            monthlyLimit = monthlyLimit
+        )
+        categories = categories + newCategory
+        return newCategory
+    }
 }

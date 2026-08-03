@@ -58,6 +58,7 @@ fun CategoryListScreen(
     onSaveChanges: () -> Unit,
     onRetry: () -> Unit,
     onCategoryClick: (Long) -> Unit = {},
+    onAddCategory: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     when {
@@ -86,6 +87,7 @@ fun CategoryListScreen(
             onSplitEvenly = onSplitEvenly,
             onSaveChanges = onSaveChanges,
             onCategoryClick = onCategoryClick,
+            onAddCategory = onAddCategory,
             modifier = modifier
         )
     }
@@ -98,6 +100,7 @@ private fun CategoryLimitsContent(
     onSplitEvenly: () -> Unit,
     onSaveChanges: () -> Unit,
     onCategoryClick: (Long) -> Unit,
+    onAddCategory: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val currencySymbol = currencySymbolFor("USD")
@@ -126,7 +129,7 @@ private fun CategoryLimitsContent(
             )
         }
 
-        item { AddCategoryButton() }
+        item { AddCategoryButton(onClick = onAddCategory) }
 
         item {
             Button(
@@ -303,13 +306,15 @@ private fun CategoryLimitRow(
 }
 
 @Composable
-private fun AddCategoryButton() {
+private fun AddCategoryButton(onClick: () -> Unit) {
     val famExType = LocalFamExTypography.current
     val outlineVariant = MaterialTheme.colorScheme.outlineVariant
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
             .dashedBorder(color = outlineVariant, strokeWidth = 1.dp, cornerRadius = 12.dp)
+            .clickable(onClick = onClick)
             .padding(vertical = 16.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
