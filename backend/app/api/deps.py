@@ -61,7 +61,11 @@ async def get_household_membership(
 async def require_admin_membership(
     membership: HouseholdMember = Depends(get_household_membership),
 ) -> HouseholdMember:
-    if membership.role != MemberRole.ADMIN:
+    """Gate for Admin-or-above actions — Owner is a superset of Admin, so it
+    passes too. Owner-only actions (e.g. transferring ownership) enforce that
+    narrower check themselves once they have the acting membership.
+    """
+    if membership.role not in (MemberRole.ADMIN, MemberRole.OWNER):
         raise PermissionDeniedError("Only household admins can perform this action")
     return membership
 
