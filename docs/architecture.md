@@ -79,9 +79,11 @@ The application supports two database drivers configured at setup time via envir
 Developers run `python3 scripts/setup_env.py` to interactively or non-interactively select the database configuration, which generates a customized `.env` file for local development.
 
 ### 3.3 Domain Models (SQLAlchemy ORM)
-- `users`: User identity, hashed 6-digit PIN auth, display nickname, and roles (`admin`, `member`).
+- `users`: User identity, hashed 6-digit PIN auth, display nickname.
 - `households`: Household entity, currency preference (`USD`, `EUR`, `INR`, etc.), cycle start day.
-- `household_members`: Junction table mapping users to households with role permissions.
+- `household_members`: Junction table mapping users to households, with a per-membership role
+  (`owner`, `admin`, `member`). Owner is single-holder per household — exactly one member holds it
+  at a time, transferred rather than duplicated.
 - `budgets`: Monthly budget target per household.
 - `categories`: Preset and custom spending categories with assigned monthly limit.
 - `transactions`: Expense and income ledger entries with merchant, category, amount, payment mode, and member reference.
