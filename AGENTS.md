@@ -25,14 +25,15 @@ Backend and frontend have separate CI pipelines gated by path (`backend/**`, `fr
 ## Current state (important)
 
 - Backend: v1 MVP REST surface is implemented — auth (email + 6-digit PIN, JWT, forgot-PIN
-  reissue), households (create/update, invites, join, member roles, leave/remove), budgets,
+  reissue), households (create/update, invites, join, member roles — Owner/Admin/Member, with
+  single-holder ownership transfer, leave/remove), budgets,
   categories (with reassign-before-delete), transactions (role-scoped edit/delete, filterable by
   category/payer/type/payment mode/date range/amount range/merchant-or-category search), dashboard,
   and a polling activity feed. Follows a Router → Controller → Service → Repository layering under
   `app/` (`api/v1/endpoints/` → `controllers/` → `services/` → `repositories/`). `alembic/versions/`
   now holds a full migration chain (not a single initial migration) — schema has evolved
   incrementally (login lockout fields, per-IP login-failure table, denormalized/atomic household
-  member counter, unique constraints, Numeric money columns, indexes) since the original v1 cut; see
+  member counter, unique constraints, Numeric money columns, indexes, Owner-role backfill) since the original v1 cut; see
   "Auth hardening" below and the Alembic note under Backend conventions before assuming the schema
   matches `e2eaf9009180_initial_schema.py` alone. `backend/tests/` has unit tests (`tests/unit/`) for
   `core/security.py` and `services/cycle_utils.py`, and integration tests (`tests/integration/`)
@@ -111,12 +112,18 @@ for the collision it fixes.
   do HTTP concerns (path/query/body parsing, status codes, `Depends`) and call into `controllers/` —
   they never touch a repository or session-scoped business rule directly.
 - `api/deps.py` — shared FastAPI dependencies: `get_db`, `get_current_user` (JWT bearer), and household
-  access-control deps (`get_household_membership`, `require_admin_membership`, `get_current_household`).
+  access-control deps (`get_household_membership`, `require_admin_membership` — passes Admin *or*
+  Owner, since Owner is a superset of Admin permissions, `get_current_household`). Owner-only actions
+  (transferring ownership) enforce that narrower check themselves in the service layer, on top of
+  `require_admin_membership`.
 - `controllers/` — thin orchestration between routers and services; maps request schemas to service
   calls and service results back to response schemas. No SQLAlchemy imports here.
 - `services/` — business rules (role permissions, the 3-member cap, future-date rejection, cycle
-  math in `cycle_utils.py`, delete-blocked-by-transactions, invite expiry, "always one admin",
-  login lockout/rate-limit — see "Auth hardening" above). Raises the domain exceptions in
+  math in `cycle_utils.py`, delete-blocked-by-transactions, invite expiry, "always exactly one
+  Owner" (single-holder, transferred via `HouseholdService._transfer_ownership` — only the current
+  Owner can promote an Admin to Owner, which auto-demotes the outgoing Owner to Admin; the Owner
+  can't be removed/demoted/leave directly), login lockout/rate-limit — see "Auth hardening" above).
+  Raises the domain exceptions in
   `core/exceptions.py` (`NotFoundError`, `ConflictError`, `PermissionDeniedError`,
   `ValidationAppError`, `AuthenticationError`, `RateLimitError`) — never `fastapi.HTTPException`
   directly. `main.py` registers exception handlers that translate these to HTTP responses
@@ -231,9 +238,11 @@ checkboxes as phases land so the plan survives across sessions.
 - [ ] **Phase 2 — Onboarding & auth funnel (PRD A).** Welcome/intro, signup, PIN verify, login,
   forgot PIN, household create/join, budget creation (skippable), category configuration
   (skippable, tied to budget creation per PRD A3/A4).
-- [ ] **Phase 3 — Collaboration & full profile (PRD E1/E2).** Household member list/roles, invite via
+- [ ] **Phase 3 — Collaboration & full profile (PRD E1/E2).** Household member list/roles (Owner/Admin/
+  Member, with Owner-only ownership transfer to an Admin — see `feature/category-limits-stitch-redesign`
+  for the fake-repo implementation this phase should wire up against real networking), invite via
   email/link (7-day expiry, 3-member cap enforcement), revoke invite/remove member, editable profile
-  (name/nickname, read-only email), household currency/language (admin), display mode preference.
+  (name/nickname, read-only email), household currency/language (admin/owner), display mode preference.
 
 **Architecture choices made in Phase 1 (carry forward into later phases):**
 - Navigation is a hand-rolled `core/navigation/AppNavController` (sealed `Screen` + back-stack list),
@@ -256,12 +265,16 @@ throw once so Error/retry UI is exercised too — these aren't just Success-stat
 
 These affect any backend logic or UI you write around budgets/transactions — get them from the PRD, not
 assumptions:
-- Roles are **Admin / Member** only. Members can add/edit/delete only their *own* transactions; Admins can
-  edit/delete anyone's. Only Admins manage categories, limits, invites, and household currency/language.
+- Roles are **Owner / Admin / Member**. Members can add/edit/delete only their *own* transactions;
+  Admins and the Owner can edit/delete anyone's, and manage categories, limits, invites, and household
+  currency/language. Owner is a **single-holder role per household** — exactly one member holds it at
+  all times, transferred (not duplicated): only the current Owner can promote an existing Admin to
+  Owner, which auto-demotes the outgoing Owner to Admin in the same operation. The Owner can't be
+  removed, demoted, or leave the household directly — ownership must be transferred to an Admin first.
 - One budget per household, one currency per household (not per-transaction).
 - Category limits **reset every cycle with no rollover** — but historical transactions/snapshots for prior
   cycles must remain intact and queryable by date range.
-- Household hard cap: **3 members** (including Admin) in v1.
+- Household hard cap: **3 members** (including the Owner) in v1.
 - Future-dated transactions are **disallowed**.
 - Auth is email + 6-digit PIN (emailed at signup), not password-based.
 - Invite links expire after **7 days**.

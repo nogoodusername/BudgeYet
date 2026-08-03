@@ -1,8 +1,8 @@
 # Household Budget App — Product Requirements Document (PRD)
 
-**Version:** 1.1
+**Version:** 1.2
 **Status:** For Review
-**Date:** July 22, 2026
+**Date:** August 3, 2026
 **Owner:** Product
 
 ---
@@ -69,18 +69,20 @@ A collaborative, cross-platform mobile app that lets households manage shared fi
 
 ## 5. User Roles & Permissions
 
-| Action | Admin | Member |
-|---|---|---|
-| Create/edit household budget & category limits | ✅ | 🚫 |
-| Invite / remove members | ✅ | 🚫 |
-| Add / edit / delete their own transactions | ✅ | ✅ |
-| Edit / delete other members' transactions | ✅ | 🚫 |
-| View all household transactions & activity feed | ✅ | ✅ |
-| Change household currency/language | ✅ | 🚫 |
-| Promote / demote Admin status | ✅ | 🚫 |
-| Leave household | ✅ (if not sole admin) | ✅ |
+| Action | Owner | Admin | Member |
+|---|---|---|---|
+| Create/edit household budget & category limits | ✅ | ✅ | 🚫 |
+| Invite / remove members | ✅ | ✅ | 🚫 |
+| Add / edit / delete their own transactions | ✅ | ✅ | ✅ |
+| Edit / delete other members' transactions | ✅ | ✅ | 🚫 |
+| View all household transactions & activity feed | ✅ | ✅ | ✅ |
+| Change household currency/language | ✅ | ✅ | 🚫 |
+| Promote / demote Member ↔ Admin | ✅ | ✅ | 🚫 |
+| Transfer ownership (promote an Admin to Owner) | ✅ | 🚫 | 🚫 |
+| Be removed or demoted by another member | 🚫 | ✅ (by Owner/Admin) | ✅ (by Owner/Admin) |
+| Leave household | ✅ (must transfer ownership first) | ✅ | ✅ |
 
-The household creator is the default Admin. An existing Admin can promote a Member to Admin or demote an Admin back to Member, so households can have more than one Admin.
+The household creator is the default Owner. **Owner is a single-holder role** — exactly one member holds it at all times, and it's *transferred*, never duplicated: only the current Owner can promote an existing Admin to Owner, and doing so automatically demotes the outgoing Owner to Admin in the same action. Because a household must always have an Owner, the Owner cannot be removed, demoted, or leave the household directly — they must transfer ownership to an Admin first. Any number of members can hold the Admin role; an Owner or an existing Admin can promote a Member to Admin or demote an Admin back to Member.
 
 ---
 
@@ -163,7 +165,7 @@ The household creator is the default Admin. An existing Admin can promote a Memb
 **C3. Category detail**
 - Header: category name, icon, limit, spent, remaining, % utilized.
 - Transaction list scoped to that category, same grouped/searchable list as D2.
-- Edit limit inline from this screen (Admin only).
+- Edit limit inline from this screen (Admin or Owner only).
 
 ### D. Transaction Management
 
@@ -179,21 +181,22 @@ The household creator is the default Admin. An existing Admin can promote a Memb
 
 **D3. Detail & edit**
 - Full transaction detail: all fields from D1, plus who logged it and when.
-- Edit (own transactions for Members; any transaction for Admins) or delete (with confirmation dialog).
+- Edit (own transactions for Members; any transaction for Admins/Owner) or delete (with confirmation dialog).
 - Full-screen receipt image viewer if a photo was attached.
 
 ### E. Collaboration & Profile
 
 **E1. Family sharing**
 - Invite via email (sends a link) or a shareable join link/QR code with expiry (7 days).
-- Household hard cap: 3 members total (including the Admin) in v1. Invite flow disables/hides once the cap is reached.
+- Household hard cap: 3 members total (including the Owner) in v1. Invite flow disables/hides once the cap is reached.
 - Invitee: taps link → signup (if new) or login (if existing) → auto-joins the household as a Member.
-- Admin can revoke a pending invite or remove an existing member.
+- Admin or Owner can revoke a pending invite or remove an existing member (except the Owner themself, who cannot be removed — see Section 5).
+- Member management screen shows each member's role badge (Owner/Admin/Member) and, for non-Owner rows, an action menu: Members get "Promote to Admin"; Admins get "Promote to Owner" (transfers ownership, Owner-only action) and "Demote to Member"; both get "Remove from Household."
 
 **E2. Profile & preferences**
 - Editable: name, nickname. No photo upload in v1 — avatars are rendered from profile initials.
 - Email shown read-only post-signup; editing is not allowed.
-- Household-level settings (Admin-editable): currency, language.
+- Household-level settings (Admin/Owner-editable): currency, language.
 - Personal settings: display mode (Light / Dark / System).
 
 ---
@@ -231,10 +234,10 @@ The following were open questions in the initial draft and have since been confi
 
 1. **Auth method:** Email + 6-digit PIN (emailed at signup, re-entered for login).
    - **Forgot PIN:** Requesting a reset by email issues and emails a brand-new PIN, invalidating the old one. No separate reset token — the email channel itself is the recovery mechanism. Response is generic (doesn't reveal whether the email is registered).
-2. **Role granularity:** Admin + Member model. Multiple Admins per household are supported; a Member can be promoted to Admin (and demoted) by an existing Admin.
+2. **Role granularity:** Owner + Admin + Member model. The household creator becomes its Owner. Owner is a single-holder role — transferred, not duplicated: only the current Owner can promote an existing Admin to Owner, which automatically demotes the outgoing Owner to Admin. The Owner cannot be removed, demoted, or leave the household without transferring ownership first. Multiple Admins per household are supported; a Member can be promoted to Admin (and demoted) by an existing Owner or Admin.
 3. **Budget cycle rollover:** No rollover — each new cycle resets category limits to the configured amount. Prior months' transaction and spend data remain intact and accessible.
 4. **Future-dated transactions:** Not required; disallowed in v1.
-5. **Household size:** Hard cap of 3 members per household (including the Admin) in v1. Raising the cap is flagged as a future monetization opportunity (see Section 10).
+5. **Household size:** Hard cap of 3 members per household (including the Owner) in v1. Raising the cap is flagged as a future monetization opportunity (see Section 10).
 6. **Currency scope:** One currency per household, set at setup — not per-transaction.
 7. **Invite link expiry:** 7 days.
 8. **Email edit post-signup:** Not allowed; email is permanently read-only after signup.
