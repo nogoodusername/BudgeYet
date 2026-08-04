@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
@@ -24,7 +23,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -38,17 +36,16 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.famex.core.model.Household
-import com.famex.core.model.MemberRole
 import com.famex.core.ui.fieldColors
-import com.famex.theme.BrandTeal
 import com.famex.theme.LocalFamExTypography
 
 /**
- * Stitch "Invite Members (Refined)" screen (5d56f98a6c91489c84b91abdac6a680a). No pending-invite
- * state is modeled anywhere in this app, so "Send Invite" adds the member directly rather than
- * simulating an acceptance flow — and the mockup's "Invites expire in 7 days" line is dropped
- * since nothing here tracks an expiry.
+ * Stitch "Invite Options" screen (d7b9b90eabd5428ea745981e91cb6c73). Drops the current-members
+ * list the earlier "Invite Members (Refined)" mockup showed here — that's now covered by the
+ * pending-invite cards on HouseholdMembersScreen, so this page focuses purely on the two ways
+ * to invite: email or join code. "Send Invite" creates a pending invite rather than adding the
+ * member directly (see FakeProfileRepository.inviteMember), and the mockup's "Invites expire in
+ * 7 days" line is dropped since nothing here tracks an expiry.
  */
 @Composable
 fun InviteMemberScreen(
@@ -79,61 +76,13 @@ fun InviteMemberScreen(
             ) {
                 item {
                     Column {
-                        Text(text = "Grow Your Household", style = famExType.headlineLg, color = MaterialTheme.colorScheme.onSurface)
+                        Text(text = "Invite Member", style = famExType.headlineLg, color = MaterialTheme.colorScheme.onSurface)
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Invite partners, roommates, or family members to share expenses.",
+                            text = "Grow your household. Invite someone to join the ${household.name} plan.",
                             style = famExType.bodyMd,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                    }
-                }
-
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(20.dp)) {
-                            Text(
-                                text = "Household Members (${household.members.size}/${Household.MAX_MEMBERS})",
-                                style = famExType.headlineSm,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
-                            household.members.forEachIndexed { index, member ->
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    Box(
-                                        modifier = Modifier.size(40.dp).clip(CircleShape).background(BrandTeal.copy(alpha = 0.15f)),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(text = member.user.nickname.take(1).uppercase(), style = famExType.labelMd, color = BrandTeal)
-                                    }
-                                    Column {
-                                        Text(text = member.user.nickname, style = famExType.labelMd, color = MaterialTheme.colorScheme.onSurface)
-                                        Text(
-                                            text = when (member.role) {
-                                                MemberRole.OWNER -> "Owner"
-                                                MemberRole.ADMIN -> "Admin"
-                                                MemberRole.MEMBER -> "Member"
-                                            },
-                                            style = famExType.labelSm,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                                if (index != household.members.lastIndex) {
-                                    HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
-                                }
-                            }
-                        }
                     }
                 }
 

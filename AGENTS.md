@@ -84,6 +84,11 @@ router and frontend screens first.
   holds, but the per-IP throttle doesn't. Fix is to gate header-trust behind an explicit
   `TRUSTED_PROXY_COUNT`/`BEHIND_PROXY` setting (off by default), falling back to `request.client.host`
   when unset — see `core/security.py`.
+- **No resend-invite endpoint on the backend.** `HouseholdService`/`InviteRepository` only have
+  create/list/revoke — no resend. The frontend's `ProfileRepository.resendInvite` (see Phase 3 below)
+  is a fake-repo-only affordance (just bumps a display timestamp) with nothing real to call yet; add
+  the endpoint (likely: reissue token + `expires_at`, re-trigger `send_invite_email`) before wiring
+  real networking to that button.
 
 ## Backend (`backend/`)
 
@@ -249,16 +254,21 @@ checkboxes as phases land so the plan survives across sessions.
   everything today still runs on `FakeXRepository` dummy data.
 - [~] **Phase 3 — Collaboration & full profile (PRD E1/E2) — mostly landed, one gap remains.**
   Done: household member list with roles (`feature/profile/presentation/HouseholdMembers*`),
-  promote/demote/remove for any role (`ac07262`, `1837cfe`), invite-by-email
-  (`feature/profile/presentation/InviteMember*`), editable profile (name/nickname, read-only email),
-  household currency/language (admin-gated), display mode preference — all in `feature/profile/`.
-  **Gap:** no pending-invite state is modeled anywhere (see the doc-comment atop
-  `InviteMemberScreen.kt`) — "Send Invite" adds the member directly instead of creating a
-  revocable, expiring invite, so PRD E1's "Admin can revoke a pending invite" and the 7-day expiry
-  aren't represented in the UI at all. Shareable join link/QR code (the other half of E1) is also
-  not implemented. Since this all still runs on fake repos, real invite semantics (token, expiry,
-  revoke) likely land together with Phase 2's networking work rather than as a separate frontend-only
-  fix.
+  promote/demote/remove for any role (`ac07262`, `1837cfe`), invite-by-email now creates a revocable
+  pending invite instead of adding the member directly (`core/model/Household.PendingInvite` +
+  `ProfileRepository.inviteMember`/`resendInvite`/`revokeInvite`, backed by `FakeProfileRepository`),
+  rendered as `PendingInviteCard` on `HouseholdMembersScreen.kt` with Resend/Revoke actions and a
+  teal-tinted Invite CTA row (Stitch "Member Management (With Invite CTA)" /
+  "(With Pending Invite)"), with `InviteMemberScreen.kt` (Stitch "Invite Options") slimmed down to
+  just the email-invite and join-code cards — the duplicate current-members list that used to live
+  there was removed since pending invites now show on `HouseholdMembersScreen` instead. Editable
+  profile (name/nickname, read-only email), household currency/language (admin-gated), display mode
+  preference — all in `feature/profile/`.
+  **Gap:** the 7-day invite expiry isn't modeled or shown anywhere in the UI (revoke works, expiry
+  doesn't), and shareable join link/QR code (the other half of E1) is still not implemented. Since
+  this all still runs on fake repos, wiring real invite semantics (backend `Invite.token`/
+  `expires_at`, plus the missing resend endpoint — see "Known gaps" above) likely lands together with
+  Phase 2's networking work rather than as a separate frontend-only fix.
 
 **Architecture choices made in Phase 1 (carry forward into later phases):**
 - Navigation is a hand-rolled `core/navigation/AppNavController` (sealed `Screen` + back-stack list),

@@ -2,6 +2,7 @@ package com.famex.feature.profile.presentation
 
 import com.famex.core.model.HouseholdMember
 import com.famex.core.model.MemberRole
+import com.famex.core.model.PendingInvite
 import com.famex.feature.profile.domain.ProfileRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -60,6 +61,34 @@ class HouseholdMembersController(
                 _uiState.update { it.copy(isProcessing = false, household = household, pendingRemoveMember = null) }
             } catch (t: Throwable) {
                 _uiState.update { it.copy(isProcessing = false, actionError = t.message ?: "Couldn't remove member") }
+            }
+        }
+    }
+
+    fun onResendInvite(invite: PendingInvite) {
+        scope.launch {
+            _uiState.update { it.copy(processingInviteId = invite.id, failedInviteId = null, inviteActionError = null) }
+            try {
+                val household = repository.resendInvite(invite.id)
+                _uiState.update { it.copy(processingInviteId = null, household = household) }
+            } catch (t: Throwable) {
+                _uiState.update {
+                    it.copy(processingInviteId = null, failedInviteId = invite.id, inviteActionError = t.message ?: "Couldn't resend invite")
+                }
+            }
+        }
+    }
+
+    fun onRevokeInvite(invite: PendingInvite) {
+        scope.launch {
+            _uiState.update { it.copy(processingInviteId = invite.id, failedInviteId = null, inviteActionError = null) }
+            try {
+                val household = repository.revokeInvite(invite.id)
+                _uiState.update { it.copy(processingInviteId = null, household = household) }
+            } catch (t: Throwable) {
+                _uiState.update {
+                    it.copy(processingInviteId = null, failedInviteId = invite.id, inviteActionError = t.message ?: "Couldn't revoke invite")
+                }
             }
         }
     }

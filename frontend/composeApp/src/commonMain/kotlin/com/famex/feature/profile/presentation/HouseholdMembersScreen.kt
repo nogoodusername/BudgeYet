@@ -2,6 +2,7 @@ package com.famex.feature.profile.presentation
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,16 +16,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.PersonRemove
+import androidx.compose.material.icons.filled.PersonSearch
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.TrackChanges
@@ -42,6 +45,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -59,6 +63,7 @@ import androidx.compose.ui.window.Dialog
 import com.famex.core.model.Household
 import com.famex.core.model.HouseholdMember
 import com.famex.core.model.MemberRole
+import com.famex.core.model.PendingInvite
 import com.famex.theme.BrandTeal
 import com.famex.theme.LocalFamExTypography
 
@@ -69,6 +74,11 @@ import com.famex.theme.LocalFamExTypography
  * get Remove — all backed by role-specific confirmation dialogs. Owner has no self-action menu
  * (its card style/email subtitle intentionally kept from the original screen rather than the
  * Admin-Menu mockup's simpler avatar-photo layout, since only the menu itself changed here).
+ *
+ * Also pulls in "Member Management (With Invite CTA)" (d67bb225b855451d9c623562b21ba9a0) and
+ * "Member Management (With Pending Invite)" (9d37770fd97c4dcf999c06746431eeac): the Invite CTA
+ * is now a teal-tinted row rather than an outlined button, and pending invites render as their
+ * own cards with Resend/Revoke actions.
  */
 @Composable
 fun HouseholdMembersScreen(
@@ -79,6 +89,8 @@ fun HouseholdMembersScreen(
     onRequestRemove: (HouseholdMember) -> Unit,
     onCancelRemove: () -> Unit,
     onConfirmRemove: () -> Unit,
+    onResendInvite: (PendingInvite) -> Unit,
+    onRevokeInvite: (PendingInvite) -> Unit,
     onNavigateToInvite: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -133,22 +145,39 @@ fun HouseholdMembersScreen(
                     }
                 }
 
+                items(household.pendingInvites, key = { it.id }) { invite ->
+                    PendingInviteCard(
+                        invite = invite,
+                        isProcessing = uiState.processingInviteId == invite.id,
+                        errorMessage = uiState.inviteActionError.takeIf { uiState.failedInviteId == invite.id },
+                        onResend = { onResendInvite(invite) },
+                        onRevoke = { onRevokeInvite(invite) }
+                    )
+                }
+
                 item {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                        OutlinedButton(
-                            onClick = onNavigateToInvite,
-                            enabled = !atCapacity,
-                            modifier = Modifier.fillMaxWidth().height(48.dp),
-                            shape = RoundedCornerShape(8.dp),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface)
-                        ) {
-                            Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = if (atCapacity) "Household is full (${household.members.size}/${Household.MAX_MEMBERS})" else "Invite Member",
-                                style = famExType.labelMd
-                            )
-                        }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (atCapacity) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f) else BrandTeal.copy(alpha = 0.12f))
+                            .then(if (atCapacity) Modifier else Modifier.clickable(onClick = onNavigateToInvite))
+                            .padding(vertical = 14.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PersonAdd,
+                            contentDescription = null,
+                            tint = if (atCapacity) MaterialTheme.colorScheme.onSurfaceVariant else BrandTeal,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (atCapacity) "Household is full (${household.members.size}/${Household.MAX_MEMBERS})" else "Invite Member",
+                            style = famExType.headlineSm,
+                            color = if (atCapacity) MaterialTheme.colorScheme.onSurfaceVariant else BrandTeal
+                        )
                     }
                 }
 
@@ -305,6 +334,79 @@ private fun MemberRow(member: HouseholdMember, onRoleChange: (MemberRole) -> Uni
                         leadingIcon = { Icon(Icons.Default.PersonRemove, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
                         onClick = { menuExpanded = false; onRemove() }
                     )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PendingInviteCard(
+    invite: PendingInvite,
+    isProcessing: Boolean,
+    errorMessage: String?,
+    onResend: () -> Unit,
+    onRevoke: () -> Unit
+) {
+    val famExType = LocalFamExTypography.current
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(
+                    modifier = Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(imageVector = Icons.Default.PersonSearch, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(24.dp))
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = "Invite Sent", style = famExType.headlineSm, color = MaterialTheme.colorScheme.onSurface)
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(Color(0xFFF59E0B).copy(alpha = 0.15f))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(text = "PENDING", style = famExType.labelSm.copy(fontSize = 10.sp), color = Color(0xFFF59E0B))
+                        }
+                    }
+                    Text(text = invite.email, style = famExType.bodyMd, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        text = "Waiting for acceptance…",
+                        style = famExType.labelSm,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            errorMessage?.let {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(text = it, style = famExType.labelSm, color = MaterialTheme.colorScheme.error)
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(onClick = onResend, enabled = !isProcessing) {
+                    Text(text = if (isProcessing) "Resending…" else "Resend Invite", style = famExType.labelMd, color = MaterialTheme.colorScheme.onSurface)
+                }
+                TextButton(onClick = onRevoke, enabled = !isProcessing) {
+                    Text(text = "Revoke", style = famExType.labelMd, color = MaterialTheme.colorScheme.error)
                 }
             }
         }

@@ -13,5 +13,10 @@ data class HouseholdMembersUiState(
     val pendingRoleChange: RoleChangeRequest? = null,
     val pendingRemoveMember: HouseholdMember? = null,
     val isProcessing: Boolean = false,
-    val actionError: String? = null
+    val actionError: String? = null,
+    // Which pending invite a Resend/Revoke tap is in flight for, so only that row shows busy.
+    val processingInviteId: Long? = null,
+    // Which pending invite the last Resend/Revoke failure belongs to, so only that row shows the error.
+    val failedInviteId: Long? = null,
+    val inviteActionError: String? = null
 )

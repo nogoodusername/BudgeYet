@@ -2,8 +2,8 @@ package com.famex.feature.profile.data
 
 import com.famex.core.model.DisplayMode
 import com.famex.core.model.Household
-import com.famex.core.model.HouseholdMember
 import com.famex.core.model.MemberRole
+import com.famex.core.model.PendingInvite
 import com.famex.core.model.User
 import com.famex.feature.profile.domain.ProfileRepository
 import com.famex.fixtures.DummyScenario
@@ -60,16 +60,28 @@ class FakeProfileRepository(scenario: DummyScenario) : ProfileRepository {
     override suspend fun inviteMember(email: String): Household {
         delay(400)
         check(household.members.size < Household.MAX_MEMBERS) { "Household is full" }
-        val displayName = email.substringBefore("@").replaceFirstChar { it.uppercase() }
-        val nextUserId = (household.members.maxOfOrNull { it.user.id } ?: 0) + 1
-        val invitedUser = User(id = nextUserId, email = email, fullName = displayName, nickname = displayName)
-        val newMember = HouseholdMember(
-            id = (household.members.maxOfOrNull { it.id } ?: 0) + 1,
-            user = invitedUser,
-            role = MemberRole.MEMBER,
-            joinedAtText = "Just now"
+        val newInvite = PendingInvite(
+            id = (household.pendingInvites.maxOfOrNull { it.id } ?: 0) + 1,
+            email = email,
+            sentAtText = "Just now"
         )
-        household = household.copy(members = household.members + newMember)
+        household = household.copy(pendingInvites = household.pendingInvites + newInvite)
+        return household
+    }
+
+    override suspend fun resendInvite(inviteId: Long): Household {
+        delay(300)
+        household = household.copy(
+            pendingInvites = household.pendingInvites.map { invite ->
+                if (invite.id == inviteId) invite.copy(sentAtText = "Just now") else invite
+            }
+        )
+        return household
+    }
+
+    override suspend fun revokeInvite(inviteId: Long): Household {
+        delay(300)
+        household = household.copy(pendingInvites = household.pendingInvites.filterNot { it.id == inviteId })
         return household
     }
 
