@@ -11,7 +11,8 @@ data class ProfileUiState(
     val nicknameDraft: String = "",
     val isSavingProfile: Boolean = false,
     val saveError: String? = null,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val showSignOutDialog: Boolean = false
 ) {
     val hasUnsavedNameChanges: Boolean
         get() = user != null && (fullNameDraft != user.fullName || nicknameDraft != user.nickname)

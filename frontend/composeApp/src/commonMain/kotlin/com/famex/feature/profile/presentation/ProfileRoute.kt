@@ -8,10 +8,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import com.famex.core.di.LocalAppContainer
+import com.famex.core.ui.SignOutDialog
 
 @Composable
 fun ProfileRoute(
     onNavigateToManageMembers: () -> Unit = {},
+    onSignOut: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val container = LocalAppContainer.current
@@ -31,6 +33,11 @@ fun ProfileRoute(
         onDisplayModeChange = controller::onDisplayModeChange,
         onPushNotificationsToggle = controller::onPushNotificationsToggle,
         onManageMembers = onNavigateToManageMembers,
+        onSignOutClick = controller::onRequestSignOut,
         modifier = modifier
     )
+
+    if (uiState.showSignOutDialog) {
+        SignOutDialog(onConfirm = onSignOut, onDismiss = controller::onCancelSignOut)
+    }
 }

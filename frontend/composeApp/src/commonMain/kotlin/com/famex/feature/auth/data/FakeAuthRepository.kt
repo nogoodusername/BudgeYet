@@ -6,12 +6,15 @@ import com.famex.core.model.Household
 import com.famex.core.model.HouseholdMember
 import com.famex.core.model.MemberRole
 import com.famex.core.model.User
+import com.famex.core.util.todayLocalDate
 import com.famex.feature.auth.domain.AuthRepository
 import com.famex.feature.auth.domain.CategorySetupInput
 import com.famex.fixtures.DummyScenario
 import com.famex.fixtures.dummyCurrentUser
 import com.famex.fixtures.dummyHousehold
 import kotlinx.coroutines.delay
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.plus
 import kotlin.random.Random
 
 // Deliberately decoupled from the other Fake*Repository instances in AppContainer
@@ -46,7 +49,8 @@ class FakeAuthRepository(scenario: DummyScenario) : AuthRepository {
                 role = MemberRole.OWNER,
                 joinedAtText = "Jan 2026"
             )
-        )
+        ),
+        joinCodeExpiresAt = todayLocalDate().plus(Household.JOIN_CODE_EXPIRY_DAYS, DateTimeUnit.DAY)
     )
 
     override suspend fun signUp(fullName: String, nickname: String, email: String, pin: String) {
@@ -87,7 +91,8 @@ class FakeAuthRepository(scenario: DummyScenario) : AuthRepository {
             currency = currency,
             language = "en",
             cycleStartDay = cycleStartDay,
-            members = listOf(HouseholdMember(id = 1, user = account.user, role = MemberRole.OWNER, joinedAtText = "Just now"))
+            members = listOf(HouseholdMember(id = 1, user = account.user, role = MemberRole.OWNER, joinedAtText = "Just now")),
+            joinCodeExpiresAt = todayLocalDate().plus(Household.JOIN_CODE_EXPIRY_DAYS, DateTimeUnit.DAY)
         )
         account.household = household
         return household

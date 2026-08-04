@@ -1,5 +1,7 @@
 package com.famex.core.model
 
+import kotlinx.datetime.LocalDate
+
 // Ordered high-to-low: OWNER is a single-holder role (transferred, not duplicated) — see
 // FakeProfileRepository.updateMemberRole, which demotes the outgoing Owner to Admin whenever
 // a member is promoted to Owner.
@@ -28,9 +30,14 @@ data class Household(
     val language: String,
     val cycleStartDay: Int,
     val members: List<HouseholdMember>,
-    val pendingInvites: List<PendingInvite> = emptyList()
+    val pendingInvites: List<PendingInvite> = emptyList(),
+    // Mirrors the backend's Invite.expires_at for the household's join code (see
+    // INVITE_EXPIRY_DAYS server-side) — drives the "expire automatically on {date}" copy on
+    // InviteMemberScreen.
+    val joinCodeExpiresAt: LocalDate
 ) {
     companion object {
         const val MAX_MEMBERS = 3
+        const val JOIN_CODE_EXPIRY_DAYS = 7
     }
 }

@@ -1,6 +1,7 @@
 package com.famex.feature.profile.presentation
 
 import com.famex.core.model.Household
+import com.famex.core.util.toDisplayText
 
 data class InviteMemberUiState(
     val isLoading: Boolean = false,
@@ -11,4 +12,5 @@ data class InviteMemberUiState(
     val errorMessage: String? = null
 ) {
     val joinCode: String get() = "FAM-EX-${(household?.id ?: 0L).toString().padStart(2, '0')}"
+    val joinCodeExpiryText: String? get() = household?.joinCodeExpiresAt?.toDisplayText()
 }
