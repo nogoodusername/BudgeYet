@@ -25,6 +25,8 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Payments
@@ -75,6 +77,7 @@ fun ProfileScreen(
     onDisplayModeChange: (DisplayMode) -> Unit,
     onPushNotificationsToggle: (Boolean) -> Unit,
     onManageMembers: () -> Unit,
+    onSignOutClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     when {
@@ -96,6 +99,7 @@ fun ProfileScreen(
             onDisplayModeChange = onDisplayModeChange,
             onPushNotificationsToggle = onPushNotificationsToggle,
             onManageMembers = onManageMembers,
+            onSignOutClick = onSignOutClick,
             modifier = modifier
         )
     }
@@ -112,6 +116,7 @@ private fun ProfileContent(
     onDisplayModeChange: (DisplayMode) -> Unit,
     onPushNotificationsToggle: (Boolean) -> Unit,
     onManageMembers: () -> Unit,
+    onSignOutClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val famExType = LocalFamExTypography.current
@@ -197,6 +202,46 @@ private fun ProfileContent(
                     )
                 }
             }
+        }
+
+        item {
+            SignOutRow(onClick = onSignOutClick)
+        }
+    }
+}
+
+@Composable
+private fun SignOutRow(onClick: () -> Unit) {
+    val famExType = LocalFamExTypography.current
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(
+                    modifier = Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.error.copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(imageVector = Icons.Default.Logout, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                }
+                Column {
+                    Text(text = "Sign Out", style = famExType.labelMd, color = MaterialTheme.colorScheme.error)
+                    Text(
+                        text = "Log out of your account on this device",
+                        style = famExType.labelSm,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            Icon(imageVector = Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.error)
         }
     }
 }

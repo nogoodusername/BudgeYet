@@ -59,7 +59,7 @@ fun App() {
             if (currentSession == null) {
                 OnboardingRoute(onOnboardingComplete = { session = it })
             } else {
-                MainAppShell()
+                MainAppShell(onSignOut = { session = null })
             }
         }
     }
@@ -67,7 +67,7 @@ fun App() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MainAppShell() {
+private fun MainAppShell(onSignOut: () -> Unit) {
     val navController = remember { AppNavController() }
     val current = navController.current
 
@@ -139,7 +139,8 @@ private fun MainAppShell() {
                     )
                     Screen.AddTransaction -> AddTransactionRoute(onSaved = { navController.back() })
                     Screen.Profile -> ProfileRoute(
-                        onNavigateToManageMembers = { navController.navigate(Screen.HouseholdMembers) }
+                        onNavigateToManageMembers = { navController.navigate(Screen.HouseholdMembers) },
+                        onSignOut = onSignOut
                     )
                     Screen.HouseholdMembers -> HouseholdMembersRoute(
                         onNavigateToInvite = { navController.navigate(Screen.InviteMember) }

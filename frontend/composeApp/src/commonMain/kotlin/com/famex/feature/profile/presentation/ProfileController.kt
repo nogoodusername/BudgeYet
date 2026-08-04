@@ -92,4 +92,11 @@ class ProfileController(
             _uiState.update { it.copy(user = user) }
         }
     }
+
+    // Actually clearing the session lives at the App root (see App.kt) — this controller only
+    // owns the confirmation dialog's visibility, same split as CategoryDetailController's
+    // showDeleteDialog.
+    fun onRequestSignOut() = _uiState.update { it.copy(showSignOutDialog = true) }
+
+    fun onCancelSignOut() = _uiState.update { it.copy(showSignOutDialog = false) }
 }
