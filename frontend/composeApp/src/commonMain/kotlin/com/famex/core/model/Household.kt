@@ -1,12 +1,15 @@
 package com.famex.core.model
 
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.serializers.LocalDateIso8601Serializer
+import kotlinx.serialization.Serializable
 
 // Ordered high-to-low: OWNER is a single-holder role (transferred, not duplicated) — see
 // FakeProfileRepository.updateMemberRole, which demotes the outgoing Owner to Admin whenever
 // a member is promoted to Owner.
 enum class MemberRole { OWNER, ADMIN, MEMBER }
 
+@Serializable
 data class HouseholdMember(
     val id: Long,
     val user: User,
@@ -17,12 +20,16 @@ data class HouseholdMember(
 // An invite that has been sent but not yet accepted or revoked — mirrors the backend's
 // Invite row (accepted_at == null && !revoked). Doesn't count against MAX_MEMBERS; the cap
 // is only enforced against actual members, same as HouseholdService.create_invite server-side.
+@Serializable
 data class PendingInvite(
     val id: Long,
     val email: String
 )
 
 // Household hard cap is 3 members (including Admin) in v1 — enforced server-side, not here.
+// @Serializable (and its nested types above) so AuthSession — which carries a Household — can
+// round-trip through AuthRepository.persistSession/getPersistedSession.
+@Serializable
 data class Household(
     val id: Long,
     val name: String,
@@ -33,7 +40,9 @@ data class Household(
     val pendingInvites: List<PendingInvite> = emptyList(),
     // Mirrors the backend's Invite.expires_at for the household's join code (see
     // INVITE_EXPIRY_DAYS server-side) — drives the "expire automatically on {date}" copy on
-    // InviteMemberScreen.
+    // InviteMemberScreen. kotlinx-datetime's LocalDate isn't @Serializable on its own — this
+    // is the built-in ISO-8601 (yyyy-MM-dd) serializer kotlinx-datetime ships for exactly this.
+    @Serializable(with = LocalDateIso8601Serializer::class)
     val joinCodeExpiresAt: LocalDate
 ) {
     companion object {

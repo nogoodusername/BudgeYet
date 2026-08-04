@@ -184,7 +184,10 @@ uv run uvicorn app.main:app --reload --port 8000
 uv run ruff check app/                         # lint — CI runs this, must be clean
 uv run pytest -v                                # CI runs this
 ```
-Swagger UI at `/docs`, health check at `/health`. Docker: `docker-compose up --build -d` (Postgres) or
+Swagger UI at `/docs`, health check at `/health` (DB-backed), and a DB-independent `/ping` liveness
+check (`api/v1/endpoints/health.py`) for the frontend's Backend Configuration "Server Reachable"
+validation — `/health` isn't suitable there since it depends on the target server's DB being
+configured/online, which a not-yet-validated custom URL may not guarantee. Docker: `docker-compose up --build -d` (Postgres) or
 `docker-compose -f docker-compose.sqlite.yml up --build -d` (SQLite) — the Dockerfile also uses uv
 internally (multi-stage: installs the locked deps via `uv sync --frozen --no-dev`, then copies the
 resulting `.venv` into the runtime image).
@@ -269,11 +272,18 @@ checkboxes as phases land so the plan survives across sessions.
   `OnboardingRoute`, non-null renders the existing Phase 1/3 main shell (`MainAppShell`). Screens:
   Welcome → Auth (Sign In/Sign Up as tabs on one screen, matching the Stitch pair) → Backend
   Configuration (gear icon on Auth) → Forgot PIN → PIN Sent → Household Choice → Create
-  Household / Join Household. `FakeAuthRepository` seeds one demo account (`alex@example.com`,
+  Household → Budget Goal → Configure Categories, or Join Household (Join skips Budget
+  Goal/Configure Categories entirely — it attaches to a household someone else already
+  budgeted/categorized). `FakeAuthRepository` seeds one demo account (`alex@example.com`,
   PIN `123456`) whose household matches the rest of the app's `DummyScenario` fixtures — sign in
   as that account to preview the full authenticated app; a fresh sign-up gets its own isolated
   in-memory household that only the onboarding screens see, since it's deliberately **not** wired
   into the other `Fake*Repository` instances (see the class doc on `FakeAuthRepository`).
+  The system back button is now wired into both hand-rolled nav stacks via a cross-platform
+  `BackHandler` (expect/actual — real handler on Android, no-op on iOS, which has no hardware
+  back button), disabled at each stack's root so back there still falls through to the platform
+  default (previously, system back bypassed `OnboardingNavController`/`AppNavController` entirely
+  and could finish the Activity outright, e.g. exiting the app from the Auth screen).
   **Sign Up takes a user-chosen PIN** (Create PIN + Confirm PIN, validated 6-digit + matching in
   `AuthController.onSignUp`) matching the backend's `UserCreate.pin` contract — the PIN is no
   longer server-generated/emailed at signup, so `AuthController.onSignUp` logs the user straight
@@ -281,12 +291,38 @@ checkboxes as phases land so the plan survives across sessions.
   Sent is now forgot-PIN only** (`OnboardingScreen.PinSent` dropped its `PinSentContext` param —
   there's only one context left). The "Server Reachable" live-validation UI on Backend
   Configuration isn't implemented — there's no real request to validate a custom URL against yet.
-  **Not covered by this batch:** budget monthly-goal-amount + initial category configuration
-  (A3/A4) — Create Household only covers name/currency/cycle start day. `AuthSession` and
-  `BackendConfig` are in-memory only (no DataStore/local persistence layer exists yet), so both
-  reset on cold start — the app cannot actually stay signed in across restarts until that lands.
-  There's also no sign-out affordance anywhere in the main shell yet. This phase still carries the
-  real Ktor networking work (see below); everything today runs on `FakeAuthRepository` dummy data.
+  **Budget monthly-goal-amount + initial category configuration (A3/A4) now land too:** after
+  Create Household succeeds, Budget Goal (`BudgetGoal*` in `feature/auth/presentation`) collects
+  a budget name/period/monthly goal amount (or can be skipped, completing onboarding without a
+  budget), then Configure Categories (`ConfigureCategories*`) offers the 6 starter categories
+  from the Stitch mockup as a checkbox list with per-category monthly limits, an "Automated
+  Distribution" toggle that splits the goal amount evenly across whichever are checked, and an
+  "Add custom category" row. Both call new `AuthRepository.setupBudget`/`setupCategories` methods
+  (mirroring `createHousehold`) — `FakeAuthRepository`'s implementations just validate the
+  household exists, matching this phase's fake-repo/no-real-networking stance; there's no
+  dedicated backend "onboarding batch" endpoint, so the real implementation will need one
+  `POST .../budgets` call + one `POST .../categories` call per category, same as `feature/
+  category`'s Add Category flow does today. `AuthSession` and `BackendConfig` now survive a cold
+  start via `core/persistence/SettingsStorage` — a hand-rolled key-value store (`expect`/`actual`:
+  `SharedPreferences` on Android, `NSUserDefaults` on iOS), deliberately not DataStore/Room, same
+  version-risk reasoning as avoiding Koin/navigation-compose (see "Architecture choices" below).
+  `AuthRepository.getPersistedSession`/`persistSession`/`clearPersistedSession` (and
+  `getBackendConfig`/`setBackendConfig`, now backed by the same storage instead of an in-memory
+  var) serialize `AuthSession`/`BackendConfig` to JSON via `kotlinx.serialization` — both models
+  (and `Household`/`HouseholdMember`/`PendingInvite`/`User`) are now `@Serializable`;
+  `Household.joinCodeExpiresAt` uses kotlinx-datetime's built-in `LocalDateIso8601Serializer`.
+  `App.kt` gates its first frame on a `getPersistedSession()` read (blank `Surface` while
+  `isRestoringSession`) so a signed-in cold start renders straight into `MainAppShell` instead of
+  flashing `OnboardingRoute` first; `onOnboardingComplete` persists, Sign Out clears. One known
+  gap: a session restored this way re-seeds `FakeAuthRepository`'s in-memory `accounts` map with
+  an empty PIN (PIN is intentionally never persisted) — the account can't `login()` again until a
+  real backend replaces this fake repo, only the restored session itself is usable. A Sign Out row
+  + `SignOutDialog` confirmation live on the Profile screen (mirrors `DeleteCategoryDialog`'s
+  confirm-destructive-action pattern; uses `Icons.AutoMirrored.Filled.Logout`, not the deprecated
+  non-mirrored `Icons.Default.Logout`, to avoid RTL flip issues) — confirming clears both the
+  in-memory `AuthSession` and the persisted one, dropping `App.kt` back to `OnboardingRoute` for
+  good (not just until the next cold start). This phase still carries the real Ktor networking
+  work (see below); everything today runs on `FakeAuthRepository` dummy data.
 - [~] **Phase 3 — Collaboration & full profile (PRD E1/E2) — mostly landed, one gap remains.**
   Done: household member list with roles (`feature/profile/presentation/HouseholdMembers*`),
   promote/demote/remove for any role (`ac07262`, `1837cfe`), invite-by-email now creates a revocable
@@ -301,11 +337,12 @@ checkboxes as phases land so the plan survives across sessions.
   nothing real to call once networking lands — don't re-add it without the backend endpoint first.
   Editable profile (name/nickname, read-only email), household currency/language (admin-gated),
   display mode preference — all in `feature/profile/`.
-  **Gap:** the 7-day invite expiry isn't modeled or shown anywhere in the UI (revoke works, expiry
-  doesn't), and shareable join link/QR code (the other half of E1) is still not implemented. Since
-  this all still runs on fake repos, wiring real invite semantics (backend `Invite.token`/
-  `expires_at`) likely lands together with Phase 2's networking work rather than as a separate
-  frontend-only fix.
+  **Gap:** the 7-day join-code expiry is now modeled and shown (`Household.joinCodeExpiresAt`,
+  mirroring the backend's `Invite.expires_at`/`INVITE_EXPIRY_DAYS`, rendered on
+  `InviteMemberScreen.kt` in place of the old static "7 days" copy), but shareable join link/QR
+  code (the other half of E1) is still not implemented. Since this all still runs on fake repos,
+  wiring real invite semantics (backend `Invite.token`/`expires_at`) likely lands together with
+  Phase 2's networking work rather than as a separate frontend-only fix.
 
 **Architecture choices made in Phase 1 (carry forward into later phases):**
 - Navigation is a hand-rolled `core/navigation/AppNavController` (sealed `Screen` + back-stack list),

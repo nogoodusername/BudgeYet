@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsCompose)
+    alias(libs.plugins.kotlinSerialization)
 }
 
 kotlin {
@@ -56,6 +57,7 @@ kotlin {
 
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.datetime)
+            implementation(libs.kotlinx.serialization.json)
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.serialization.kotlinx.json)
@@ -65,11 +67,13 @@ kotlin {
             dependencies {
                 implementation(libs.androidx.core.ktx)
                 implementation(libs.androidx.activity.compose)
+                implementation(libs.ktor.client.okhttp)
             }
         }
 
         val iosMain by getting {
             dependencies {
+                implementation(libs.ktor.client.darwin)
             }
         }
     }
