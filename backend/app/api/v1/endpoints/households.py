@@ -33,7 +33,7 @@ async def create_household(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Create a household. The creator becomes its first Admin."""
+    """Create a household. The creator becomes its Owner."""
     return await household_controller.create_household(db, current_user, payload)
 
 
@@ -72,7 +72,7 @@ async def leave_household(
     membership: HouseholdMember = Depends(get_household_membership),
     db: AsyncSession = Depends(get_db),
 ):
-    """Leave the household. A sole Admin must promote another member first."""
+    """Leave the household. The Owner must transfer ownership first."""
     await household_controller.leave_household(db, membership)
 
 
@@ -126,7 +126,7 @@ async def remove_member(
     _admin: HouseholdMember = Depends(require_admin_membership),
     db: AsyncSession = Depends(get_db),
 ):
-    """Remove a member. Admin only. Cannot remove the household's only admin."""
+    """Remove a member. Admin or Owner. The Owner cannot be removed — transfer ownership first."""
     await household_controller.remove_member(db, household_id, member_id)
 
 
@@ -135,8 +135,10 @@ async def update_member_role(
     household_id: int,
     member_id: int,
     payload: MemberRoleUpdate,
-    _admin: HouseholdMember = Depends(require_admin_membership),
+    admin: HouseholdMember = Depends(require_admin_membership),
     db: AsyncSession = Depends(get_db),
 ):
-    """Promote/demote a member. Admin only. A household must always keep one admin."""
-    return await household_controller.update_member_role(db, household_id, member_id, payload)
+    """Promote/demote a member. Admin or Owner. Transferring ownership (role=owner)
+    is Owner-only and requires the target to already be an Admin; the household
+    always keeps exactly one Owner."""
+    return await household_controller.update_member_role(db, household_id, member_id, payload, admin)

@@ -23,6 +23,18 @@ async def test_signup_duplicate_email_conflicts(client, monkeypatch):
     assert resp.status_code == 409
 
 
+async def test_signup_rejects_non_six_digit_pin(client, monkeypatch):
+    resp = await signup(client, monkeypatch, "shortpin@example.com", pin="123")
+    assert resp.status_code == 422
+
+
+async def test_signup_logs_in_with_the_chosen_pin(client, monkeypatch):
+    await signup(client, monkeypatch, "chosen@example.com", pin="112233")
+    resp = await client.post("/auth/login", json={"email": "chosen@example.com", "pin": "112233"})
+    assert resp.status_code == 200
+    assert "access_token" in resp.json()
+
+
 async def test_login_with_correct_pin_succeeds(client, monkeypatch):
     await signup(client, monkeypatch, "ada@example.com")
     resp = await client.post("/auth/login", json={"email": "ada@example.com", "pin": FIXED_PIN})

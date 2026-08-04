@@ -1,5 +1,5 @@
 from typing import Optional, Sequence
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from app.models.household import HouseholdMember, MemberRole
@@ -44,15 +44,6 @@ class HouseholdMemberRepository:
             .where(HouseholdMember.household_id == household_id)
         )
         return result.scalars().all()
-
-    async def count_admins(self, household_id: int) -> int:
-        result = await self.db.execute(
-            select(func.count()).where(
-                HouseholdMember.household_id == household_id,
-                HouseholdMember.role == MemberRole.ADMIN,
-            )
-        )
-        return result.scalar_one()
 
     async def create(self, *, household_id: int, user_id: int, role: MemberRole) -> HouseholdMember:
         member = HouseholdMember(household_id=household_id, user_id=user_id, role=role)

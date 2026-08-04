@@ -6,7 +6,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.constants import HOUSEHOLD_MEMBER_CAP, INVITE_EXPIRY_DAYS
 from app.core.email import send_invite_email
-from app.core.exceptions import ConflictError, NotFoundError, ValidationAppError
+from app.core.exceptions import (
+    ConflictError,
+    NotFoundError,
+    PermissionDeniedError,
+    ValidationAppError,
+)
 from app.core.security import generate_invite_token
 from app.models.household import Household, HouseholdMember, MemberRole
 from app.models.invite import Invite
@@ -56,7 +61,7 @@ class HouseholdService:
             language=payload.language,
             cycle_start_day=payload.cycle_start_day,
         )
-        await self._add_member_or_raise(household.id, user.id, MemberRole.ADMIN)
+        await self._add_member_or_raise(household.id, user.id, MemberRole.OWNER)
         return await self.households.get_by_id(household.id)
 
     async def get_household_or_404(self, household_id: int) -> Household:
@@ -130,36 +135,58 @@ class HouseholdService:
         member = await self.members.get_by_id(member_id)
         if member is None or member.household_id != household_id:
             raise NotFoundError("Member not found")
-        if member.role == MemberRole.ADMIN:
-            admin_count = await self.members.count_admins(household_id)
-            if admin_count <= 1:
-                raise ConflictError("Cannot remove the household's only admin")
+        if member.role == MemberRole.OWNER:
+            raise ConflictError("Cannot remove the household's Owner — transfer ownership first")
         await self.members.delete(member)
         await self.households.release_member_slot(household_id)
 
     async def leave_household(self, membership: HouseholdMember) -> None:
-        if membership.role == MemberRole.ADMIN:
-            admin_count = await self.members.count_admins(membership.household_id)
-            if admin_count <= 1:
-                raise ConflictError(
-                    "Promote another member to admin before leaving — a household must keep an admin"
-                )
+        if membership.role == MemberRole.OWNER:
+            raise ConflictError(
+                "Transfer ownership to another Admin before leaving — a household must always have an Owner"
+            )
         await self.members.delete(membership)
         await self.households.release_member_slot(membership.household_id)
 
     async def update_member_role(
-        self, household_id: int, member_id: int, new_role: MemberRole
+        self,
+        household_id: int,
+        member_id: int,
+        new_role: MemberRole,
+        acting_membership: HouseholdMember,
     ) -> HouseholdMember:
         member = await self.members.get_by_id(member_id)
         if member is None or member.household_id != household_id:
             raise NotFoundError("Member not found")
 
-        if member.role == MemberRole.ADMIN and new_role == MemberRole.MEMBER:
-            admin_count = await self.members.count_admins(household_id)
-            if admin_count <= 1:
-                raise ConflictError("Cannot demote the household's only admin")
+        if new_role == MemberRole.OWNER:
+            return await self._transfer_ownership(member, acting_membership)
+
+        if member.role == MemberRole.OWNER:
+            raise ConflictError(
+                "Cannot change the Owner's role directly — transfer ownership instead"
+            )
 
         return await self.members.update_role(member, new_role)
+
+    async def _transfer_ownership(
+        self, member: HouseholdMember, acting_membership: HouseholdMember
+    ) -> HouseholdMember:
+        """Owner is single-holder: only the current Owner can hand the role off, and
+        only to an existing Admin — matches the client's promote-to-owner flow, which
+        only ever offers that action on Admin rows. The outgoing Owner is demoted to
+        Admin in the same operation so the household is never without one.
+        """
+        if acting_membership.role != MemberRole.OWNER:
+            raise PermissionDeniedError("Only the current Owner can transfer ownership")
+        if member.id == acting_membership.id:
+            raise ValidationAppError("You are already the Owner")
+        if member.role != MemberRole.ADMIN:
+            raise ValidationAppError("Only an Admin can be promoted to Owner")
+
+        new_owner = await self.members.update_role(member, MemberRole.OWNER)
+        await self.members.update_role(acting_membership, MemberRole.ADMIN)
+        return new_owner
 
     async def get_membership_for_user(self, user_id: int) -> Optional[HouseholdMember]:
         return await self.members.get_by_user(user_id)
