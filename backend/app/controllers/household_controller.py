@@ -72,7 +72,13 @@ async def leave_household(db: AsyncSession, membership: HouseholdMember) -> None
 
 
 async def update_member_role(
-    db: AsyncSession, household_id: int, member_id: int, payload: MemberRoleUpdate
+    db: AsyncSession,
+    household_id: int,
+    member_id: int,
+    payload: MemberRoleUpdate,
+    acting_membership: HouseholdMember,
 ) -> HouseholdMemberResponse:
-    member = await HouseholdService(db).update_member_role(household_id, member_id, payload.role)
+    member = await HouseholdService(db).update_member_role(
+        household_id, member_id, payload.role, acting_membership
+    )
     return HouseholdMemberResponse.model_validate(member)

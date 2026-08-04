@@ -24,15 +24,16 @@ Backend and frontend have separate CI pipelines gated by path (`backend/**`, `fr
 
 ## Current state (important)
 
-- Backend: v1 MVP REST surface is implemented — auth (email + 6-digit PIN, JWT, forgot-PIN
-  reissue), households (create/update, invites, join, member roles, leave/remove), budgets,
+- Backend: v1 MVP REST surface is implemented — auth (email + 6-digit PIN chosen by the user at
+  signup, JWT, forgot-PIN reissue), households (create/update, invites, join, member roles — Owner/Admin/Member, with
+  single-holder ownership transfer, leave/remove), budgets,
   categories (with reassign-before-delete), transactions (role-scoped edit/delete, filterable by
   category/payer/type/payment mode/date range/amount range/merchant-or-category search), dashboard,
   and a polling activity feed. Follows a Router → Controller → Service → Repository layering under
   `app/` (`api/v1/endpoints/` → `controllers/` → `services/` → `repositories/`). `alembic/versions/`
   now holds a full migration chain (not a single initial migration) — schema has evolved
   incrementally (login lockout fields, per-IP login-failure table, denormalized/atomic household
-  member counter, unique constraints, Numeric money columns, indexes) since the original v1 cut; see
+  member counter, unique constraints, Numeric money columns, indexes, Owner-role backfill) since the original v1 cut; see
   "Auth hardening" below and the Alembic note under Backend conventions before assuming the schema
   matches `e2eaf9009180_initial_schema.py` alone. `backend/tests/` has unit tests (`tests/unit/`) for
   `core/security.py` and `services/cycle_utils.py`, and integration tests (`tests/integration/`)
@@ -65,10 +66,13 @@ router and frontend screens first.
 ### Known gaps (deliberately deferred, see PR discussion)
 
 - **Email delivery is a stub.** `app/core/email.py` logs PIN and invite messages instead of sending
-  them (no SMTP/SES integration yet). Signup/login PINs and invite tokens are **not** echoed back in
-  any API response — until real delivery is wired up, retrieving them requires reading server logs or
-  querying the DB directly (see how `backend/tests/helpers.py` does it for tests, by monkeypatching the
-  generators). Real delivery must land before this is usable outside local dev.
+  them (no SMTP/SES integration yet). This only affects **forgot-PIN** (which still generates and
+  "emails" a fresh PIN server-side — `AuthService.forgot_pin`) and invites: those PINs/tokens are
+  **not** echoed back in any API response, so retrieving them requires reading server logs or
+  querying the DB directly (see how `backend/tests/helpers.py` does it for tests, by monkeypatching
+  the generators). **Signup is unaffected** — the user chooses and submits their own PIN
+  (`UserCreate.pin`), so there's nothing to email or dig out of logs for that flow. Real delivery
+  must land before forgot-PIN/invites are usable outside local dev.
 - **Real-time activity feed is REST-only.** `GET /households/{id}/activity-feed` is polled, not pushed.
   The PRD's WebSocket/live-push behavior (B4) was explicitly deferred to a follow-up.
 - **Receipt photo upload is fully out of scope**, backend and frontend. `Transaction.receipt_url`
@@ -120,12 +124,18 @@ for the collision it fixes.
   do HTTP concerns (path/query/body parsing, status codes, `Depends`) and call into `controllers/` —
   they never touch a repository or session-scoped business rule directly.
 - `api/deps.py` — shared FastAPI dependencies: `get_db`, `get_current_user` (JWT bearer), and household
-  access-control deps (`get_household_membership`, `require_admin_membership`, `get_current_household`).
+  access-control deps (`get_household_membership`, `require_admin_membership` — passes Admin *or*
+  Owner, since Owner is a superset of Admin permissions, `get_current_household`). Owner-only actions
+  (transferring ownership) enforce that narrower check themselves in the service layer, on top of
+  `require_admin_membership`.
 - `controllers/` — thin orchestration between routers and services; maps request schemas to service
   calls and service results back to response schemas. No SQLAlchemy imports here.
 - `services/` — business rules (role permissions, the 3-member cap, future-date rejection, cycle
-  math in `cycle_utils.py`, delete-blocked-by-transactions, invite expiry, "always one admin",
-  login lockout/rate-limit — see "Auth hardening" above). Raises the domain exceptions in
+  math in `cycle_utils.py`, delete-blocked-by-transactions, invite expiry, "always exactly one
+  Owner" (single-holder, transferred via `HouseholdService._transfer_ownership` — only the current
+  Owner can promote an Admin to Owner, which auto-demotes the outgoing Owner to Admin; the Owner
+  can't be removed/demoted/leave directly), login lockout/rate-limit — see "Auth hardening" above).
+  Raises the domain exceptions in
   `core/exceptions.py` (`NotFoundError`, `ConflictError`, `PermissionDeniedError`,
   `ValidationAppError`, `AuthenticationError`, `RateLimitError`) — never `fastapi.HTTPException`
   directly. `main.py` registers exception handlers that translate these to HTTP responses
@@ -154,6 +164,9 @@ for the collision it fixes.
   manual `session.commit()` in a service.
 - `core/security.py` — PIN hashing (via `bcrypt` directly, **not** `passlib`: passlib's bcrypt backend
   self-test breaks under bcrypt ≥ 4.1, a live incompatibility, not a hypothetical) and JWT issue/decode.
+  `generate_pin()` is only used by `AuthService.forgot_pin` now — signup takes the user's own PIN
+  (`UserCreate.pin`, validated `^\d{6}$` in `schemas/user.py`) and just hashes it, it doesn't generate
+  one. Don't reintroduce server-generated PINs at signup without a product reason; see PRD Section 9.1.
 - `core/email.py` — stub email "sender" (logs only) — see "Known gaps" above before assuming it sends.
 
 **Dependency management is [uv](https://docs.astral.sh/uv/), not pip/venv.** `pyproject.toml` +
@@ -262,12 +275,14 @@ checkboxes as phases land so the plan survives across sessions.
   as that account to preview the full authenticated app; a fresh sign-up gets its own isolated
   in-memory household that only the onboarding screens see, since it's deliberately **not** wired
   into the other `Fake*Repository` instances (see the class doc on `FakeAuthRepository`).
-  **Deliberate deviations from the Stitch mockups** (backend contract mismatches, same category as
-  the Phase 3 Resend Invite precedent): the Sign Up screen's "Create 6-Digit PIN" field was
-  dropped — `UserCreate` has no `pin` field, the backend always generates and emails the PIN at
-  signup (`AuthService.signup`), same as forgot-PIN, so there's nothing for the user to type. The
-  "Server Reachable" live-validation UI on Backend Configuration isn't implemented — there's no
-  real request to validate a custom URL against yet.
+  **Known frontend/backend mismatch:** the Sign Up screen has no Create PIN field, but the
+  backend now requires a user-chosen `UserCreate.pin` at signup (`feature/create-pin-signup`,
+  merged to main) rather than generating and emailing one — the backend changed its mind on this
+  after this branch's screens were built. Harmless today since everything here still runs on
+  `FakeAuthRepository` dummy data with no real networking, but don't wire real Ktor networking to
+  `AuthRepository.signUp` without adding the PIN field first; see `feature/create-pin-signup-frontend`
+  for that fix. The "Server Reachable" live-validation UI on Backend Configuration also isn't
+  implemented — there's no real request to validate a custom URL against yet.
   **Not covered by this batch:** budget monthly-goal-amount + initial category configuration
   (A3/A4) — Create Household only covers name/currency/cycle start day. `AuthSession` and
   `BackendConfig` are in-memory only (no DataStore/local persistence layer exists yet), so both
@@ -315,14 +330,20 @@ throw once so Error/retry UI is exercised too — these aren't just Success-stat
 
 These affect any backend logic or UI you write around budgets/transactions — get them from the PRD, not
 assumptions:
-- Roles are **Admin / Member** only. Members can add/edit/delete only their *own* transactions; Admins can
-  edit/delete anyone's. Only Admins manage categories, limits, invites, and household currency/language.
+- Roles are **Owner / Admin / Member**. Members can add/edit/delete only their *own* transactions;
+  Admins and the Owner can edit/delete anyone's, and manage categories, limits, invites, and household
+  currency/language. Owner is a **single-holder role per household** — exactly one member holds it at
+  all times, transferred (not duplicated): only the current Owner can promote an existing Admin to
+  Owner, which auto-demotes the outgoing Owner to Admin in the same operation. The Owner can't be
+  removed, demoted, or leave the household directly — ownership must be transferred to an Admin first.
 - One budget per household, one currency per household (not per-transaction).
 - Category limits **reset every cycle with no rollover** — but historical transactions/snapshots for prior
   cycles must remain intact and queryable by date range.
-- Household hard cap: **3 members** (including Admin) in v1.
+- Household hard cap: **3 members** (including the Owner) in v1.
 - Future-dated transactions are **disallowed**.
-- Auth is email + 6-digit PIN (emailed at signup), not password-based.
+- Auth is email + 6-digit PIN, not password-based. The PIN is **user-chosen at signup**
+  (`UserCreate.pin`) — the backend only generates/emails a PIN for the forgot-PIN recovery flow,
+  not at signup.
 - Invite links expire after **7 days**.
 - Status thresholds are consistent across dashboard and category views: teal < 75%, amber 75–99%,
   coral/red ≥ 100%.

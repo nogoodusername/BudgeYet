@@ -6,6 +6,9 @@ from app.core.constants import HOUSEHOLD_MEMBER_CAP
 from app.core.database import Base
 
 class MemberRole(str, enum.Enum):
+    # OWNER is a single-holder role per household — exactly one member holds it
+    # at all times, transferred (not duplicated) via HouseholdService.update_member_role.
+    OWNER = "owner"
     ADMIN = "admin"
     MEMBER = "member"
 
