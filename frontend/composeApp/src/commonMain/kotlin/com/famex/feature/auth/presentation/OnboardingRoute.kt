@@ -25,6 +25,7 @@ import com.famex.core.model.AuthSession
 import com.famex.core.model.Household
 import com.famex.core.model.User
 import com.famex.core.navigation.AuthTab
+import com.famex.core.navigation.BackHandler
 import com.famex.core.navigation.OnboardingNavController
 import com.famex.core.navigation.OnboardingScreen
 import com.famex.theme.LocalFamExTypography
@@ -47,6 +48,12 @@ fun OnboardingRoute(
     // us assemble the final AuthSession(user, household) once one of those completes.
     var authedUser by remember { mutableStateOf<User?>(null) }
     val current = nav.current
+
+    // Without this, the system back button/gesture bypasses our hand-rolled back stack
+    // entirely and finishes the Activity — e.g. from Auth it would exit the app instead of
+    // returning to Welcome. Disabled at Welcome (the root) so back there falls through to the
+    // OS default, same as canGoBack gates the in-screen back arrow below.
+    BackHandler(enabled = nav.canGoBack) { nav.back() }
 
     fun completeWithHousehold(household: Household) {
         val user = authedUser ?: return

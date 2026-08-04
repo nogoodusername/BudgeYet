@@ -25,6 +25,7 @@ import com.famex.core.di.AppContainer
 import com.famex.core.di.LocalAppContainer
 import com.famex.core.model.AuthSession
 import com.famex.core.navigation.AppNavController
+import com.famex.core.navigation.BackHandler
 import com.famex.core.navigation.Screen
 import com.famex.core.ui.BottomNavTab
 import com.famex.core.ui.FamExBottomNavBar
@@ -70,6 +71,12 @@ fun App() {
 private fun MainAppShell() {
     val navController = remember { AppNavController() }
     val current = navController.current
+
+    // Same rationale as OnboardingRoute's BackHandler — without it, system back skips our
+    // back stack and exits the app from any pushed screen (detail views, add/edit forms)
+    // instead of returning to the previous one. Disabled at a root tab (canGoBack == false)
+    // so back there falls through to the OS default (e.g. backgrounding the app).
+    BackHandler(enabled = navController.canGoBack) { navController.back() }
 
     Scaffold(
             topBar = {
