@@ -44,8 +44,8 @@ import com.famex.theme.LocalFamExTypography
  * list the earlier "Invite Members (Refined)" mockup showed here — that's now covered by the
  * pending-invite cards on HouseholdMembersScreen, so this page focuses purely on the two ways
  * to invite: email or join code. "Send Invite" creates a pending invite rather than adding the
- * member directly (see FakeProfileRepository.inviteMember), and the mockup's "Invites expire in
- * 7 days" line is dropped since nothing here tracks an expiry.
+ * member directly (see FakeProfileRepository.inviteMember). The join code's expiry line mirrors
+ * the backend's Invite.expires_at (INVITE_EXPIRY_DAYS = 7) via Household.joinCodeExpiresAt.
  */
 @Composable
 fun InviteMemberScreen(
@@ -161,6 +161,13 @@ fun InviteMemberScreen(
                                 ) {
                                     Icon(imageVector = Icons.Default.ContentCopy, contentDescription = "Copy code", tint = MaterialTheme.colorScheme.onPrimary)
                                 }
+                            }
+                            uiState.joinCodeExpiryText?.let { expiryText ->
+                                Text(
+                                    text = "For security, this unique join code will expire automatically on $expiryText.",
+                                    style = famExType.labelSm,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
                     }
