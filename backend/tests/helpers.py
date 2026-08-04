@@ -6,9 +6,10 @@ _state = {"invite_token": None}
 
 
 def patch_deterministic_secrets(monkeypatch):
-    """PIN/invite-token generation is intentionally not echoed back in API responses
-    (see AGENTS.md "Known gaps" — real email delivery is still stubbed). Tests patch
-    the generators so they can drive the signup/invite flows without reading logs.
+    """Invite-token generation and forgot-PIN's server-generated PIN are intentionally not
+    echoed back in API responses (see AGENTS.md "Known gaps" — real email delivery is still
+    stubbed). Tests patch the generators so they can drive those flows without reading logs.
+    Signup no longer needs this: the PIN is user-chosen (see `signup()` below), not generated.
     """
     monkeypatch.setattr("app.services.auth_service.generate_pin", lambda: FIXED_PIN)
 
@@ -23,10 +24,11 @@ def last_invite_token():
     return _state["invite_token"]
 
 
-async def signup(client, monkeypatch, email, full_name="Test User", nickname="Tester"):
+async def signup(client, monkeypatch, email, full_name="Test User", nickname="Tester", pin=FIXED_PIN):
     patch_deterministic_secrets(monkeypatch)
     resp = await client.post(
-        "/auth/signup", json={"email": email, "full_name": full_name, "nickname": nickname}
+        "/auth/signup",
+        json={"email": email, "full_name": full_name, "nickname": nickname, "pin": pin},
     )
     return resp
 

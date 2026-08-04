@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, EmailStr, ConfigDict, Field
 from app.models.user import DisplayMode
 
 class UserBase(BaseModel):
@@ -9,7 +9,9 @@ class UserBase(BaseModel):
     nickname: str
 
 class UserCreate(UserBase):
-    pass
+    # User-chosen at signup (not server-generated) — see AuthService.signup. Pattern enforces
+    # exactly 6 digits since this is validated again by nothing else before hashing.
+    pin: str = Field(pattern=r"^\d{6}$")
 
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
