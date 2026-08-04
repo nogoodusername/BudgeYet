@@ -12,6 +12,7 @@ import com.famex.core.model.User
 import com.famex.core.util.todayLocalDate
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.minus
+import kotlinx.datetime.plus
 
 private val alex = User(1, "alex@example.com", "Alex Rivera", "Alex")
 private val sam = User(2, "sam@example.com", "Sam Rivera", "Sam")
@@ -35,7 +36,8 @@ private fun householdFor(scenario: DummyScenario): Household {
         currency = "USD",
         language = "en",
         cycleStartDay = 1,
-        members = members
+        members = members,
+        joinCodeExpiresAt = todayLocalDate().plus(Household.JOIN_CODE_EXPIRY_DAYS, DateTimeUnit.DAY)
     )
 }
 
