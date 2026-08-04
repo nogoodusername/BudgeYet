@@ -15,7 +15,6 @@ import com.famex.core.navigation.AuthTab
 fun AuthRoute(
     initialTab: AuthTab,
     onLoggedIn: (AuthSession) -> Unit,
-    onSignedUp: (email: String) -> Unit,
     onForgotPin: () -> Unit,
     onOpenBackendConfig: () -> Unit,
     modifier: Modifier = Modifier
@@ -31,7 +30,6 @@ fun AuthRoute(
         controller.events.collect { event ->
             when (event) {
                 is AuthEvent.LoggedIn -> onLoggedIn(event.session)
-                is AuthEvent.SignedUp -> onSignedUp(event.email)
             }
         }
     }
@@ -46,6 +44,8 @@ fun AuthRoute(
         onSignUpFullNameChange = controller::onSignUpFullNameChange,
         onSignUpNicknameChange = controller::onSignUpNicknameChange,
         onSignUpEmailChange = controller::onSignUpEmailChange,
+        onSignUpPinChange = controller::onSignUpPinChange,
+        onSignUpPinConfirmChange = controller::onSignUpPinConfirmChange,
         onSignUp = controller::onSignUp,
         onOpenBackendConfig = onOpenBackendConfig,
         modifier = modifier

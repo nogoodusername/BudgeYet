@@ -15,7 +15,6 @@ import kotlinx.coroutines.launch
 
 sealed class AuthEvent {
     data class LoggedIn(val session: AuthSession) : AuthEvent()
-    data class SignedUp(val email: String) : AuthEvent()
 }
 
 class AuthController(
@@ -54,20 +53,32 @@ class AuthController(
     fun onSignUpFullNameChange(value: String) = _uiState.update { it.copy(signUpFullName = value, signUpError = null) }
     fun onSignUpNicknameChange(value: String) = _uiState.update { it.copy(signUpNickname = value, signUpError = null) }
     fun onSignUpEmailChange(value: String) = _uiState.update { it.copy(signUpEmail = value, signUpError = null) }
+    fun onSignUpPinChange(value: String) = _uiState.update { it.copy(signUpPin = value, signUpError = null) }
+    fun onSignUpPinConfirmChange(value: String) = _uiState.update { it.copy(signUpPinConfirm = value, signUpError = null) }
 
     fun onSignUp() {
         val state = _uiState.value
-        if (state.signUpFullName.isBlank() || state.signUpEmail.isBlank()) {
-            _uiState.update { it.copy(signUpError = "Enter your name and email") }
+        val validationError = when {
+            state.signUpFullName.isBlank() || state.signUpEmail.isBlank() -> "Enter your name and email"
+            state.signUpPin.length != 6 -> "Choose a 6-digit PIN"
+            state.signUpPin != state.signUpPinConfirm -> "PINs don't match"
+            else -> null
+        }
+        if (validationError != null) {
+            _uiState.update { it.copy(signUpError = validationError) }
             return
         }
+
         scope.launch {
             _uiState.update { it.copy(isSigningUp = true, signUpError = null) }
             try {
                 val email = state.signUpEmail.trim()
-                repository.signUp(state.signUpFullName.trim(), state.signUpNickname.trim(), email)
+                repository.signUp(state.signUpFullName.trim(), state.signUpNickname.trim(), email, state.signUpPin)
+                // The user already knows the PIN they just chose, so log straight in rather
+                // than sending them through a "check your email" detour that no longer applies.
+                val session = repository.login(email, state.signUpPin)
                 _uiState.update { it.copy(isSigningUp = false) }
-                _events.emit(AuthEvent.SignedUp(email))
+                _events.emit(AuthEvent.LoggedIn(session))
             } catch (t: Throwable) {
                 _uiState.update { it.copy(isSigningUp = false, signUpError = t.message ?: "Couldn't create account") }
             }

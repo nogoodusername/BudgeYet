@@ -27,14 +27,14 @@ import com.famex.core.model.User
 import com.famex.core.navigation.AuthTab
 import com.famex.core.navigation.OnboardingNavController
 import com.famex.core.navigation.OnboardingScreen
-import com.famex.core.navigation.PinSentContext
 import com.famex.theme.LocalFamExTypography
 
 /**
  * Owns the onboarding funnel's own back stack (separate from AppNavController — no bottom nav,
  * torn down entirely once a household is ready). Wires together the 9 Stitch screens: Welcome,
- * Sign In/Sign Up (Auth), Backend Configuration, PIN Sent, Forgot PIN, Household Choice, Create
- * Household, Join Household.
+ * Sign In/Sign Up (Auth), Backend Configuration, PIN Sent (forgot-PIN only — signup no longer
+ * routes here since it logs straight in with the PIN the user just chose), Forgot PIN,
+ * Household Choice, Create Household, Join Household.
  */
 @Composable
 fun OnboardingRoute(
@@ -42,8 +42,9 @@ fun OnboardingRoute(
     modifier: Modifier = Modifier
 ) {
     val nav = remember { OnboardingNavController() }
-    // Set once login succeeds — Create/Join Household only return a Household, so this is what
-    // lets us assemble the final AuthSession(user, household) once one of those completes.
+    // Set whenever AuthEvent.LoggedIn fires (from either the Log In tab or a fresh Sign Up,
+    // which auto-logs in) — Create/Join Household only return a Household, so this is what lets
+    // us assemble the final AuthSession(user, household) once one of those completes.
     var authedUser by remember { mutableStateOf<User?>(null) }
     val current = nav.current
 
@@ -74,7 +75,6 @@ fun OnboardingRoute(
                         nav.navigate(OnboardingScreen.HouseholdChoice(session.user.email))
                     }
                 },
-                onSignedUp = { email -> nav.navigate(OnboardingScreen.PinSent(email, PinSentContext.SIGN_UP)) },
                 onForgotPin = { nav.navigate(OnboardingScreen.ForgotPin) },
                 onOpenBackendConfig = { nav.navigate(OnboardingScreen.BackendConfig) }
             )
@@ -83,12 +83,11 @@ fun OnboardingRoute(
 
             is OnboardingScreen.PinSent -> PinSentRoute(
                 email = screen.email,
-                context = screen.context,
                 onGoToSignIn = { nav.resetToAuth(AuthTab.LOG_IN) }
             )
 
             OnboardingScreen.ForgotPin -> ForgotPinRoute(
-                onSubmitted = { email -> nav.navigate(OnboardingScreen.PinSent(email, PinSentContext.FORGOT_PIN)) },
+                onSubmitted = { email -> nav.navigate(OnboardingScreen.PinSent(email)) },
                 onBackToSignIn = { nav.resetToAuth(AuthTab.LOG_IN) }
             )
 

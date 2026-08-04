@@ -48,20 +48,19 @@ class FakeAuthRepository(scenario: DummyScenario) : AuthRepository {
         )
     )
 
-    override suspend fun signUp(fullName: String, nickname: String, email: String) {
+    override suspend fun signUp(fullName: String, nickname: String, email: String, pin: String) {
         delay(400)
         if (accounts.containsKey(email)) throw IllegalStateException("An account with this email already exists")
+        if (!pin.matches(Regex("^\\d{6}$"))) throw IllegalArgumentException("PIN must be 6 digits")
         val user = User(
             id = nextUserId++,
             email = email,
             fullName = fullName,
             nickname = nickname.ifBlank { fullName.substringBefore(" ") }
         )
-        val pin = generatePin()
+        // No email sent (and nothing to log) — the PIN is user-chosen, they already know it.
+        // Mirrors AuthService.signup on the backend, which stopped generating one too.
         accounts[email] = Account(user = user, pin = pin, household = null)
-        // Real delivery is a stub backend-side too (app/core/email.py logs instead of sending) —
-        // mirror that limitation here so local testing can still read the PIN.
-        println("[FakeAuthRepository] PIN for $email: $pin")
     }
 
     override suspend fun login(email: String, pin: String): AuthSession {
