@@ -302,16 +302,27 @@ checkboxes as phases land so the plan survives across sessions.
   household exists, matching this phase's fake-repo/no-real-networking stance; there's no
   dedicated backend "onboarding batch" endpoint, so the real implementation will need one
   `POST .../budgets` call + one `POST .../categories` call per category, same as `feature/
-  category`'s Add Category flow does today. `AuthSession` and
-  `BackendConfig` are in-memory only (no DataStore/local persistence layer exists yet), so both
-  reset on cold start — the app cannot actually stay signed in across restarts until that lands.
-  A Sign Out row + `SignOutDialog` confirmation now live on the Profile screen (mirrors
-  `DeleteCategoryDialog`'s confirm-destructive-action pattern; uses
-  `Icons.AutoMirrored.Filled.Logout`, not the deprecated non-mirrored `Icons.Default.Logout`, to
-  avoid RTL flip issues) — confirming clears the in-memory `AuthSession`, which drops `App.kt` back
-  to `OnboardingRoute`. Still no persistence to clear (see above), so this only matters within a
-  single cold-start session for now. This phase still carries the
-  real Ktor networking work (see below); everything today runs on `FakeAuthRepository` dummy data.
+  category`'s Add Category flow does today. `AuthSession` and `BackendConfig` now survive a cold
+  start via `core/persistence/SettingsStorage` — a hand-rolled key-value store (`expect`/`actual`:
+  `SharedPreferences` on Android, `NSUserDefaults` on iOS), deliberately not DataStore/Room, same
+  version-risk reasoning as avoiding Koin/navigation-compose (see "Architecture choices" below).
+  `AuthRepository.getPersistedSession`/`persistSession`/`clearPersistedSession` (and
+  `getBackendConfig`/`setBackendConfig`, now backed by the same storage instead of an in-memory
+  var) serialize `AuthSession`/`BackendConfig` to JSON via `kotlinx.serialization` — both models
+  (and `Household`/`HouseholdMember`/`PendingInvite`/`User`) are now `@Serializable`;
+  `Household.joinCodeExpiresAt` uses kotlinx-datetime's built-in `LocalDateIso8601Serializer`.
+  `App.kt` gates its first frame on a `getPersistedSession()` read (blank `Surface` while
+  `isRestoringSession`) so a signed-in cold start renders straight into `MainAppShell` instead of
+  flashing `OnboardingRoute` first; `onOnboardingComplete` persists, Sign Out clears. One known
+  gap: a session restored this way re-seeds `FakeAuthRepository`'s in-memory `accounts` map with
+  an empty PIN (PIN is intentionally never persisted) — the account can't `login()` again until a
+  real backend replaces this fake repo, only the restored session itself is usable. A Sign Out row
+  + `SignOutDialog` confirmation live on the Profile screen (mirrors `DeleteCategoryDialog`'s
+  confirm-destructive-action pattern; uses `Icons.AutoMirrored.Filled.Logout`, not the deprecated
+  non-mirrored `Icons.Default.Logout`, to avoid RTL flip issues) — confirming clears both the
+  in-memory `AuthSession` and the persisted one, dropping `App.kt` back to `OnboardingRoute` for
+  good (not just until the next cold start). This phase still carries the real Ktor networking
+  work (see below); everything today runs on `FakeAuthRepository` dummy data.
 - [~] **Phase 3 — Collaboration & full profile (PRD E1/E2) — mostly landed, one gap remains.**
   Done: household member list with roles (`feature/profile/presentation/HouseholdMembers*`),
   promote/demote/remove for any role (`ac07262`, `1837cfe`), invite-by-email now creates a revocable

@@ -37,6 +37,15 @@ interface AuthRepository {
     // liveness probe, not a UI mock. Throws with a user-facing message on any failure
     // (unreachable host, timeout, non-2xx response); returns normally on success.
     suspend fun checkServerReachable(url: String)
+
+    // Local session persistence (SettingsStorage-backed, see FakeAuthRepository) — lets App.kt
+    // restore a signed-in session on cold start instead of always resetting to OnboardingRoute.
+    // Not the same thing as real auth/session-token persistence (no such tokens exist yet,
+    // there's no real backend call involved) — this just remembers the last AuthSession the UI
+    // reached so the fake-repo-backed app doesn't force a fresh sign-up every launch.
+    suspend fun getPersistedSession(): AuthSession?
+    suspend fun persistSession(session: AuthSession)
+    suspend fun clearPersistedSession()
 }
 
 data class CategorySetupInput(val name: String, val icon: String, val monthlyLimit: Double)

@@ -6,6 +6,7 @@ import com.famex.core.model.Household
 import com.famex.core.model.HouseholdMember
 import com.famex.core.model.MemberRole
 import com.famex.core.model.User
+import com.famex.core.persistence.SettingsStorage
 import com.famex.core.util.todayLocalDate
 import com.famex.feature.auth.domain.AuthRepository
 import com.famex.feature.auth.domain.CategorySetupInput
@@ -19,6 +20,9 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.plus
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import kotlin.random.Random
 
 // Deliberately decoupled from the other Fake*Repository instances in AppContainer
@@ -27,7 +31,11 @@ import kotlin.random.Random
 // "dummy data until real networking" stance. Sign in as the seeded demo account (below) to see
 // that scenario data end to end; a fresh sign-up gets its own isolated in-memory household that
 // only the onboarding screens see.
-class FakeAuthRepository(scenario: DummyScenario, private val httpClient: HttpClient) : AuthRepository {
+class FakeAuthRepository(
+    scenario: DummyScenario,
+    private val httpClient: HttpClient,
+    private val settingsStorage: SettingsStorage
+) : AuthRepository {
     private class Account(var user: User, var pin: String, var household: Household?)
 
     private val demoUser = dummyCurrentUser()
@@ -36,7 +44,6 @@ class FakeAuthRepository(scenario: DummyScenario, private val httpClient: HttpCl
     )
     private var nextUserId = 1000L
     private var nextHouseholdId = 1000L
-    private var backendConfig: BackendConfig = BackendConfig.Hosted
 
     // A single shared joinable household that "Join a Household" adds members to, capped at
     // Household.MAX_MEMBERS same as the real 3-member household cap.
@@ -139,12 +146,17 @@ class FakeAuthRepository(scenario: DummyScenario, private val httpClient: HttpCl
 
     override suspend fun getBackendConfig(): BackendConfig {
         delay(100)
-        return backendConfig
+        val json = settingsStorage.getString(KEY_BACKEND_CONFIG) ?: return BackendConfig.Hosted
+        return try {
+            appJson.decodeFromString<BackendConfig>(json)
+        } catch (e: Exception) {
+            BackendConfig.Hosted
+        }
     }
 
     override suspend fun setBackendConfig(config: BackendConfig) {
         delay(200)
-        backendConfig = config
+        settingsStorage.putString(KEY_BACKEND_CONFIG, appJson.encodeToString(config))
     }
 
     // The DB-independent /ping alias (see backend/app/api/v1/endpoints/health.py) — reachable
@@ -163,6 +175,30 @@ class FakeAuthRepository(scenario: DummyScenario, private val httpClient: HttpCl
             throw IllegalStateException("Server unreachable")
         }
     }
+
+    override suspend fun getPersistedSession(): AuthSession? {
+        val json = settingsStorage.getString(KEY_SESSION) ?: return null
+        val session = try {
+            appJson.decodeFromString<AuthSession>(json)
+        } catch (e: Exception) {
+            return null
+        }
+        // Re-seed the in-memory accounts map so createHousehold/setupBudget/etc. (all keyed by
+        // email) still resolve for a session restored fresh into this process — accounts is
+        // otherwise only seeded with the demo user. PIN is intentionally never persisted (avoid
+        // storing it in cleartext), so a restored account can't login() again until a real
+        // backend replaces this fake repo; that's an acceptable v1 gap, not a bug.
+        accounts.getOrPut(session.user.email) { Account(user = session.user, pin = "", household = session.household) }
+        return session
+    }
+
+    override suspend fun persistSession(session: AuthSession) {
+        settingsStorage.putString(KEY_SESSION, appJson.encodeToString(session))
+    }
+
+    override suspend fun clearPersistedSession() {
+        settingsStorage.remove(KEY_SESSION)
+    }
 }
 
 private fun generatePin(): String = (1..6).joinToString("") { Random.nextInt(0, 10).toString() }
@@ -170,3 +206,10 @@ private fun generatePin(): String = (1..6).joinToString("") { Random.nextInt(0, 
 // Fixed PIN for the seeded demo account (alex@example.com) — a fake-repo-only convenience so
 // the app can be previewed fully signed-in without reading console output first.
 private const val DEMO_PIN = "123456"
+
+private const val KEY_SESSION = "auth_session"
+private const val KEY_BACKEND_CONFIG = "backend_config"
+
+// ignoreUnknownKeys so an older persisted blob doesn't crash decoding after a model gains a
+// field — falls back to BackendConfig.Hosted / null session instead (see the catch blocks above).
+private val appJson = Json { ignoreUnknownKeys = true }

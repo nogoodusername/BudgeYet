@@ -1,7 +1,10 @@
 package com.famex.core.model
 
+import kotlinx.serialization.Serializable
+
 enum class DisplayMode { LIGHT, DARK, SYSTEM }
 
+@Serializable
 data class User(
     val id: Long,
     val email: String,
