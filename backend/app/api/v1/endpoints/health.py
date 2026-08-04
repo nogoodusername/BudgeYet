@@ -6,6 +6,18 @@ from app.core.config import settings
 
 router = APIRouter()
 
+@router.get("/ping", summary="Server Reachability Check")
+async def ping():
+    """
+    No-dependency liveness check. Used by clients (e.g. the Backend
+    Configuration screen) to verify a server URL is reachable without
+    requiring the target's database to be configured or online.
+    """
+    return {
+        "status": "online",
+        "service": settings.PROJECT_NAME,
+    }
+
 @router.get("/health", summary="Application & Database Health Check")
 async def health_check(db: AsyncSession = Depends(get_db)):
     """
