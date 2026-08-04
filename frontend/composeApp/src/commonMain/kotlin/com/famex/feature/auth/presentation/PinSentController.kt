@@ -1,6 +1,5 @@
 package com.famex.feature.auth.presentation
 
-import com.famex.core.navigation.PinSentContext
 import com.famex.feature.auth.domain.AuthRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -11,16 +10,12 @@ import kotlinx.coroutines.launch
 
 class PinSentController(
     email: String,
-    context: PinSentContext,
     private val repository: AuthRepository,
     private val scope: CoroutineScope
 ) {
-    private val _uiState = MutableStateFlow(PinSentUiState(email = email, context = context))
+    private val _uiState = MutableStateFlow(PinSentUiState(email = email))
     val uiState: StateFlow<PinSentUiState> = _uiState.asStateFlow()
 
-    // Same underlying call for both contexts — the backend's forgot_pin endpoint issues and
-    // emails a fresh PIN "mirroring the signup flow" (see AuthService.forgot_pin), so resending
-    // after a fresh signup is functionally identical to a PIN reset.
     fun onResend() {
         val state = _uiState.value
         scope.launch {

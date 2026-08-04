@@ -5,11 +5,10 @@ import com.famex.core.model.BackendConfig
 import com.famex.core.model.Household
 
 interface AuthRepository {
-    // No PIN parameter here — the backend always generates the PIN server-side and emails it
-    // (AuthService.signup), the same as forgot-PIN. UserCreate has no pin field; don't add a
-    // client-chosen-PIN field to the Sign Up screen even though the Stitch mockup shows one —
-    // see AGENTS.md Phase 2 notes.
-    suspend fun signUp(fullName: String, nickname: String, email: String)
+    // PIN is user-chosen at signup (backend: UserCreate.pin, validated ^\d{6}$) — the backend
+    // no longer generates or emails one here, unlike forgot-PIN below, which still does since
+    // that flow's whole point is recovering an account the user is locked out of.
+    suspend fun signUp(fullName: String, nickname: String, email: String, pin: String)
 
     suspend fun login(email: String, pin: String): AuthSession
 

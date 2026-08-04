@@ -43,9 +43,11 @@ import com.famex.theme.LocalFamExTypography
 /**
  * Stitch "Sign In (Fixed)" (3a07c803e1d44a8095ef999513223e99) and "Sign Up"
  * (b734818294eb4ed2bcc66ca9c0b388d6) screens, combined into one tabbed screen as both mockups
- * share the same header/tab-switcher chrome. The Sign Up mockup's "Create 6-Digit PIN" field is
- * dropped — the backend always generates and emails the PIN at signup (UserCreate has no pin
- * field), the same as forgot-PIN, so there's nothing for the user to type here.
+ * share the same header/tab-switcher chrome. Sign Up's "Create 6-Digit PIN" field (plus a
+ * Confirm PIN field to catch typos) is user-chosen — the backend takes it as-is
+ * (`UserCreate.pin`) rather than generating and emailing one, so signup no longer needs an
+ * email round-trip before the account is usable; see `AuthController.onSignUp`, which logs the
+ * user straight in with the PIN they just typed.
  */
 @Composable
 fun AuthScreen(
@@ -58,6 +60,8 @@ fun AuthScreen(
     onSignUpFullNameChange: (String) -> Unit,
     onSignUpNicknameChange: (String) -> Unit,
     onSignUpEmailChange: (String) -> Unit,
+    onSignUpPinChange: (String) -> Unit,
+    onSignUpPinConfirmChange: (String) -> Unit,
     onSignUp: () -> Unit,
     onOpenBackendConfig: () -> Unit,
     modifier: Modifier = Modifier
@@ -98,6 +102,8 @@ fun AuthScreen(
                     onSignUpFullNameChange = onSignUpFullNameChange,
                     onSignUpNicknameChange = onSignUpNicknameChange,
                     onSignUpEmailChange = onSignUpEmailChange,
+                    onSignUpPinChange = onSignUpPinChange,
+                    onSignUpPinConfirmChange = onSignUpPinConfirmChange,
                     onSignUp = onSignUp
                 )
             }
@@ -241,6 +247,8 @@ private fun SignUpForm(
     onSignUpFullNameChange: (String) -> Unit,
     onSignUpNicknameChange: (String) -> Unit,
     onSignUpEmailChange: (String) -> Unit,
+    onSignUpPinChange: (String) -> Unit,
+    onSignUpPinConfirmChange: (String) -> Unit,
     onSignUp: () -> Unit
 ) {
     val famExType = LocalFamExTypography.current
@@ -262,6 +270,16 @@ private fun SignUpForm(
         )
         Spacer(modifier = Modifier.height(16.dp))
         LabeledField(label = "Email Address", value = uiState.signUpEmail, onValueChange = onSignUpEmailChange, placeholder = "jane@example.com")
+
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(text = "Create 6-Digit PIN", style = famExType.labelMd, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(modifier = Modifier.height(8.dp))
+        PinInputField(value = uiState.signUpPin, onValueChange = onSignUpPinChange)
+
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(text = "Confirm PIN", style = famExType.labelMd, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(modifier = Modifier.height(8.dp))
+        PinInputField(value = uiState.signUpPinConfirm, onValueChange = onSignUpPinConfirmChange)
     }
 
     Spacer(modifier = Modifier.height(24.dp))

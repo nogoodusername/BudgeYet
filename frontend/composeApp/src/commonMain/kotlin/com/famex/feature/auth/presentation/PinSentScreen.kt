@@ -28,13 +28,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.famex.core.navigation.PinSentContext
 import com.famex.theme.LocalFamExTypography
 
 /**
- * Stitch "PIN Sent Confirmation" screen (e37a8090b453475fb182330fec704a93). Reused for both the
- * post-signup ("check your email for your PIN") and forgot-PIN ("a new PIN has been sent")
- * flows — same layout, different copy per [PinSentContext].
+ * Stitch "PIN Sent Confirmation" screen (e37a8090b453475fb182330fec704a93). Only reached from
+ * Forgot PIN now — signup no longer emails a PIN (the user chooses their own), so there's
+ * nothing for this screen to confirm on that path anymore.
  */
 @Composable
 fun PinSentScreen(
@@ -62,10 +61,7 @@ fun PinSentScreen(
         Text(text = "PIN Sent", style = famExType.headlineLg, color = MaterialTheme.colorScheme.onSurface)
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = when (uiState.context) {
-                PinSentContext.SIGN_UP -> "We've created your account and emailed you a 6-digit PIN. Check your inbox (and spam folder) to sign in."
-                PinSentContext.FORGOT_PIN -> "If an account exists for this email, a new 6-digit PIN has been sent. Please check your inbox (and spam folder)."
-            },
+            text = "If an account exists for this email, a new 6-digit PIN has been sent. Please check your inbox (and spam folder).",
             style = famExType.bodyMd,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center

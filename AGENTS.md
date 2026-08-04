@@ -255,19 +255,19 @@ checkboxes as phases land so the plan survives across sessions.
   torn down once a household is ready). `App.kt` now gates on `AuthSession?`: `null` renders
   `OnboardingRoute`, non-null renders the existing Phase 1/3 main shell (`MainAppShell`). Screens:
   Welcome → Auth (Sign In/Sign Up as tabs on one screen, matching the Stitch pair) → Backend
-  Configuration (gear icon on Auth) → PIN Sent (reused for both post-signup and forgot-PIN,
-  differing only in copy — see `PinSentContext`) → Forgot PIN → Household Choice → Create
+  Configuration (gear icon on Auth) → Forgot PIN → PIN Sent → Household Choice → Create
   Household / Join Household. `FakeAuthRepository` seeds one demo account (`alex@example.com`,
   PIN `123456`) whose household matches the rest of the app's `DummyScenario` fixtures — sign in
   as that account to preview the full authenticated app; a fresh sign-up gets its own isolated
   in-memory household that only the onboarding screens see, since it's deliberately **not** wired
   into the other `Fake*Repository` instances (see the class doc on `FakeAuthRepository`).
-  **Deliberate deviations from the Stitch mockups** (backend contract mismatches, same category as
-  the Phase 3 Resend Invite precedent): the Sign Up screen's "Create 6-Digit PIN" field was
-  dropped — `UserCreate` has no `pin` field, the backend always generates and emails the PIN at
-  signup (`AuthService.signup`), same as forgot-PIN, so there's nothing for the user to type. The
-  "Server Reachable" live-validation UI on Backend Configuration isn't implemented — there's no
-  real request to validate a custom URL against yet.
+  **Sign Up takes a user-chosen PIN** (Create PIN + Confirm PIN, validated 6-digit + matching in
+  `AuthController.onSignUp`) matching the backend's `UserCreate.pin` contract — the PIN is no
+  longer server-generated/emailed at signup, so `AuthController.onSignUp` logs the user straight
+  in afterward (`AuthEvent.LoggedIn`) instead of routing through a "check your email" step; **PIN
+  Sent is now forgot-PIN only** (`OnboardingScreen.PinSent` dropped its `PinSentContext` param —
+  there's only one context left). The "Server Reachable" live-validation UI on Backend
+  Configuration isn't implemented — there's no real request to validate a custom URL against yet.
   **Not covered by this batch:** budget monthly-goal-amount + initial category configuration
   (A3/A4) — Create Household only covers name/currency/cycle start day. `AuthSession` and
   `BackendConfig` are in-memory only (no DataStore/local persistence layer exists yet), so both

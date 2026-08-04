@@ -10,11 +10,13 @@ data class AuthUiState(
     val isLoggingIn: Boolean = false,
     val loginError: String? = null,
 
-    // No PIN field here on purpose — the backend always generates and emails the PIN at
-    // signup (see AuthRepository.signUp), so there's nothing for the user to type here.
     val signUpFullName: String = "",
     val signUpNickname: String = "",
     val signUpEmail: String = "",
+    // User-chosen at signup (see AuthRepository.signUp) — confirm exists purely to catch typos
+    // before it's hashed server-side; only signUpPin is ever sent.
+    val signUpPin: String = "",
+    val signUpPinConfirm: String = "",
     val isSigningUp: Boolean = false,
     val signUpError: String? = null
 )
