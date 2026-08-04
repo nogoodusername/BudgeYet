@@ -1,8 +1,10 @@
 package com.famex.feature.dashboard.presentation
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,35 +18,40 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.famex.core.model.Category
 import com.famex.core.model.SpendStatus
-import com.famex.core.ui.CategoryRow
+import com.famex.core.ui.ActivityFeedRow
+import com.famex.core.ui.AddCategoryPlaceholderCard
+import com.famex.core.ui.CategorySnapshotCard
 import com.famex.core.ui.StatusProgressBar
-import com.famex.core.ui.TransactionRow
 import com.famex.core.ui.colorFor
 import com.famex.core.util.currencySymbolFor
 import com.famex.core.util.formatAmount
 import com.famex.feature.dashboard.domain.model.DashboardData
+import com.famex.theme.LocalFamExTypography
 
 @Composable
 fun DashboardScreen(
     uiState: DashboardUiState,
     onCategoryClick: (Long) -> Unit,
     onRetry: () -> Unit,
+    onViewAllActivityClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     when {
         uiState.isLoading && uiState.data == null -> DashboardLoading(modifier)
         uiState.errorMessage != null && uiState.data == null -> DashboardError(uiState.errorMessage, onRetry, modifier)
-        uiState.data != null -> DashboardContent(uiState.data, onCategoryClick, modifier)
+        uiState.data != null -> DashboardContent(uiState.data, onCategoryClick, onViewAllActivityClick, modifier)
     }
 }
 
@@ -72,19 +79,23 @@ private fun DashboardError(message: String, onRetry: () -> Unit, modifier: Modif
 private fun DashboardContent(
     data: DashboardData,
     onCategoryClick: (Long) -> Unit,
+    onViewAllActivityClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val currencySymbol = currencySymbolFor(data.household.currency)
+    val famExType = LocalFamExTypography.current
+    val categoriesById = remember(data.categories) { data.categories.associateBy { it.id } }
 
     LazyColumn(
         modifier = modifier.fillMaxSize().padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(24.dp),
+        contentPadding = PaddingValues(top = 16.dp, bottom = 96.dp)
     ) {
         item {
             val budget = data.budget
             if (budget != null) {
-                BudgetOverviewGaugeCard(
-                    budgetName = budget.name,
+                BudgetOverviewCard(
+                    title = monthYearLabel(budget.month, budget.year),
                     spent = budget.spentAmount,
                     goal = budget.monthlyGoalAmount,
                     remaining = budget.remainingAmount,
@@ -101,48 +112,82 @@ private fun DashboardContent(
             item {
                 Text(
                     text = "Category Snapshots",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.padding(top = 8.dp)
+                    style = famExType.headlineSm,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
-            items(data.categories) { category ->
-                CategoryRow(category = category, currencySymbol = currencySymbol, onClick = { onCategoryClick(category.id) })
+
+            val slots: List<Category?> = data.categories + listOf(null)
+            items(slots.chunked(2)) { rowSlots ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    rowSlots.forEach { slot ->
+                        Box(modifier = Modifier.weight(1f)) {
+                            if (slot != null) {
+                                CategorySnapshotCard(category = slot, onClick = { onCategoryClick(slot.id) })
+                            } else {
+                                AddCategoryPlaceholderCard()
+                            }
+                        }
+                    }
+                    if (rowSlots.size == 1) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
             }
         }
 
         item {
-            Text(
-                text = "Family Activity Feed",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.padding(top = 12.dp)
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Family Activity",
+                    style = famExType.headlineSm,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                TextButton(onClick = onViewAllActivityClick) {
+                    Text(text = "View All", style = famExType.labelMd, color = MaterialTheme.colorScheme.secondary)
+                }
+            }
         }
 
         if (data.activityFeed.isEmpty()) {
-            item {
-                Text(
-                    text = "No transactions yet. Tap + to add your first one.",
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                    fontSize = 14.sp
-                )
-            }
+            item { EmptyActivityCard() }
         } else {
-            items(data.activityFeed) { transaction ->
-                TransactionRow(transaction = transaction, currencySymbol = currencySymbol)
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                ) {
+                    Column {
+                        data.activityFeed.forEachIndexed { index, transaction ->
+                            ActivityFeedRow(
+                                transaction = transaction,
+                                category = transaction.categoryId?.let { categoriesById[it] },
+                                currencySymbol = currencySymbol
+                            )
+                            if (index != data.activityFeed.lastIndex) {
+                                HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+                            }
+                        }
+                    }
+                }
             }
         }
-
-        item { Spacer(modifier = Modifier.height(72.dp)) }
     }
 }
 
 @Composable
-private fun BudgetOverviewGaugeCard(
-    budgetName: String,
+private fun BudgetOverviewCard(
+    title: String,
     spent: Double,
     goal: Double,
     remaining: Double,
@@ -150,73 +195,98 @@ private fun BudgetOverviewGaugeCard(
     status: SpendStatus,
     currencySymbol: String
 ) {
+    val famExType = LocalFamExTypography.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(
-                text = budgetName,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                fontSize = 14.sp
-            )
+            Text(text = title, style = famExType.headlineSm, color = MaterialTheme.colorScheme.onSurface)
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Bottom
-            ) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    Text(
+                        text = formatAmount(spent, currencySymbol),
+                        style = famExType.displayAmount,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "of ${formatAmount(goal, currencySymbol)}",
+                        style = famExType.labelMd,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                }
+
+                StatusProgressBar(percentUsed = percentUsed, status = status, barHeight = 8.dp)
+
                 Text(
-                    text = "${formatAmount(spent, currencySymbol)} spent",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "of ${formatAmount(goal, currencySymbol)}",
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    text = if (remaining >= 0) "${formatAmount(remaining, currencySymbol)} remaining"
+                    else "Over budget by ${formatAmount(-remaining, currencySymbol)}",
+                    style = famExType.labelMd,
+                    color = colorFor(status),
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.End
                 )
             }
-
-            StatusProgressBar(percentUsed = percentUsed, status = status, barHeight = 10.dp)
-
-            Text(
-                text = if (remaining >= 0) "${formatAmount(remaining, currencySymbol)} remaining"
-                else "Over budget by ${formatAmount(-remaining, currencySymbol)}",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = colorFor(status)
-            )
         }
     }
 }
 
 @Composable
 private fun NoBudgetCard() {
+    val famExType = LocalFamExTypography.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant)
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(
-                text = "No budget set up yet",
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(text = "No budget set up yet", style = famExType.headlineSm, color = MaterialTheme.colorScheme.onSurface)
             Text(
                 text = "Set a monthly goal to start tracking your household spending.",
-                fontSize = 13.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                style = famExType.bodyMd,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
+}
+
+@Composable
+private fun EmptyActivityCard() {
+    val famExType = LocalFamExTypography.current
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Text(
+            text = "No transactions yet. Tap + to add your first one.",
+            style = famExType.bodyMd,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(20.dp)
+        )
+    }
+}
+
+private val monthNames = listOf(
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+)
+
+private fun monthYearLabel(month: Int, year: Int): String {
+    val name = monthNames.getOrNull(month - 1) ?: "Month"
+    return "$name $year Budget"
 }
