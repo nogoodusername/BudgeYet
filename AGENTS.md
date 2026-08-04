@@ -48,16 +48,16 @@ Backend and frontend have separate CI pipelines gated by path (`backend/**`, `fr
   `AuthenticationError` under `core/database.py` below). Money amounts (`Transaction.amount`,
   `Budget.monthly_goal_amount`) are `Numeric(12, 2)`/`Decimal`, not `Float` — keep new money columns
   consistent with that.
-- Frontend: Phase 1 (core daily-use loop) and most of Phase 3 (collaboration/profile) have landed
-  (see "Frontend build plan" below) — feature-based navigation (Dashboard/Categories/History/Add
-  Transaction/Profile/Household Members/Invite Member) backed by fake repositories and dummy data
-  scenarios, no real networking yet. Phase 2 (onboarding & auth funnel) hasn't started at all — no
-  welcome/signup/login/PIN/household-create-or-join screens exist, and the app has no logged-out
-  state to gate on; the backend above is ready for it to consume. When the networking layer lands,
-  the backend base URL must be user-configurable at onboarding (PRD A0/Section 9.9): default to our
-  hosted backend, but let the user point the app at their own self-hosted deployment instead. Store
-  it as a device-level setting (not per-household) and don't hardcode the hosted URL as the only
-  option.
+- Frontend: Phase 1 (core daily-use loop), most of Phase 3 (collaboration/profile), and Phase 2's
+  onboarding/auth screens have landed (see "Frontend build plan" below) — feature-based navigation
+  (Dashboard/Categories/History/Add Transaction/Profile/Household Members/Invite Member/Welcome/
+  Auth/Backend Config/PIN Sent/Forgot PIN/Household Choice/Create Household/Join Household) backed
+  by fake repositories and dummy data scenarios, no real networking yet. `App.kt` now gates on an
+  in-memory `AuthSession?`: `null` renders `OnboardingRoute`, non-null renders the Phase 1/3 main
+  shell — but the session itself doesn't persist (no DataStore yet), so every cold start begins
+  signed out again. The backend base URL is user-configurable via the Backend Configuration screen
+  (PRD A0/Section 9.9: hosted by default, or a self-hosted custom URL), stored as a device-level
+  `BackendConfig` — but only in-memory for now, same persistence gap as the session.
 
 Don't assume a feature exists because it's in the PRD or in a model/schema — check the actual endpoint
 router and frontend screens first.
@@ -247,12 +247,33 @@ checkboxes as phases land so the plan survives across sessions.
   contract. `TransactionRepository.reassignCategory` and `CategoryRepository.deleteCategory` back
   this on the fake-repo side. The mockup's Edit Category/Category Settings menu items were left out
   — no corresponding feature exists yet, so they'd be dead entries.
-- [ ] **Phase 2 — Onboarding & auth funnel (PRD A). Not started.** No screens, controllers, or nav
-  entries exist yet for A0 (backend endpoint selection), A1 (welcome), A2/A2a (signup, PIN verify,
-  login, forgot PIN), household create/join, or budget creation + category configuration (A3/A4).
-  `App.kt` boots straight into the Phase 1 shell with no auth gate — there's no session/logged-out
-  state to route around yet. This phase also carries the real Ktor networking work (see below);
-  everything today still runs on `FakeXRepository` dummy data.
+- [~] **Phase 2 — Onboarding & auth funnel (PRD A) — screens landed on fake repos, no real
+  networking yet.** Covers A0 (backend endpoint selection), A1 (welcome), A2/A2a (signup, PIN
+  verify via login, forgot PIN), and household create/join — all in `feature/auth/
+  {data,domain,presentation}`, its own `core/navigation/OnboardingScreen.kt` +
+  `OnboardingNavController.kt` (mirrors `AppNavController` — separate back stack, no bottom nav,
+  torn down once a household is ready). `App.kt` now gates on `AuthSession?`: `null` renders
+  `OnboardingRoute`, non-null renders the existing Phase 1/3 main shell (`MainAppShell`). Screens:
+  Welcome → Auth (Sign In/Sign Up as tabs on one screen, matching the Stitch pair) → Backend
+  Configuration (gear icon on Auth) → PIN Sent (reused for both post-signup and forgot-PIN,
+  differing only in copy — see `PinSentContext`) → Forgot PIN → Household Choice → Create
+  Household / Join Household. `FakeAuthRepository` seeds one demo account (`alex@example.com`,
+  PIN `123456`) whose household matches the rest of the app's `DummyScenario` fixtures — sign in
+  as that account to preview the full authenticated app; a fresh sign-up gets its own isolated
+  in-memory household that only the onboarding screens see, since it's deliberately **not** wired
+  into the other `Fake*Repository` instances (see the class doc on `FakeAuthRepository`).
+  **Deliberate deviations from the Stitch mockups** (backend contract mismatches, same category as
+  the Phase 3 Resend Invite precedent): the Sign Up screen's "Create 6-Digit PIN" field was
+  dropped — `UserCreate` has no `pin` field, the backend always generates and emails the PIN at
+  signup (`AuthService.signup`), same as forgot-PIN, so there's nothing for the user to type. The
+  "Server Reachable" live-validation UI on Backend Configuration isn't implemented — there's no
+  real request to validate a custom URL against yet.
+  **Not covered by this batch:** budget monthly-goal-amount + initial category configuration
+  (A3/A4) — Create Household only covers name/currency/cycle start day. `AuthSession` and
+  `BackendConfig` are in-memory only (no DataStore/local persistence layer exists yet), so both
+  reset on cold start — the app cannot actually stay signed in across restarts until that lands.
+  There's also no sign-out affordance anywhere in the main shell yet. This phase still carries the
+  real Ktor networking work (see below); everything today runs on `FakeAuthRepository` dummy data.
 - [~] **Phase 3 — Collaboration & full profile (PRD E1/E2) — mostly landed, one gap remains.**
   Done: household member list with roles (`feature/profile/presentation/HouseholdMembers*`),
   promote/demote/remove for any role (`ac07262`, `1837cfe`), invite-by-email now creates a revocable

@@ -15,15 +15,20 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import com.famex.core.di.AppContainer
 import com.famex.core.di.LocalAppContainer
+import com.famex.core.model.AuthSession
 import com.famex.core.navigation.AppNavController
 import com.famex.core.navigation.Screen
 import com.famex.core.ui.BottomNavTab
 import com.famex.core.ui.FamExBottomNavBar
+import com.famex.feature.auth.presentation.OnboardingRoute
 import com.famex.feature.category.presentation.AddCategoryRoute
 import com.famex.feature.category.presentation.CategoryDetailRoute
 import com.famex.feature.category.presentation.CategoryRoute
@@ -48,88 +53,101 @@ fun App() {
     FamExTheme {
         val container = remember { AppContainer(scenario = ActiveDummyScenario) }
         CompositionLocalProvider(LocalAppContainer provides container) {
-            val navController = remember { AppNavController() }
-            val current = navController.current
+            var session by remember { mutableStateOf<AuthSession?>(null) }
+            val currentSession = session
 
-            Scaffold(
-                topBar = {
-                    TopAppBar(
-                        title = { Text(text = current.title(), fontWeight = FontWeight.Bold) },
-                        navigationIcon = {
-                            if (navController.canGoBack) {
-                                IconButton(onClick = { navController.back() }) {
-                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                                }
-                            }
-                        },
-                        actions = {
-                            if (current is Screen.TransactionDetail) {
-                                TextButton(onClick = { navController.navigate(Screen.EditTransaction(current.transactionId)) }) {
-                                    Text(text = "Edit", fontWeight = FontWeight.SemiBold)
-                                }
-                            }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
-                    )
-                },
-                bottomBar = {
-                    FamExBottomNavBar(
-                        selectedTab = current.toBottomNavTab(),
-                        // Hidden on the add/edit transaction forms and Add Category — it would
-                        // float on top of those screens' own Save/Add button.
-                        showAddButton = current != Screen.AddTransaction && current !is Screen.EditTransaction &&
-                            current != Screen.AddCategory,
-                        onDashboard = { navController.switchTab(Screen.Dashboard) },
-                        onCategories = { navController.switchTab(Screen.Categories) },
-                        onAdd = { navController.navigate(Screen.AddTransaction) },
-                        onHistory = { navController.switchTab(Screen.History) },
-                        onProfile = { navController.switchTab(Screen.Profile) }
-                    )
-                }
-            ) { paddingValues ->
-                Box(modifier = Modifier.padding(paddingValues)) {
-                    when (val screen = current) {
-                        Screen.Dashboard -> DashboardRoute(
-                            onNavigateToCategoryDetail = { navController.navigate(Screen.CategoryDetail(it)) },
-                            onNavigateToHistory = { navController.switchTab(Screen.History) },
-                            onNavigateToSetUpBudget = { navController.switchTab(Screen.Categories) }
-                        )
-                        Screen.Categories -> CategoryRoute(
-                            onNavigateToCategoryDetail = { navController.navigate(Screen.CategoryDetail(it)) },
-                            onNavigateToAddCategory = { navController.navigate(Screen.AddCategory) }
-                        )
-                        is Screen.CategoryDetail -> CategoryDetailRoute(
-                            categoryId = screen.categoryId,
-                            onDeleted = { navController.switchTab(Screen.Categories) }
-                        )
-                        Screen.AddCategory -> AddCategoryRoute(onSaved = { navController.back() })
-                        Screen.History -> HistoryRoute(
-                            onTransactionClick = { navController.navigate(Screen.TransactionDetail(it)) },
-                            onNavigateToAddTransaction = { navController.navigate(Screen.AddTransaction) }
-                        )
-                        is Screen.TransactionDetail -> TransactionDetailRoute(
-                            transactionId = screen.transactionId,
-                            onEdit = { navController.navigate(Screen.EditTransaction(it)) },
-                            onDeleted = { navController.switchTab(Screen.History) }
-                        )
-                        is Screen.EditTransaction -> EditTransactionRoute(
-                            transactionId = screen.transactionId,
-                            onSaved = { navController.back() },
-                            onDeleted = { navController.switchTab(Screen.History) }
-                        )
-                        Screen.AddTransaction -> AddTransactionRoute(onSaved = { navController.back() })
-                        Screen.Profile -> ProfileRoute(
-                            onNavigateToManageMembers = { navController.navigate(Screen.HouseholdMembers) }
-                        )
-                        Screen.HouseholdMembers -> HouseholdMembersRoute(
-                            onNavigateToInvite = { navController.navigate(Screen.InviteMember) }
-                        )
-                        Screen.InviteMember -> InviteMemberRoute(onInvited = { navController.back() })
-                    }
-                }
+            if (currentSession == null) {
+                OnboardingRoute(onOnboardingComplete = { session = it })
+            } else {
+                MainAppShell()
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MainAppShell() {
+    val navController = remember { AppNavController() }
+    val current = navController.current
+
+    Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text(text = current.title(), fontWeight = FontWeight.Bold) },
+                    navigationIcon = {
+                        if (navController.canGoBack) {
+                            IconButton(onClick = { navController.back() }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                            }
+                        }
+                    },
+                    actions = {
+                        if (current is Screen.TransactionDetail) {
+                            TextButton(onClick = { navController.navigate(Screen.EditTransaction(current.transactionId)) }) {
+                                Text(text = "Edit", fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
+                )
+            },
+            bottomBar = {
+                FamExBottomNavBar(
+                    selectedTab = current.toBottomNavTab(),
+                    // Hidden on the add/edit transaction forms and Add Category — it would
+                    // float on top of those screens' own Save/Add button.
+                    showAddButton = current != Screen.AddTransaction && current !is Screen.EditTransaction &&
+                        current != Screen.AddCategory,
+                    onDashboard = { navController.switchTab(Screen.Dashboard) },
+                    onCategories = { navController.switchTab(Screen.Categories) },
+                    onAdd = { navController.navigate(Screen.AddTransaction) },
+                    onHistory = { navController.switchTab(Screen.History) },
+                    onProfile = { navController.switchTab(Screen.Profile) }
+                )
+            }
+        ) { paddingValues ->
+            Box(modifier = Modifier.padding(paddingValues)) {
+                when (val screen = current) {
+                    Screen.Dashboard -> DashboardRoute(
+                        onNavigateToCategoryDetail = { navController.navigate(Screen.CategoryDetail(it)) },
+                        onNavigateToHistory = { navController.switchTab(Screen.History) },
+                        onNavigateToSetUpBudget = { navController.switchTab(Screen.Categories) }
+                    )
+                    Screen.Categories -> CategoryRoute(
+                        onNavigateToCategoryDetail = { navController.navigate(Screen.CategoryDetail(it)) },
+                        onNavigateToAddCategory = { navController.navigate(Screen.AddCategory) }
+                    )
+                    is Screen.CategoryDetail -> CategoryDetailRoute(
+                        categoryId = screen.categoryId,
+                        onDeleted = { navController.switchTab(Screen.Categories) }
+                    )
+                    Screen.AddCategory -> AddCategoryRoute(onSaved = { navController.back() })
+                    Screen.History -> HistoryRoute(
+                        onTransactionClick = { navController.navigate(Screen.TransactionDetail(it)) },
+                        onNavigateToAddTransaction = { navController.navigate(Screen.AddTransaction) }
+                    )
+                    is Screen.TransactionDetail -> TransactionDetailRoute(
+                        transactionId = screen.transactionId,
+                        onEdit = { navController.navigate(Screen.EditTransaction(it)) },
+                        onDeleted = { navController.switchTab(Screen.History) }
+                    )
+                    is Screen.EditTransaction -> EditTransactionRoute(
+                        transactionId = screen.transactionId,
+                        onSaved = { navController.back() },
+                        onDeleted = { navController.switchTab(Screen.History) }
+                    )
+                    Screen.AddTransaction -> AddTransactionRoute(onSaved = { navController.back() })
+                    Screen.Profile -> ProfileRoute(
+                        onNavigateToManageMembers = { navController.navigate(Screen.HouseholdMembers) }
+                    )
+                    Screen.HouseholdMembers -> HouseholdMembersRoute(
+                        onNavigateToInvite = { navController.navigate(Screen.InviteMember) }
+                    )
+                    Screen.InviteMember -> InviteMemberRoute(onInvited = { navController.back() })
+                }
+            }
+        }
 }
 
 private fun Screen.title(): String = when (this) {
