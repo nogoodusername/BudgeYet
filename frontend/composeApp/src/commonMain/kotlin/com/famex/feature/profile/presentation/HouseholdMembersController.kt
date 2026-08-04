@@ -65,20 +65,6 @@ class HouseholdMembersController(
         }
     }
 
-    fun onResendInvite(invite: PendingInvite) {
-        scope.launch {
-            _uiState.update { it.copy(processingInviteId = invite.id, failedInviteId = null, inviteActionError = null) }
-            try {
-                val household = repository.resendInvite(invite.id)
-                _uiState.update { it.copy(processingInviteId = null, household = household) }
-            } catch (t: Throwable) {
-                _uiState.update {
-                    it.copy(processingInviteId = null, failedInviteId = invite.id, inviteActionError = t.message ?: "Couldn't resend invite")
-                }
-            }
-        }
-    }
-
     fun onRevokeInvite(invite: PendingInvite) {
         scope.launch {
             _uiState.update { it.copy(processingInviteId = invite.id, failedInviteId = null, inviteActionError = null) }

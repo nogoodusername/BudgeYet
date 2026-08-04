@@ -29,7 +29,6 @@ fun HouseholdMembersRoute(
         onRequestRemove = controller::onRequestRemove,
         onCancelRemove = controller::onCancelRemove,
         onConfirmRemove = controller::onConfirmRemove,
-        onResendInvite = controller::onResendInvite,
         onRevokeInvite = controller::onRevokeInvite,
         onNavigateToInvite = onNavigateToInvite,
         modifier = modifier

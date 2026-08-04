@@ -84,11 +84,12 @@ router and frontend screens first.
   holds, but the per-IP throttle doesn't. Fix is to gate header-trust behind an explicit
   `TRUSTED_PROXY_COUNT`/`BEHIND_PROXY` setting (off by default), falling back to `request.client.host`
   when unset — see `core/security.py`.
-- **No resend-invite endpoint on the backend.** `HouseholdService`/`InviteRepository` only have
-  create/list/revoke — no resend. The frontend's `ProfileRepository.resendInvite` (see Phase 3 below)
-  is a fake-repo-only affordance (just bumps a display timestamp) with nothing real to call yet; add
-  the endpoint (likely: reissue token + `expires_at`, re-trigger `send_invite_email`) before wiring
-  real networking to that button.
+- **No resend-invite endpoint on the backend**, and no frontend affordance for it either.
+  `HouseholdService`/`InviteRepository` only have create/list/revoke — no resend. The frontend
+  originally added a matching `ProfileRepository.resendInvite` (fake-repo-only, no real endpoint to
+  call), but it was removed since there was nothing real for it to do; see Phase 3 below. If resend
+  is wanted later, add the backend endpoint first (likely: reissue token + `expires_at`, re-trigger
+  `send_invite_email`), then bring the frontend button back against real networking.
 
 ## Backend (`backend/`)
 
@@ -256,19 +257,21 @@ checkboxes as phases land so the plan survives across sessions.
   Done: household member list with roles (`feature/profile/presentation/HouseholdMembers*`),
   promote/demote/remove for any role (`ac07262`, `1837cfe`), invite-by-email now creates a revocable
   pending invite instead of adding the member directly (`core/model/Household.PendingInvite` +
-  `ProfileRepository.inviteMember`/`resendInvite`/`revokeInvite`, backed by `FakeProfileRepository`),
-  rendered as `PendingInviteCard` on `HouseholdMembersScreen.kt` with Resend/Revoke actions and a
-  teal-tinted Invite CTA row (Stitch "Member Management (With Invite CTA)" /
-  "(With Pending Invite)"), with `InviteMemberScreen.kt` (Stitch "Invite Options") slimmed down to
-  just the email-invite and join-code cards — the duplicate current-members list that used to live
-  there was removed since pending invites now show on `HouseholdMembersScreen` instead. Editable
-  profile (name/nickname, read-only email), household currency/language (admin-gated), display mode
-  preference — all in `feature/profile/`.
+  `ProfileRepository.inviteMember`/`revokeInvite`, backed by `FakeProfileRepository`), rendered as
+  `PendingInviteCard` on `HouseholdMembersScreen.kt` with a Revoke action and a teal-tinted Invite
+  CTA row (Stitch "Member Management (With Invite CTA)" / "(With Pending Invite)"), with
+  `InviteMemberScreen.kt` (Stitch "Invite Options") slimmed down to just the email-invite and
+  join-code cards — the duplicate current-members list that used to live there was removed since
+  pending invites now show on `HouseholdMembersScreen` instead. A Resend Invite action was tried and
+  then deliberately dropped: there's no backend resend endpoint (see "Known gaps" above), so it had
+  nothing real to call once networking lands — don't re-add it without the backend endpoint first.
+  Editable profile (name/nickname, read-only email), household currency/language (admin-gated),
+  display mode preference — all in `feature/profile/`.
   **Gap:** the 7-day invite expiry isn't modeled or shown anywhere in the UI (revoke works, expiry
   doesn't), and shareable join link/QR code (the other half of E1) is still not implemented. Since
   this all still runs on fake repos, wiring real invite semantics (backend `Invite.token`/
-  `expires_at`, plus the missing resend endpoint — see "Known gaps" above) likely lands together with
-  Phase 2's networking work rather than as a separate frontend-only fix.
+  `expires_at`) likely lands together with Phase 2's networking work rather than as a separate
+  frontend-only fix.
 
 **Architecture choices made in Phase 1 (carry forward into later phases):**
 - Navigation is a hand-rolled `core/navigation/AppNavController` (sealed `Screen` + back-stack list),

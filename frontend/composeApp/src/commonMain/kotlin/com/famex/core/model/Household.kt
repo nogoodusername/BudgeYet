@@ -17,8 +17,7 @@ data class HouseholdMember(
 // is only enforced against actual members, same as HouseholdService.create_invite server-side.
 data class PendingInvite(
     val id: Long,
-    val email: String,
-    val sentAtText: String
+    val email: String
 )
 
 // Household hard cap is 3 members (including Admin) in v1 — enforced server-side, not here.

@@ -20,7 +20,6 @@ interface ProfileRepository {
     // Household member management (Manage Members CTA on Profile & Settings).
     // Creates a pending invite (not an immediate member add) — mirrors HouseholdService.create_invite.
     suspend fun inviteMember(email: String): Household
-    suspend fun resendInvite(inviteId: Long): Household
     suspend fun revokeInvite(inviteId: Long): Household
     // Covers promote-to-Admin, promote-to-Owner (transfers ownership — see
     // FakeProfileRepository), and demote-to-Member.

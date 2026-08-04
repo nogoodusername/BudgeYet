@@ -62,20 +62,9 @@ class FakeProfileRepository(scenario: DummyScenario) : ProfileRepository {
         check(household.members.size < Household.MAX_MEMBERS) { "Household is full" }
         val newInvite = PendingInvite(
             id = (household.pendingInvites.maxOfOrNull { it.id } ?: 0) + 1,
-            email = email,
-            sentAtText = "Just now"
+            email = email
         )
         household = household.copy(pendingInvites = household.pendingInvites + newInvite)
-        return household
-    }
-
-    override suspend fun resendInvite(inviteId: Long): Household {
-        delay(300)
-        household = household.copy(
-            pendingInvites = household.pendingInvites.map { invite ->
-                if (invite.id == inviteId) invite.copy(sentAtText = "Just now") else invite
-            }
-        )
         return household
     }
 

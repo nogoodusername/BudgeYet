@@ -78,7 +78,8 @@ import com.famex.theme.LocalFamExTypography
  * Also pulls in "Member Management (With Invite CTA)" (d67bb225b855451d9c623562b21ba9a0) and
  * "Member Management (With Pending Invite)" (9d37770fd97c4dcf999c06746431eeac): the Invite CTA
  * is now a teal-tinted row rather than an outlined button, and pending invites render as their
- * own cards with Resend/Revoke actions.
+ * own cards with a Revoke action. (The mockup's Resend Invite action was dropped — see
+ * FakeProfileRepository, there's no backend resend endpoint for it to call.)
  */
 @Composable
 fun HouseholdMembersScreen(
@@ -89,7 +90,6 @@ fun HouseholdMembersScreen(
     onRequestRemove: (HouseholdMember) -> Unit,
     onCancelRemove: () -> Unit,
     onConfirmRemove: () -> Unit,
-    onResendInvite: (PendingInvite) -> Unit,
     onRevokeInvite: (PendingInvite) -> Unit,
     onNavigateToInvite: () -> Unit,
     modifier: Modifier = Modifier
@@ -150,7 +150,6 @@ fun HouseholdMembersScreen(
                         invite = invite,
                         isProcessing = uiState.processingInviteId == invite.id,
                         errorMessage = uiState.inviteActionError.takeIf { uiState.failedInviteId == invite.id },
-                        onResend = { onResendInvite(invite) },
                         onRevoke = { onRevokeInvite(invite) }
                     )
                 }
@@ -345,7 +344,6 @@ private fun PendingInviteCard(
     invite: PendingInvite,
     isProcessing: Boolean,
     errorMessage: String?,
-    onResend: () -> Unit,
     onRevoke: () -> Unit
 ) {
     val famExType = LocalFamExTypography.current
@@ -402,11 +400,8 @@ private fun PendingInviteCard(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                TextButton(onClick = onResend, enabled = !isProcessing) {
-                    Text(text = if (isProcessing) "Resending…" else "Resend Invite", style = famExType.labelMd, color = MaterialTheme.colorScheme.onSurface)
-                }
                 TextButton(onClick = onRevoke, enabled = !isProcessing) {
-                    Text(text = "Revoke", style = famExType.labelMd, color = MaterialTheme.colorScheme.error)
+                    Text(text = if (isProcessing) "Revoking…" else "Revoke", style = famExType.labelMd, color = MaterialTheme.colorScheme.error)
                 }
             }
         }
