@@ -1,49 +1,143 @@
 package com.famex
 
-import androidx.compose.runtime.*
-import com.famex.data.model.Category
-import com.famex.data.model.HouseholdBudgetSummary
-import com.famex.data.model.Transaction
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FabPosition
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import com.famex.core.di.AppContainer
+import com.famex.core.di.LocalAppContainer
+import com.famex.core.navigation.AppNavController
+import com.famex.core.navigation.Screen
+import com.famex.feature.category.presentation.CategoryDetailRoute
+import com.famex.feature.category.presentation.CategoryRoute
+import com.famex.feature.dashboard.presentation.DashboardRoute
+import com.famex.feature.profile.presentation.ProfileRoute
+import com.famex.feature.transaction.presentation.AddTransactionPlaceholderScreen
+import com.famex.feature.transaction.presentation.HistoryRoute
+import com.famex.feature.transaction.presentation.TransactionDetailRoute
+import com.famex.fixtures.DummyScenario
+import com.famex.theme.BrandTeal
 import com.famex.theme.FamExTheme
-import com.famex.ui.DashboardScreen
 
+// Code-level dummy-data switch (no in-app dev switcher by design) — change and rebuild to
+// preview other fixtures/DummyScenario.kt cases while real networking isn't wired up.
+private val ActiveDummyScenario = DummyScenario.HealthyMidMonth
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun App() {
     FamExTheme {
-        // Sample data aligned with PRD specifications for initial scaffolding demo
-        val sampleSummary = remember {
-            HouseholdBudgetSummary(
-                budgetName = "July 2026 Household Budget",
-                totalGoalAmount = 3000.0,
-                totalSpentAmount = 1840.0,
-                currencySymbol = "$"
-            )
-        }
+        val container = remember { AppContainer(scenario = ActiveDummyScenario) }
+        CompositionLocalProvider(LocalAppContainer provides container) {
+            val navController = remember { AppNavController() }
+            val current = navController.current
 
-        val sampleCategories = remember {
-            listOf(
-                Category(id = 1, name = "Groceries", icon = "cart", monthlyLimit = 800.0, amountSpent = 620.0),
-                Category(id = 2, name = "Dining Out", icon = "restaurant", monthlyLimit = 400.0, amountSpent = 380.0),
-                Category(id = 3, name = "Utilities", icon = "flash", monthlyLimit = 350.0, amountSpent = 210.0),
-                Category(id = 4, name = "Transportation", icon = "car", monthlyLimit = 300.0, amountSpent = 150.0),
-            )
-        }
-
-        val sampleActivityFeed = remember {
-            listOf(
-                Transaction(id = 101, merchant = "Whole Foods Market", amount = 142.50, categoryName = "Groceries", paidByNickname = "Alex", dateText = "10m ago"),
-                Transaction(id = 102, merchant = "Electricity Bill", amount = 110.00, categoryName = "Utilities", paidByNickname = "Sam", dateText = "2h ago"),
-                Transaction(id = 103, merchant = "Starbucks", amount = 18.25, categoryName = "Dining Out", paidByNickname = "Alex", dateText = "5h ago"),
-            )
-        }
-
-        DashboardScreen(
-            summary = sampleSummary,
-            categories = sampleCategories,
-            activityFeed = sampleActivityFeed,
-            onAddTransactionClick = {
-                // FAB Click Handler
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = { Text(text = current.title(), fontWeight = FontWeight.Bold) },
+                        navigationIcon = {
+                            if (navController.canGoBack) {
+                                IconButton(onClick = { navController.back() }) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                                }
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
+                    )
+                },
+                bottomBar = {
+                    NavigationBar {
+                        NavigationBarItem(
+                            selected = current is Screen.Dashboard,
+                            onClick = { navController.switchTab(Screen.Dashboard) },
+                            icon = { Icon(Icons.Default.Home, contentDescription = "Dashboard") },
+                            label = { Text("Dashboard") }
+                        )
+                        NavigationBarItem(
+                            selected = current is Screen.Categories,
+                            onClick = { navController.switchTab(Screen.Categories) },
+                            icon = { Icon(Icons.Default.Menu, contentDescription = "Categories") },
+                            label = { Text("Categories") }
+                        )
+                        NavigationBarItem(
+                            selected = current is Screen.History,
+                            onClick = { navController.switchTab(Screen.History) },
+                            icon = { Icon(Icons.Default.Search, contentDescription = "History") },
+                            label = { Text("History") }
+                        )
+                        NavigationBarItem(
+                            selected = current is Screen.Profile,
+                            onClick = { navController.switchTab(Screen.Profile) },
+                            icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
+                            label = { Text("Profile") }
+                        )
+                    }
+                },
+                floatingActionButton = {
+                    FloatingActionButton(
+                        onClick = { navController.navigate(Screen.AddTransaction) },
+                        containerColor = BrandTeal,
+                        contentColor = Color.White,
+                        shape = CircleShape
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Add Transaction")
+                    }
+                },
+                floatingActionButtonPosition = FabPosition.Center
+            ) { paddingValues ->
+                Box(modifier = Modifier.padding(paddingValues)) {
+                    when (val screen = current) {
+                        Screen.Dashboard -> DashboardRoute(
+                            onNavigateToCategoryDetail = { navController.navigate(Screen.CategoryDetail(it)) }
+                        )
+                        Screen.Categories -> CategoryRoute(
+                            onCategoryClick = { navController.navigate(Screen.CategoryDetail(it)) }
+                        )
+                        is Screen.CategoryDetail -> CategoryDetailRoute(categoryId = screen.categoryId)
+                        Screen.History -> HistoryRoute(
+                            onTransactionClick = { navController.navigate(Screen.TransactionDetail(it)) }
+                        )
+                        is Screen.TransactionDetail -> TransactionDetailRoute(transactionId = screen.transactionId)
+                        Screen.AddTransaction -> AddTransactionPlaceholderScreen()
+                        Screen.Profile -> ProfileRoute()
+                    }
+                }
             }
-        )
+        }
     }
+}
+
+private fun Screen.title(): String = when (this) {
+    Screen.Dashboard -> "fam-ex Dashboard"
+    Screen.Categories -> "Category Limits"
+    is Screen.CategoryDetail -> "Category Detail"
+    Screen.History -> "Transaction History"
+    is Screen.TransactionDetail -> "Transaction Detail"
+    Screen.AddTransaction -> "Add Transaction"
+    Screen.Profile -> "Profile"
 }
