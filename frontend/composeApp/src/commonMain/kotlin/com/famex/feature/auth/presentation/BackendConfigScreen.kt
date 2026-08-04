@@ -11,15 +11,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -29,6 +34,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.famex.core.ui.fieldColors
 import com.famex.theme.LocalFamExTypography
@@ -37,8 +43,9 @@ import com.famex.theme.LocalFamExTypography
  * Stitch "Backend Configuration" screen (bef77b03cd4240daba76886faf1e39ed) — reached from the
  * gear icon on the Sign In / Sign Up screen. PRD A0/Section 9.9: default to the hosted backend,
  * let the user point at a self-hosted deployment instead. In-memory only for now (see
- * BackendConfig) — no local persistence layer and no real request to validate a custom URL
- * against yet, so "Server Reachable" validation from the mockup isn't implemented either.
+ * BackendConfig) — no local persistence layer yet, so a saved custom URL doesn't survive a
+ * cold start — but "Server Reachable" now pings the real DB-independent /api/v1/ping endpoint
+ * (AuthRepository.checkServerReachable) rather than being a UI mock.
  */
 @Composable
 fun BackendConfigScreen(
@@ -104,6 +111,7 @@ fun BackendConfigScreen(
                 shape = RoundedCornerShape(8.dp),
                 colors = fieldColors()
             )
+            ReachabilityIndicator(status = uiState.reachability)
         }
 
         uiState.saveError?.let { error ->
@@ -115,7 +123,7 @@ fun BackendConfigScreen(
 
         Button(
             onClick = onSave,
-            enabled = !uiState.isSaving,
+            enabled = !uiState.isSaving && uiState.canSave,
             modifier = Modifier.fillMaxWidth().height(56.dp),
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(
@@ -129,8 +137,35 @@ fun BackendConfigScreen(
 }
 
 @Composable
+private fun ReachabilityIndicator(status: ReachabilityStatus, modifier: Modifier = Modifier) {
+    if (status == ReachabilityStatus.IDLE) return
+    val famExType = LocalFamExTypography.current
+
+    val (icon, label, color) = when (status) {
+        ReachabilityStatus.IDLE -> return
+        ReachabilityStatus.INVALID -> Triple(Icons.AutoMirrored.Filled.HelpOutline, "Enter a valid URL (https://...)", MaterialTheme.colorScheme.onSurfaceVariant)
+        ReachabilityStatus.CHECKING -> Triple(null, "Validating…", MaterialTheme.colorScheme.onSurfaceVariant)
+        ReachabilityStatus.REACHABLE -> Triple(Icons.Default.CheckCircle, "Server Reachable", MaterialTheme.colorScheme.secondary)
+        ReachabilityStatus.UNREACHABLE -> Triple(Icons.Default.ErrorOutline, "Server unreachable", MaterialTheme.colorScheme.error)
+    }
+
+    Row(
+        modifier = modifier.padding(top = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (icon != null) {
+            Icon(imageVector = icon, contentDescription = null, tint = color, modifier = Modifier.size(16.dp))
+        } else {
+            CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp, color = color)
+        }
+        Text(text = label, style = famExType.labelSm, color = color)
+    }
+}
+
+@Composable
 private fun BackendOptionCard(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     title: String,
     description: String,
     selected: Boolean,

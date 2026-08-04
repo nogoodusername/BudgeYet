@@ -31,6 +31,12 @@ interface AuthRepository {
 
     suspend fun getBackendConfig(): BackendConfig
     suspend fun setBackendConfig(config: BackendConfig)
+
+    // Real network call (not a fake-repo simulation) — hits the target server's DB-independent
+    // /api/v1/ping so Backend Configuration's "Server Reachable" check reflects an actual
+    // liveness probe, not a UI mock. Throws with a user-facing message on any failure
+    // (unreachable host, timeout, non-2xx response); returns normally on success.
+    suspend fun checkServerReachable(url: String)
 }
 
 data class CategorySetupInput(val name: String, val icon: String, val monthlyLimit: Double)

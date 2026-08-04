@@ -12,6 +12,10 @@ import com.famex.feature.auth.domain.CategorySetupInput
 import com.famex.fixtures.DummyScenario
 import com.famex.fixtures.dummyCurrentUser
 import com.famex.fixtures.dummyHousehold
+import io.ktor.client.HttpClient
+import io.ktor.client.request.get
+import io.ktor.http.isSuccess
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.plus
@@ -23,7 +27,7 @@ import kotlin.random.Random
 // "dummy data until real networking" stance. Sign in as the seeded demo account (below) to see
 // that scenario data end to end; a fresh sign-up gets its own isolated in-memory household that
 // only the onboarding screens see.
-class FakeAuthRepository(scenario: DummyScenario) : AuthRepository {
+class FakeAuthRepository(scenario: DummyScenario, private val httpClient: HttpClient) : AuthRepository {
     private class Account(var user: User, var pin: String, var household: Household?)
 
     private val demoUser = dummyCurrentUser()
@@ -141,6 +145,23 @@ class FakeAuthRepository(scenario: DummyScenario) : AuthRepository {
     override suspend fun setBackendConfig(config: BackendConfig) {
         delay(200)
         backendConfig = config
+    }
+
+    // The DB-independent /ping alias (see backend/app/api/v1/endpoints/health.py) — reachable
+    // even if the target server's database isn't configured, which is exactly what "is this URL
+    // a live Fam-Ex server" needs to check, independent of whether it's fully set up yet.
+    override suspend fun checkServerReachable(url: String) {
+        val pingUrl = "${url.trim().trimEnd('/')}/api/v1/ping"
+        try {
+            val response = httpClient.get(pingUrl)
+            if (!response.status.isSuccess()) {
+                throw IllegalStateException("Server responded with ${response.status.value}")
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            throw IllegalStateException("Server unreachable")
+        }
     }
 }
 

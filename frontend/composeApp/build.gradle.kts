@@ -65,11 +65,13 @@ kotlin {
             dependencies {
                 implementation(libs.androidx.core.ktx)
                 implementation(libs.androidx.activity.compose)
+                implementation(libs.ktor.client.okhttp)
             }
         }
 
         val iosMain by getting {
             dependencies {
+                implementation(libs.ktor.client.darwin)
             }
         }
     }
