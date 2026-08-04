@@ -12,7 +12,8 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 
 @router.post("/signup", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def signup(payload: UserCreate, db: AsyncSession = Depends(get_db)):
-    """Create an account. A 6-digit PIN is generated and emailed (stubbed for now)."""
+    """Create an account. The user chooses their own 6-digit PIN (payload.pin) at signup —
+    unlike forgot-PIN, nothing is generated or emailed here."""
     return await auth_controller.signup(db, payload)
 
 
