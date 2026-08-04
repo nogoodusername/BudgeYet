@@ -184,7 +184,10 @@ uv run uvicorn app.main:app --reload --port 8000
 uv run ruff check app/                         # lint — CI runs this, must be clean
 uv run pytest -v                                # CI runs this
 ```
-Swagger UI at `/docs`, health check at `/health`. Docker: `docker-compose up --build -d` (Postgres) or
+Swagger UI at `/docs`, health check at `/health` (DB-backed), and a DB-independent `/ping` liveness
+check (`api/v1/endpoints/health.py`) for the frontend's Backend Configuration "Server Reachable"
+validation — `/health` isn't suitable there since it depends on the target server's DB being
+configured/online, which a not-yet-validated custom URL may not guarantee. Docker: `docker-compose up --build -d` (Postgres) or
 `docker-compose -f docker-compose.sqlite.yml up --build -d` (SQLite) — the Dockerfile also uses uv
 internally (multi-stage: installs the locked deps via `uv sync --frozen --no-dev`, then copies the
 resulting `.venv` into the runtime image).
@@ -276,6 +279,11 @@ checkboxes as phases land so the plan survives across sessions.
   as that account to preview the full authenticated app; a fresh sign-up gets its own isolated
   in-memory household that only the onboarding screens see, since it's deliberately **not** wired
   into the other `Fake*Repository` instances (see the class doc on `FakeAuthRepository`).
+  The system back button is now wired into both hand-rolled nav stacks via a cross-platform
+  `BackHandler` (expect/actual — real handler on Android, no-op on iOS, which has no hardware
+  back button), disabled at each stack's root so back there still falls through to the platform
+  default (previously, system back bypassed `OnboardingNavController`/`AppNavController` entirely
+  and could finish the Activity outright, e.g. exiting the app from the Auth screen).
   **Sign Up takes a user-chosen PIN** (Create PIN + Confirm PIN, validated 6-digit + matching in
   `AuthController.onSignUp`) matching the backend's `UserCreate.pin` contract — the PIN is no
   longer server-generated/emailed at signup, so `AuthController.onSignUp` logs the user straight
@@ -297,7 +305,12 @@ checkboxes as phases land so the plan survives across sessions.
   category`'s Add Category flow does today. `AuthSession` and
   `BackendConfig` are in-memory only (no DataStore/local persistence layer exists yet), so both
   reset on cold start — the app cannot actually stay signed in across restarts until that lands.
-  There's also no sign-out affordance anywhere in the main shell yet. This phase still carries the
+  A Sign Out row + `SignOutDialog` confirmation now live on the Profile screen (mirrors
+  `DeleteCategoryDialog`'s confirm-destructive-action pattern; uses
+  `Icons.AutoMirrored.Filled.Logout`, not the deprecated non-mirrored `Icons.Default.Logout`, to
+  avoid RTL flip issues) — confirming clears the in-memory `AuthSession`, which drops `App.kt` back
+  to `OnboardingRoute`. Still no persistence to clear (see above), so this only matters within a
+  single cold-start session for now. This phase still carries the
   real Ktor networking work (see below); everything today runs on `FakeAuthRepository` dummy data.
 - [~] **Phase 3 — Collaboration & full profile (PRD E1/E2) — mostly landed, one gap remains.**
   Done: household member list with roles (`feature/profile/presentation/HouseholdMembers*`),
@@ -313,11 +326,12 @@ checkboxes as phases land so the plan survives across sessions.
   nothing real to call once networking lands — don't re-add it without the backend endpoint first.
   Editable profile (name/nickname, read-only email), household currency/language (admin-gated),
   display mode preference — all in `feature/profile/`.
-  **Gap:** the 7-day invite expiry isn't modeled or shown anywhere in the UI (revoke works, expiry
-  doesn't), and shareable join link/QR code (the other half of E1) is still not implemented. Since
-  this all still runs on fake repos, wiring real invite semantics (backend `Invite.token`/
-  `expires_at`) likely lands together with Phase 2's networking work rather than as a separate
-  frontend-only fix.
+  **Gap:** the 7-day join-code expiry is now modeled and shown (`Household.joinCodeExpiresAt`,
+  mirroring the backend's `Invite.expires_at`/`INVITE_EXPIRY_DAYS`, rendered on
+  `InviteMemberScreen.kt` in place of the old static "7 days" copy), but shareable join link/QR
+  code (the other half of E1) is still not implemented. Since this all still runs on fake repos,
+  wiring real invite semantics (backend `Invite.token`/`expires_at`) likely lands together with
+  Phase 2's networking work rather than as a separate frontend-only fix.
 
 **Architecture choices made in Phase 1 (carry forward into later phases):**
 - Navigation is a hand-rolled `core/navigation/AppNavController` (sealed `Screen` + back-stack list),
