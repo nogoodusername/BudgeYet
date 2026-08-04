@@ -48,13 +48,16 @@ Backend and frontend have separate CI pipelines gated by path (`backend/**`, `fr
   `AuthenticationError` under `core/database.py` below). Money amounts (`Transaction.amount`,
   `Budget.monthly_goal_amount`) are `Numeric(12, 2)`/`Decimal`, not `Float` — keep new money columns
   consistent with that.
-- Frontend: Phase 1 has landed (see "Frontend build plan" below) — feature-based navigation
-  (Dashboard/Categories/History/Add Transaction/Profile) backed by fake repositories and dummy data
-  scenarios, no real networking yet. No auth flow wired up yet either — the backend above is ready
-  for it to consume. When the networking layer lands, the backend base URL must be user-configurable
-  at onboarding (PRD A0/Section 9.9): default to our hosted backend, but let the user point the app
-  at their own self-hosted deployment instead. Store it as a device-level setting (not per-household)
-  and don't hardcode the hosted URL as the only option.
+- Frontend: Phase 1 (core daily-use loop) and most of Phase 3 (collaboration/profile) have landed
+  (see "Frontend build plan" below) — feature-based navigation (Dashboard/Categories/History/Add
+  Transaction/Profile/Household Members/Invite Member) backed by fake repositories and dummy data
+  scenarios, no real networking yet. Phase 2 (onboarding & auth funnel) hasn't started at all — no
+  welcome/signup/login/PIN/household-create-or-join screens exist, and the app has no logged-out
+  state to gate on; the backend above is ready for it to consume. When the networking layer lands,
+  the backend base URL must be user-configurable at onboarding (PRD A0/Section 9.9): default to our
+  hosted backend, but let the user point the app at their own self-hosted deployment instead. Store
+  it as a device-level setting (not per-household) and don't hardcode the hosted URL as the only
+  option.
 
 Don't assume a feature exists because it's in the PRD or in a model/schema — check the actual endpoint
 router and frontend screens first.
@@ -229,14 +232,33 @@ checkboxes as phases land so the plan survives across sessions.
   editing is Phase 3. Feature-based folders under
   `composeApp/src/commonMain/kotlin/com/famex/feature/{dashboard,category,transaction,
   profile}/{data,domain,presentation}`, shared bits in `core/` (`navigation`, `model`, `ui`, `util`,
-  `di`), dummy scenarios in `fixtures/`. Category deletion (also part of C1) is not yet implemented
-  on the frontend, even though the backend supports it with reassign-before-delete.
-- [ ] **Phase 2 — Onboarding & auth funnel (PRD A).** Welcome/intro, signup, PIN verify, login,
-  forgot PIN, household create/join, budget creation (skippable), category configuration
-  (skippable, tied to budget creation per PRD A3/A4).
-- [ ] **Phase 3 — Collaboration & full profile (PRD E1/E2).** Household member list/roles, invite via
-  email/link (7-day expiry, 3-member cap enforcement), revoke invite/remove member, editable profile
-  (name/nickname, read-only email), household currency/language (admin), display mode preference.
+  `di`), dummy scenarios in `fixtures/`. Category deletion (C1) is implemented: a "more_vert"
+  admin menu on Category Detail's summary card (`CategoryAdminMenu` in `CategoryDetailScreen.kt`,
+  from Stitch's "Category Detail (Admin Menu)" screen) opens a "Delete Category" action, which
+  shows `core/ui/DeleteCategoryDialog.kt` (Stitch's "Delete Category Confirmation" screen) — if the
+  category has transactions it requires picking a reassign target before enabling delete (blocking
+  otherwise, per PRD C1), matching the backend's `DELETE .../categories/{id}?reassign_to_category_id=`
+  contract. `TransactionRepository.reassignCategory` and `CategoryRepository.deleteCategory` back
+  this on the fake-repo side. The mockup's Edit Category/Category Settings menu items were left out
+  — no corresponding feature exists yet, so they'd be dead entries.
+- [ ] **Phase 2 — Onboarding & auth funnel (PRD A). Not started.** No screens, controllers, or nav
+  entries exist yet for A0 (backend endpoint selection), A1 (welcome), A2/A2a (signup, PIN verify,
+  login, forgot PIN), household create/join, or budget creation + category configuration (A3/A4).
+  `App.kt` boots straight into the Phase 1 shell with no auth gate — there's no session/logged-out
+  state to route around yet. This phase also carries the real Ktor networking work (see below);
+  everything today still runs on `FakeXRepository` dummy data.
+- [~] **Phase 3 — Collaboration & full profile (PRD E1/E2) — mostly landed, one gap remains.**
+  Done: household member list with roles (`feature/profile/presentation/HouseholdMembers*`),
+  promote/demote/remove for any role (`ac07262`, `1837cfe`), invite-by-email
+  (`feature/profile/presentation/InviteMember*`), editable profile (name/nickname, read-only email),
+  household currency/language (admin-gated), display mode preference — all in `feature/profile/`.
+  **Gap:** no pending-invite state is modeled anywhere (see the doc-comment atop
+  `InviteMemberScreen.kt`) — "Send Invite" adds the member directly instead of creating a
+  revocable, expiring invite, so PRD E1's "Admin can revoke a pending invite" and the 7-day expiry
+  aren't represented in the UI at all. Shareable join link/QR code (the other half of E1) is also
+  not implemented. Since this all still runs on fake repos, real invite semantics (token, expiry,
+  revoke) likely land together with Phase 2's networking work rather than as a separate frontend-only
+  fix.
 
 **Architecture choices made in Phase 1 (carry forward into later phases):**
 - Navigation is a hand-rolled `core/navigation/AppNavController` (sealed `Screen` + back-stack list),

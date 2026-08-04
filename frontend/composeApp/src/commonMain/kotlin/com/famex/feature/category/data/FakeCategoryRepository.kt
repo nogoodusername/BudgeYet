@@ -39,4 +39,9 @@ class FakeCategoryRepository(scenario: DummyScenario) : CategoryRepository {
         categories = categories + newCategory
         return newCategory
     }
+
+    override suspend fun deleteCategory(categoryId: Long) {
+        delay(300)
+        categories = categories.filterNot { it.id == categoryId }
+    }
 }

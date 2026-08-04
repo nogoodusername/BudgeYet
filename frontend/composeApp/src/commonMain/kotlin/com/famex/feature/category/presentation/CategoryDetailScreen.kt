@@ -19,16 +19,24 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,7 +55,11 @@ import com.famex.core.util.formatAmount
 import com.famex.theme.LocalFamExTypography
 
 @Composable
-fun CategoryDetailScreen(uiState: CategoryDetailUiState, modifier: Modifier = Modifier) {
+fun CategoryDetailScreen(
+    uiState: CategoryDetailUiState,
+    onDeleteCategoryClick: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
     when {
         uiState.isLoading && uiState.category == null ->
             Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
@@ -57,7 +69,12 @@ fun CategoryDetailScreen(uiState: CategoryDetailUiState, modifier: Modifier = Mo
                 Text(uiState.errorMessage ?: "Category not found")
             }
 
-        else -> CategoryDetailContent(category = uiState.category, transactions = uiState.transactions, modifier = modifier)
+        else -> CategoryDetailContent(
+            category = uiState.category,
+            transactions = uiState.transactions,
+            onDeleteCategoryClick = onDeleteCategoryClick,
+            modifier = modifier
+        )
     }
 }
 
@@ -65,6 +82,7 @@ fun CategoryDetailScreen(uiState: CategoryDetailUiState, modifier: Modifier = Mo
 private fun CategoryDetailContent(
     category: Category,
     transactions: List<Transaction>,
+    onDeleteCategoryClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val currencySymbol = currencySymbolFor("USD")
@@ -76,7 +94,13 @@ private fun CategoryDetailContent(
         verticalArrangement = Arrangement.spacedBy(24.dp),
         contentPadding = PaddingValues(top = 16.dp, bottom = 96.dp)
     ) {
-        item { CategorySummaryCard(category = category, currencySymbol = currencySymbol) }
+        item {
+            CategorySummaryCard(
+                category = category,
+                currencySymbol = currencySymbol,
+                onDeleteCategoryClick = onDeleteCategoryClick
+            )
+        }
 
         item {
             Text(text = "Transactions", style = famExType.headlineSm, color = MaterialTheme.colorScheme.onSurface)
@@ -129,7 +153,7 @@ private fun CategoryDetailContent(
 }
 
 @Composable
-private fun CategorySummaryCard(category: Category, currencySymbol: String) {
+private fun CategorySummaryCard(category: Category, currencySymbol: String, onDeleteCategoryClick: () -> Unit) {
     val famExType = LocalFamExTypography.current
     val statusColor = colorFor(category.status)
 
@@ -141,26 +165,33 @@ private fun CategorySummaryCard(category: Category, currencySymbol: String) {
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Box(
-                    modifier = Modifier.size(64.dp).clip(CircleShape).background(statusColor.copy(alpha = 0.12f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = categoryIcon(category.icon),
-                        contentDescription = category.name,
-                        tint = statusColor,
-                        modifier = Modifier.size(28.dp)
-                    )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Box(
+                        modifier = Modifier.size(64.dp).clip(CircleShape).background(statusColor.copy(alpha = 0.12f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = categoryIcon(category.icon),
+                            contentDescription = category.name,
+                            tint = statusColor,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                    Column {
+                        Text(text = category.name, style = famExType.headlineLg, color = MaterialTheme.colorScheme.onSurface)
+                        Text(
+                            text = "Monthly Household Budget",
+                            style = famExType.bodyMd,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
-                Column {
-                    Text(text = category.name, style = famExType.headlineLg, color = MaterialTheme.colorScheme.onSurface)
-                    Text(
-                        text = "Monthly Household Budget",
-                        style = famExType.bodyMd,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                CategoryAdminMenu(onDeleteCategoryClick = onDeleteCategoryClick)
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -200,6 +231,35 @@ private fun CategorySummaryCard(category: Category, currencySymbol: String) {
 
             Spacer(modifier = Modifier.height(20.dp))
             StatusBadge(status = category.status)
+        }
+    }
+}
+
+// Stitch "Category Detail: Groceries (Admin Menu)" screen (addc81fca0044efc9c4044026d400dd6).
+// Only Delete Category is wired up — the mockup's Edit Category/Category Settings items have
+// no corresponding feature in this app yet, so they're intentionally left out rather than
+// shown as dead menu entries.
+@Composable
+private fun CategoryAdminMenu(onDeleteCategoryClick: () -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box {
+        IconButton(onClick = { expanded = true }) {
+            Icon(
+                imageVector = Icons.Default.MoreVert,
+                contentDescription = "Category options",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(
+                text = { Text("Delete Category", color = MaterialTheme.colorScheme.error) },
+                leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                onClick = {
+                    expanded = false
+                    onDeleteCategoryClick()
+                }
+            )
         }
     }
 }

@@ -7,4 +7,7 @@ interface CategoryRepository {
     suspend fun getCategory(categoryId: Long): Category?
     suspend fun updateCategoryLimits(limits: Map<Long, Double>)
     suspend fun createCategory(name: String, icon: String, monthlyLimit: Double): Category
+    // Caller must reassign any existing transactions off this category first (PRD C1) —
+    // this only removes the category itself.
+    suspend fun deleteCategory(categoryId: Long)
 }

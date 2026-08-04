@@ -7,5 +7,11 @@ data class CategoryDetailUiState(
     val isLoading: Boolean = false,
     val category: Category? = null,
     val transactions: List<Transaction> = emptyList(),
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    // Other household categories, offered as reassign targets when deleting this one (PRD C1).
+    val otherCategories: List<Category> = emptyList(),
+    val showDeleteDialog: Boolean = false,
+    val reassignToCategoryId: Long? = null,
+    val isDeleting: Boolean = false,
+    val deleteError: String? = null
 )

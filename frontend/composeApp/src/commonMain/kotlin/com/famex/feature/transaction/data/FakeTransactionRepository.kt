@@ -39,4 +39,11 @@ class FakeTransactionRepository(private val scenario: DummyScenario) : Transacti
         delay(300)
         transactions = transactions.filterNot { it.id == transactionId }
     }
+
+    override suspend fun reassignCategory(fromCategoryId: Long, toCategoryId: Long, toCategoryName: String) {
+        delay(300)
+        transactions = transactions.map {
+            if (it.categoryId == fromCategoryId) it.copy(categoryId = toCategoryId, categoryName = toCategoryName) else it
+        }
+    }
 }

@@ -98,7 +98,10 @@ fun App() {
                             onNavigateToCategoryDetail = { navController.navigate(Screen.CategoryDetail(it)) },
                             onNavigateToAddCategory = { navController.navigate(Screen.AddCategory) }
                         )
-                        is Screen.CategoryDetail -> CategoryDetailRoute(categoryId = screen.categoryId)
+                        is Screen.CategoryDetail -> CategoryDetailRoute(
+                            categoryId = screen.categoryId,
+                            onDeleted = { navController.switchTab(Screen.Categories) }
+                        )
                         Screen.AddCategory -> AddCategoryRoute(onSaved = { navController.back() })
                         Screen.History -> HistoryRoute(
                             onTransactionClick = { navController.navigate(Screen.TransactionDetail(it)) },
