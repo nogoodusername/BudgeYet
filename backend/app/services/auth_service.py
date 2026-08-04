@@ -23,14 +23,16 @@ class AuthService:
         if existing is not None:
             raise ConflictError("An account with this email already exists")
 
-        pin = generate_pin()
+        # PIN is user-chosen at signup (payload.pin), not server-generated — unlike forgot_pin
+        # below, which still generates+emails one since that flow's whole point is recovering an
+        # account the user is locked out of. No email is sent here: there's nothing to deliver
+        # since the user already knows the PIN they just typed.
         user = await self.users.create(
             email=payload.email,
             full_name=payload.full_name,
             nickname=payload.nickname,
-            pin_hash=hash_pin(pin),
+            pin_hash=hash_pin(payload.pin),
         )
-        send_pin_email(user.email, pin)
         return user
 
     async def login(self, email: str, pin: str, ip_address: str) -> tuple[User, str]:
@@ -68,7 +70,8 @@ class AuthService:
         return user, token
 
     async def forgot_pin(self, email: str) -> None:
-        """Issue a fresh PIN and email it, mirroring the signup flow.
+        """Issue a fresh, server-generated PIN and email it — unlike signup, where the user
+        chooses their own PIN, this flow has no other way to hand the user a working PIN.
 
         Silently no-ops for unknown emails so the endpoint can't be used to
         enumerate registered accounts.

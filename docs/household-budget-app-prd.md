@@ -105,15 +105,15 @@ The household creator is the default Owner. **Owner is a single-holder role** �
 - Skippable at any point; last screen leads to Signup.
 
 **A2. Signup**
-- Fields: Full name, Nickname (displayed in activity feed, e.g. "Mom"), Email.
-- Authentication: email + 6-digit PIN. PIN is emailed at signup and re-entered to verify; used again for subsequent logins.
+- Fields: Full name, Nickname (displayed in activity feed, e.g. "Mom"), Email, and a **user-chosen 6-digit PIN** (Create PIN + confirm).
+- Authentication: email + 6-digit PIN, set by the user at signup — not emailed to them. No email is sent as part of signup; there is nothing to deliver since the user already knows the PIN they just chose.
 - On success, user is prompted to either **create a household** or **join one** via an invite link/code.
 
 **A2a. Forgot PIN**
 - "Forgot PIN?" link on the Login screen; user enters their email.
 - If the email matches an account, a new 6-digit PIN is generated and emailed, immediately replacing (invalidating) the old one. The old PIN no longer authenticates once a new one has been issued.
 - The response is identical regardless of whether the email is registered ("If an account exists for this email, a new PIN has been sent") — this prevents an attacker from using the flow to discover which emails have accounts.
-- No separate reset token/link: since the PIN is itself delivered over email, reissuing it re-uses the same trusted channel established at signup rather than adding a second secret to manage.
+- No separate reset token/link: the new PIN is delivered directly over the account's registered email, the same trusted channel already used to verify that address, rather than adding a second secret to manage.
 
 **A3. Budget creation (skippable)**
 - Fields: Budget name (default: "[Month] [Year] Budget"), monthly goal amount, cycle start day (default: 1st of month, editable).
@@ -232,8 +232,8 @@ The household creator is the default Owner. **Owner is a single-holder role** �
 
 The following were open questions in the initial draft and have since been confirmed:
 
-1. **Auth method:** Email + 6-digit PIN (emailed at signup, re-entered for login).
-   - **Forgot PIN:** Requesting a reset by email issues and emails a brand-new PIN, invalidating the old one. No separate reset token — the email channel itself is the recovery mechanism. Response is generic (doesn't reveal whether the email is registered).
+1. **Auth method:** Email + 6-digit PIN. The user chooses their own PIN at signup (Create PIN + confirm) — it is not generated or emailed to them; the same PIN is re-entered for subsequent logins.
+   - **Forgot PIN:** Requesting a reset by email issues and emails a brand-new, server-generated PIN, invalidating the old one. No separate reset token — the email channel itself is the recovery mechanism. Response is generic (doesn't reveal whether the email is registered).
 2. **Role granularity:** Owner + Admin + Member model. The household creator becomes its Owner. Owner is a single-holder role — transferred, not duplicated: only the current Owner can promote an existing Admin to Owner, which automatically demotes the outgoing Owner to Admin. The Owner cannot be removed, demoted, or leave the household without transferring ownership first. Multiple Admins per household are supported; a Member can be promoted to Admin (and demoted) by an existing Owner or Admin.
 3. **Budget cycle rollover:** No rollover — each new cycle resets category limits to the configured amount. Prior months' transaction and spend data remain intact and accessible.
 4. **Future-dated transactions:** Not required; disallowed in v1.

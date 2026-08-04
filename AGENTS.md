@@ -24,8 +24,8 @@ Backend and frontend have separate CI pipelines gated by path (`backend/**`, `fr
 
 ## Current state (important)
 
-- Backend: v1 MVP REST surface is implemented — auth (email + 6-digit PIN, JWT, forgot-PIN
-  reissue), households (create/update, invites, join, member roles — Owner/Admin/Member, with
+- Backend: v1 MVP REST surface is implemented — auth (email + 6-digit PIN chosen by the user at
+  signup, JWT, forgot-PIN reissue), households (create/update, invites, join, member roles — Owner/Admin/Member, with
   single-holder ownership transfer, leave/remove), budgets,
   categories (with reassign-before-delete), transactions (role-scoped edit/delete, filterable by
   category/payer/type/payment mode/date range/amount range/merchant-or-category search), dashboard,
@@ -63,10 +63,13 @@ router and frontend screens first.
 ### Known gaps (deliberately deferred, see PR discussion)
 
 - **Email delivery is a stub.** `app/core/email.py` logs PIN and invite messages instead of sending
-  them (no SMTP/SES integration yet). Signup/login PINs and invite tokens are **not** echoed back in
-  any API response — until real delivery is wired up, retrieving them requires reading server logs or
-  querying the DB directly (see how `backend/tests/helpers.py` does it for tests, by monkeypatching the
-  generators). Real delivery must land before this is usable outside local dev.
+  them (no SMTP/SES integration yet). This only affects **forgot-PIN** (which still generates and
+  "emails" a fresh PIN server-side — `AuthService.forgot_pin`) and invites: those PINs/tokens are
+  **not** echoed back in any API response, so retrieving them requires reading server logs or
+  querying the DB directly (see how `backend/tests/helpers.py` does it for tests, by monkeypatching
+  the generators). **Signup is unaffected** — the user chooses and submits their own PIN
+  (`UserCreate.pin`), so there's nothing to email or dig out of logs for that flow. Real delivery
+  must land before forgot-PIN/invites are usable outside local dev.
 - **Real-time activity feed is REST-only.** `GET /households/{id}/activity-feed` is polled, not pushed.
   The PRD's WebSocket/live-push behavior (B4) was explicitly deferred to a follow-up.
 - **Receipt photo upload is fully out of scope**, backend and frontend. `Transaction.receipt_url`
@@ -152,6 +155,9 @@ for the collision it fixes.
   manual `session.commit()` in a service.
 - `core/security.py` — PIN hashing (via `bcrypt` directly, **not** `passlib`: passlib's bcrypt backend
   self-test breaks under bcrypt ≥ 4.1, a live incompatibility, not a hypothetical) and JWT issue/decode.
+  `generate_pin()` is only used by `AuthService.forgot_pin` now — signup takes the user's own PIN
+  (`UserCreate.pin`, validated `^\d{6}$` in `schemas/user.py`) and just hashes it, it doesn't generate
+  one. Don't reintroduce server-generated PINs at signup without a product reason; see PRD Section 9.1.
 - `core/email.py` — stub email "sender" (logs only) — see "Known gaps" above before assuming it sends.
 
 **Dependency management is [uv](https://docs.astral.sh/uv/), not pip/venv.** `pyproject.toml` +
@@ -276,7 +282,9 @@ assumptions:
   cycles must remain intact and queryable by date range.
 - Household hard cap: **3 members** (including the Owner) in v1.
 - Future-dated transactions are **disallowed**.
-- Auth is email + 6-digit PIN (emailed at signup), not password-based.
+- Auth is email + 6-digit PIN, not password-based. The PIN is **user-chosen at signup**
+  (`UserCreate.pin`) — the backend only generates/emails a PIN for the forgot-PIN recovery flow,
+  not at signup.
 - Invite links expire after **7 days**.
 - Status thresholds are consistent across dashboard and category views: teal < 75%, amber 75–99%,
   coral/red ≥ 100%.
