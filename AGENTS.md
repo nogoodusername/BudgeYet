@@ -269,7 +269,9 @@ checkboxes as phases land so the plan survives across sessions.
   `OnboardingRoute`, non-null renders the existing Phase 1/3 main shell (`MainAppShell`). Screens:
   Welcome → Auth (Sign In/Sign Up as tabs on one screen, matching the Stitch pair) → Backend
   Configuration (gear icon on Auth) → Forgot PIN → PIN Sent → Household Choice → Create
-  Household / Join Household. `FakeAuthRepository` seeds one demo account (`alex@example.com`,
+  Household → Budget Goal → Configure Categories, or Join Household (Join skips Budget
+  Goal/Configure Categories entirely — it attaches to a household someone else already
+  budgeted/categorized). `FakeAuthRepository` seeds one demo account (`alex@example.com`,
   PIN `123456`) whose household matches the rest of the app's `DummyScenario` fixtures — sign in
   as that account to preview the full authenticated app; a fresh sign-up gets its own isolated
   in-memory household that only the onboarding screens see, since it's deliberately **not** wired
@@ -281,8 +283,18 @@ checkboxes as phases land so the plan survives across sessions.
   Sent is now forgot-PIN only** (`OnboardingScreen.PinSent` dropped its `PinSentContext` param —
   there's only one context left). The "Server Reachable" live-validation UI on Backend
   Configuration isn't implemented — there's no real request to validate a custom URL against yet.
-  **Not covered by this batch:** budget monthly-goal-amount + initial category configuration
-  (A3/A4) — Create Household only covers name/currency/cycle start day. `AuthSession` and
+  **Budget monthly-goal-amount + initial category configuration (A3/A4) now land too:** after
+  Create Household succeeds, Budget Goal (`BudgetGoal*` in `feature/auth/presentation`) collects
+  a budget name/period/monthly goal amount (or can be skipped, completing onboarding without a
+  budget), then Configure Categories (`ConfigureCategories*`) offers the 6 starter categories
+  from the Stitch mockup as a checkbox list with per-category monthly limits, an "Automated
+  Distribution" toggle that splits the goal amount evenly across whichever are checked, and an
+  "Add custom category" row. Both call new `AuthRepository.setupBudget`/`setupCategories` methods
+  (mirroring `createHousehold`) — `FakeAuthRepository`'s implementations just validate the
+  household exists, matching this phase's fake-repo/no-real-networking stance; there's no
+  dedicated backend "onboarding batch" endpoint, so the real implementation will need one
+  `POST .../budgets` call + one `POST .../categories` call per category, same as `feature/
+  category`'s Add Category flow does today. `AuthSession` and
   `BackendConfig` are in-memory only (no DataStore/local persistence layer exists yet), so both
   reset on cold start — the app cannot actually stay signed in across restarts until that lands.
   There's also no sign-out affordance anywhere in the main shell yet. This phase still carries the

@@ -31,10 +31,10 @@ import com.famex.theme.LocalFamExTypography
 
 /**
  * Owns the onboarding funnel's own back stack (separate from AppNavController — no bottom nav,
- * torn down entirely once a household is ready). Wires together the 9 Stitch screens: Welcome,
+ * torn down entirely once a household is ready). Wires together the Stitch screens: Welcome,
  * Sign In/Sign Up (Auth), Backend Configuration, PIN Sent (forgot-PIN only — signup no longer
  * routes here since it logs straight in with the PIN the user just chose), Forgot PIN,
- * Household Choice, Create Household, Join Household.
+ * Household Choice, Create Household, Budget Goal, Configure Categories, Join Household.
  */
 @Composable
 fun OnboardingRoute(
@@ -98,9 +98,25 @@ fun OnboardingRoute(
 
             is OnboardingScreen.CreateHousehold -> CreateHouseholdRoute(
                 email = screen.email,
-                onCreated = { household -> completeWithHousehold(household) }
+                onCreated = { household -> nav.navigate(OnboardingScreen.BudgetGoal(household)) }
             )
 
+            is OnboardingScreen.BudgetGoal -> BudgetGoalRoute(
+                household = screen.household,
+                onSaved = { household, monthlyGoalAmount ->
+                    nav.navigate(OnboardingScreen.ConfigureCategories(household, monthlyGoalAmount))
+                },
+                onSkipped = { household -> completeWithHousehold(household) }
+            )
+
+            is OnboardingScreen.ConfigureCategories -> ConfigureCategoriesRoute(
+                household = screen.household,
+                monthlyGoalAmount = screen.monthlyGoalAmount,
+                onFinished = { household -> completeWithHousehold(household) }
+            )
+
+            // Joining attaches to a household someone else already budgeted/categorized, so it
+            // skips Budget Goal/Configure Categories entirely and completes onboarding directly.
             is OnboardingScreen.JoinHousehold -> JoinHouseholdRoute(
                 email = screen.email,
                 onJoined = { household -> completeWithHousehold(household) }
@@ -118,6 +134,8 @@ private fun OnboardingScreen.showsSharedTopBar(): Boolean = when (this) {
 
 private fun OnboardingScreen.topBarTitle(): String = when (this) {
     OnboardingScreen.BackendConfig -> "Backend Configuration"
+    is OnboardingScreen.BudgetGoal -> "Set Up Budget"
+    is OnboardingScreen.ConfigureCategories -> "Configure Categories"
     else -> "Fam-Ex"
 }
 

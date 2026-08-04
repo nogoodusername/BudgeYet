@@ -22,6 +22,15 @@ interface AuthRepository {
     suspend fun createHousehold(email: String, name: String, currency: String, cycleStartDay: Int): Household
     suspend fun joinHousehold(email: String, inviteCode: String): Household
 
+    // Onboarding-only follow-ups to createHousehold (A4 in this Stitch batch) — mirror the
+    // real backend's POST /households/{id}/budgets and one-POST-per-category
+    // /households/{id}/categories, but as a single call each since the fake repo has no
+    // per-category network round trip to simulate.
+    suspend fun setupBudget(householdId: Long, name: String, period: String, monthlyGoalAmount: Double)
+    suspend fun setupCategories(householdId: Long, categories: List<CategorySetupInput>)
+
     suspend fun getBackendConfig(): BackendConfig
     suspend fun setBackendConfig(config: BackendConfig)
 }
+
+data class CategorySetupInput(val name: String, val icon: String, val monthlyLimit: Double)

@@ -7,6 +7,7 @@ import com.famex.core.model.HouseholdMember
 import com.famex.core.model.MemberRole
 import com.famex.core.model.User
 import com.famex.feature.auth.domain.AuthRepository
+import com.famex.feature.auth.domain.CategorySetupInput
 import com.famex.fixtures.DummyScenario
 import com.famex.fixtures.dummyCurrentUser
 import com.famex.fixtures.dummyHousehold
@@ -109,6 +110,22 @@ class FakeAuthRepository(scenario: DummyScenario) : AuthRepository {
         )
         account.household = joinableHousehold
         return joinableHousehold
+    }
+
+    // No-ops beyond the delay + household lookup — same "decoupled from the fixed
+    // DummyScenario the rest of the app serves" stance as createHousehold/joinHousehold above.
+    // Real persistence lands with the networking layer; for now this just validates the
+    // household exists and lets the onboarding funnel proceed.
+    override suspend fun setupBudget(householdId: Long, name: String, period: String, monthlyGoalAmount: Double) {
+        delay(400)
+        accounts.values.find { it.household?.id == householdId }
+            ?: throw IllegalStateException("No household found for id $householdId")
+    }
+
+    override suspend fun setupCategories(householdId: Long, categories: List<CategorySetupInput>) {
+        delay(400)
+        accounts.values.find { it.household?.id == householdId }
+            ?: throw IllegalStateException("No household found for id $householdId")
     }
 
     override suspend fun getBackendConfig(): BackendConfig {
