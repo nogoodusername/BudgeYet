@@ -27,14 +27,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.famex.core.model.Category
 import com.famex.core.model.SpendStatus
 import com.famex.theme.LocalFamExTypography
@@ -90,11 +85,20 @@ fun CategorySnapshotCard(
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    text = category.name,
-                    style = famExType.labelMd,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                    Text(
+                        text = category.name,
+                        style = famExType.labelMd,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    if (category.status == SpendStatus.OVER_BUDGET) {
+                        Text(
+                            text = "Over Budget",
+                            style = famExType.labelSm.copy(fontSize = 10.sp),
+                            color = statusColor
+                        )
+                    }
+                }
                 StatusProgressBar(percentUsed = category.percentUsed, status = category.status, barHeight = 6.dp)
             }
         }
@@ -125,15 +129,4 @@ fun AddCategoryPlaceholderCard(modifier: Modifier = Modifier) {
             color = SlateMuted
         )
     }
-}
-
-private fun Modifier.dashedBorder(color: Color, strokeWidth: Dp, cornerRadius: Dp): Modifier = drawBehind {
-    drawRoundRect(
-        color = color,
-        style = Stroke(
-            width = strokeWidth.toPx(),
-            pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 8f), 0f)
-        ),
-        cornerRadius = CornerRadius(cornerRadius.toPx())
-    )
 }

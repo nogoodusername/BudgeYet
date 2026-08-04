@@ -10,7 +10,10 @@ import androidx.compose.ui.Modifier
 import com.famex.core.di.LocalAppContainer
 
 @Composable
-fun ProfileRoute(modifier: Modifier = Modifier) {
+fun ProfileRoute(
+    onNavigateToManageMembers: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
     val container = LocalAppContainer.current
     val scope = rememberCoroutineScope()
     val controller = remember(container) { ProfileController(container.profileRepository, scope) }
@@ -18,5 +21,16 @@ fun ProfileRoute(modifier: Modifier = Modifier) {
 
     LaunchedEffect(controller) { controller.load() }
 
-    ProfileScreen(uiState = uiState, modifier = modifier)
+    ProfileScreen(
+        uiState = uiState,
+        onFullNameChange = controller::onFullNameChange,
+        onNicknameChange = controller::onNicknameChange,
+        onSaveProfile = controller::onSaveProfile,
+        onCurrencyChange = controller::onCurrencyChange,
+        onLanguageChange = controller::onLanguageChange,
+        onDisplayModeChange = controller::onDisplayModeChange,
+        onPushNotificationsToggle = controller::onPushNotificationsToggle,
+        onManageMembers = onNavigateToManageMembers,
+        modifier = modifier
+    )
 }

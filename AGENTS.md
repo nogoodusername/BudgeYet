@@ -49,13 +49,16 @@ Backend and frontend have separate CI pipelines gated by path (`backend/**`, `fr
   `AuthenticationError` under `core/database.py` below). Money amounts (`Transaction.amount`,
   `Budget.monthly_goal_amount`) are `Numeric(12, 2)`/`Decimal`, not `Float` — keep new money columns
   consistent with that.
-- Frontend: Phase 1 has landed (see "Frontend build plan" below) — feature-based navigation
-  (Dashboard/Categories/History/Add Transaction/Profile) backed by fake repositories and dummy data
-  scenarios, no real networking yet. No auth flow wired up yet either — the backend above is ready
-  for it to consume. When the networking layer lands, the backend base URL must be user-configurable
-  at onboarding (PRD A0/Section 9.9): default to our hosted backend, but let the user point the app
-  at their own self-hosted deployment instead. Store it as a device-level setting (not per-household)
-  and don't hardcode the hosted URL as the only option.
+- Frontend: Phase 1 (core daily-use loop), most of Phase 3 (collaboration/profile), and Phase 2's
+  onboarding/auth screens have landed (see "Frontend build plan" below) — feature-based navigation
+  (Dashboard/Categories/History/Add Transaction/Profile/Household Members/Invite Member/Welcome/
+  Auth/Backend Config/PIN Sent/Forgot PIN/Household Choice/Create Household/Join Household) backed
+  by fake repositories and dummy data scenarios, no real networking yet. `App.kt` now gates on an
+  in-memory `AuthSession?`: `null` renders `OnboardingRoute`, non-null renders the Phase 1/3 main
+  shell — but the session itself doesn't persist (no DataStore yet), so every cold start begins
+  signed out again. The backend base URL is user-configurable via the Backend Configuration screen
+  (PRD A0/Section 9.9: hosted by default, or a self-hosted custom URL), stored as a device-level
+  `BackendConfig` — but only in-memory for now, same persistence gap as the session.
 
 Don't assume a feature exists because it's in the PRD or in a model/schema — check the actual endpoint
 router and frontend screens first.
@@ -85,6 +88,12 @@ router and frontend screens first.
   holds, but the per-IP throttle doesn't. Fix is to gate header-trust behind an explicit
   `TRUSTED_PROXY_COUNT`/`BEHIND_PROXY` setting (off by default), falling back to `request.client.host`
   when unset — see `core/security.py`.
+- **No resend-invite endpoint on the backend**, and no frontend affordance for it either.
+  `HouseholdService`/`InviteRepository` only have create/list/revoke — no resend. The frontend
+  originally added a matching `ProfileRepository.resendInvite` (fake-repo-only, no real endpoint to
+  call), but it was removed since there was nothing real for it to do; see Phase 3 below. If resend
+  is wanted later, add the backend endpoint first (likely: reissue token + `expires_at`, re-trigger
+  `send_invite_email`), then bring the frontend button back against real networking.
 
 ## Backend (`backend/`)
 
@@ -234,21 +243,71 @@ real Ktor networking is wired up (see "Frontend dummy data scenarios" below). Up
 checkboxes as phases land so the plan survives across sessions.
 
 - [x] **Phase 1 — Core daily-use loop (PRD B/C/D).** Dashboard (empty states, FAB long-press
-  Add Expense/Income shortcuts, tap-through), Category Limits (C1, admin-gated) + Category Detail
-  (C3), Transaction History (D2, grouped/search/filter) + Transaction Detail (D3, role-gated edit/
-  delete) + Add Transaction (D1). Persistent bottom nav (Dashboard, Categories, Add [FAB], History,
-  Profile) with a minimal read-only Profile stub — full profile editing is Phase 3. Feature-based
-  folders under `composeApp/src/commonMain/kotlin/com/famex/feature/{dashboard,category,transaction,
+  Add Expense/Income shortcuts, tap-through), Category Limits (C1, admin-gated, including the
+  Add Category form — name/limit/icon-grid picker, `feature/category/presentation/AddCategory*`)
+  + Category Detail (C3), Transaction History (D2, grouped/search/filter) + Transaction Detail
+  (D3, role-gated edit/delete) + Add Transaction (D1). Persistent bottom nav (Dashboard,
+  Categories, Add [FAB], History, Profile) with a minimal read-only Profile stub — full profile
+  editing is Phase 3. Feature-based folders under
+  `composeApp/src/commonMain/kotlin/com/famex/feature/{dashboard,category,transaction,
   profile}/{data,domain,presentation}`, shared bits in `core/` (`navigation`, `model`, `ui`, `util`,
-  `di`), dummy scenarios in `fixtures/`.
-- [ ] **Phase 2 — Onboarding & auth funnel (PRD A).** Welcome/intro, signup, PIN verify, login,
-  forgot PIN, household create/join, budget creation (skippable), category configuration
-  (skippable, tied to budget creation per PRD A3/A4).
-- [ ] **Phase 3 — Collaboration & full profile (PRD E1/E2).** Household member list/roles (Owner/Admin/
-  Member, with Owner-only ownership transfer to an Admin — see `feature/category-limits-stitch-redesign`
-  for the fake-repo implementation this phase should wire up against real networking), invite via
-  email/link (7-day expiry, 3-member cap enforcement), revoke invite/remove member, editable profile
-  (name/nickname, read-only email), household currency/language (admin/owner), display mode preference.
+  `di`), dummy scenarios in `fixtures/`. Category deletion (C1) is implemented: a "more_vert"
+  admin menu on Category Detail's summary card (`CategoryAdminMenu` in `CategoryDetailScreen.kt`,
+  from Stitch's "Category Detail (Admin Menu)" screen) opens a "Delete Category" action, which
+  shows `core/ui/DeleteCategoryDialog.kt` (Stitch's "Delete Category Confirmation" screen) — if the
+  category has transactions it requires picking a reassign target before enabling delete (blocking
+  otherwise, per PRD C1), matching the backend's `DELETE .../categories/{id}?reassign_to_category_id=`
+  contract. `TransactionRepository.reassignCategory` and `CategoryRepository.deleteCategory` back
+  this on the fake-repo side. The mockup's Edit Category/Category Settings menu items were left out
+  — no corresponding feature exists yet, so they'd be dead entries.
+- [~] **Phase 2 — Onboarding & auth funnel (PRD A) — screens landed on fake repos, no real
+  networking yet.** Covers A0 (backend endpoint selection), A1 (welcome), A2/A2a (signup, PIN
+  verify via login, forgot PIN), and household create/join — all in `feature/auth/
+  {data,domain,presentation}`, its own `core/navigation/OnboardingScreen.kt` +
+  `OnboardingNavController.kt` (mirrors `AppNavController` — separate back stack, no bottom nav,
+  torn down once a household is ready). `App.kt` now gates on `AuthSession?`: `null` renders
+  `OnboardingRoute`, non-null renders the existing Phase 1/3 main shell (`MainAppShell`). Screens:
+  Welcome → Auth (Sign In/Sign Up as tabs on one screen, matching the Stitch pair) → Backend
+  Configuration (gear icon on Auth) → PIN Sent (reused for both post-signup and forgot-PIN,
+  differing only in copy — see `PinSentContext`) → Forgot PIN → Household Choice → Create
+  Household / Join Household. `FakeAuthRepository` seeds one demo account (`alex@example.com`,
+  PIN `123456`) whose household matches the rest of the app's `DummyScenario` fixtures — sign in
+  as that account to preview the full authenticated app; a fresh sign-up gets its own isolated
+  in-memory household that only the onboarding screens see, since it's deliberately **not** wired
+  into the other `Fake*Repository` instances (see the class doc on `FakeAuthRepository`).
+  **Known frontend/backend mismatch:** the Sign Up screen has no Create PIN field, but the
+  backend now requires a user-chosen `UserCreate.pin` at signup (`feature/create-pin-signup`,
+  merged to main) rather than generating and emailing one — the backend changed its mind on this
+  after this branch's screens were built. Harmless today since everything here still runs on
+  `FakeAuthRepository` dummy data with no real networking, but don't wire real Ktor networking to
+  `AuthRepository.signUp` without adding the PIN field first; see `feature/create-pin-signup-frontend`
+  for that fix. The "Server Reachable" live-validation UI on Backend Configuration also isn't
+  implemented — there's no real request to validate a custom URL against yet.
+  **Not covered by this batch:** budget monthly-goal-amount + initial category configuration
+  (A3/A4) — Create Household only covers name/currency/cycle start day. `AuthSession` and
+  `BackendConfig` are in-memory only (no DataStore/local persistence layer exists yet), so both
+  reset on cold start — the app cannot actually stay signed in across restarts until that lands.
+  There's also no sign-out affordance anywhere in the main shell yet. This phase still carries the
+  real Ktor networking work (see below); everything today runs on `FakeAuthRepository` dummy data.
+- [~] **Phase 3 — Collaboration & full profile (PRD E1/E2) — mostly landed, one gap remains.**
+  Done: household member list with roles (`feature/profile/presentation/HouseholdMembers*`),
+  promote/demote/remove for any role (`ac07262`, `1837cfe`), invite-by-email now creates a revocable
+  pending invite instead of adding the member directly (`core/model/Household.PendingInvite` +
+  `ProfileRepository.inviteMember`/`revokeInvite`, backed by `FakeProfileRepository`), rendered as
+  `PendingInviteCard` on `HouseholdMembersScreen.kt` with a Revoke action and a teal-tinted Invite
+  CTA row (Stitch "Member Management (With Invite CTA)" / "(With Pending Invite)"), with
+  `InviteMemberScreen.kt` (Stitch "Invite Options") slimmed down to just the email-invite and
+  join-code cards — the duplicate current-members list that used to live there was removed since
+  pending invites now show on `HouseholdMembersScreen` instead. A Resend Invite action was tried and
+  then deliberately dropped: there's no backend resend endpoint (see "Known gaps" above), so it had
+  nothing real to call once networking lands — don't re-add it without the backend endpoint first.
+  Editable profile (name/nickname, read-only email), household currency/language (admin-gated),
+  display mode preference — all in `feature/profile/`.
+  **Gap:** the 7-day invite expiry isn't modeled or shown anywhere in the UI (revoke works, expiry
+  doesn't), and shareable join link/QR code (the other half of E1) is still not implemented. Since
+  this all still runs on fake repos, wiring real invite semantics (backend `Invite.token`/
+  `expires_at`) likely lands together with Phase 2's networking work rather than as a separate
+  frontend-only fix.
 
 **Architecture choices made in Phase 1 (carry forward into later phases):**
 - Navigation is a hand-rolled `core/navigation/AppNavController` (sealed `Screen` + back-stack list),

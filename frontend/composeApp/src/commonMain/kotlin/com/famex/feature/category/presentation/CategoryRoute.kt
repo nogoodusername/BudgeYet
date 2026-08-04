@@ -11,7 +11,8 @@ import com.famex.core.di.LocalAppContainer
 
 @Composable
 fun CategoryRoute(
-    onCategoryClick: (Long) -> Unit,
+    onNavigateToCategoryDetail: (Long) -> Unit = {},
+    onNavigateToAddCategory: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val container = LocalAppContainer.current
@@ -23,8 +24,12 @@ fun CategoryRoute(
 
     CategoryListScreen(
         uiState = uiState,
-        onCategoryClick = onCategoryClick,
+        onLimitChange = controller::onLimitChange,
+        onSplitEvenly = controller::onSplitEvenly,
+        onSaveChanges = controller::onSaveChanges,
         onRetry = controller::load,
+        onCategoryClick = onNavigateToCategoryDetail,
+        onAddCategory = onNavigateToAddCategory,
         modifier = modifier
     )
 }

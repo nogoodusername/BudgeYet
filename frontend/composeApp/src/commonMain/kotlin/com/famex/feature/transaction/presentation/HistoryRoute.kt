@@ -12,11 +12,14 @@ import com.famex.core.di.LocalAppContainer
 @Composable
 fun HistoryRoute(
     onTransactionClick: (Long) -> Unit,
+    onNavigateToAddTransaction: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val container = LocalAppContainer.current
     val scope = rememberCoroutineScope()
-    val controller = remember(container) { HistoryController(container.transactionRepository, scope) }
+    val controller = remember(container) {
+        HistoryController(container.transactionRepository, container.profileRepository, container.categoryRepository, scope)
+    }
     val uiState by controller.uiState.collectAsState()
 
     LaunchedEffect(controller) { controller.load() }
@@ -25,6 +28,20 @@ fun HistoryRoute(
         uiState = uiState,
         onTransactionClick = onTransactionClick,
         onRetry = controller::load,
+        onSearchChange = controller::onSearchChange,
+        onOpenFilterSheet = controller::onOpenFilterSheet,
+        onCloseFilterSheet = controller::onCloseFilterSheet,
+        onResetFilters = controller::onResetFilters,
+        onSelectDateRangeFilter = controller::onSelectDateRangeFilter,
+        onTogglePayer = controller::onTogglePayer,
+        onTogglePaymentMode = controller::onTogglePaymentMode,
+        onOpenCustomStartPicker = controller::onOpenCustomStartPicker,
+        onCloseCustomStartPicker = controller::onCloseCustomStartPicker,
+        onCustomStartSelected = controller::onCustomStartSelected,
+        onOpenCustomEndPicker = controller::onOpenCustomEndPicker,
+        onCloseCustomEndPicker = controller::onCloseCustomEndPicker,
+        onCustomEndSelected = controller::onCustomEndSelected,
+        onNavigateToAddTransaction = onNavigateToAddTransaction,
         modifier = modifier
     )
 }

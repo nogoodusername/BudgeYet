@@ -1,6 +1,8 @@
 package com.famex.core.di
 
 import androidx.compose.runtime.staticCompositionLocalOf
+import com.famex.feature.auth.data.FakeAuthRepository
+import com.famex.feature.auth.domain.AuthRepository
 import com.famex.feature.category.data.FakeCategoryRepository
 import com.famex.feature.category.domain.CategoryRepository
 import com.famex.feature.dashboard.data.FakeDashboardRepository
@@ -18,6 +20,8 @@ class AppContainer(scenario: DummyScenario = DummyScenario.HealthyMidMonth) {
     val categoryRepository: CategoryRepository = FakeCategoryRepository(scenario)
     val transactionRepository: TransactionRepository = FakeTransactionRepository(scenario)
     val profileRepository: ProfileRepository = FakeProfileRepository(scenario)
+    // Deliberately not seeded from `scenario` beyond the demo account — see FakeAuthRepository.
+    val authRepository: AuthRepository = FakeAuthRepository(scenario)
 }
 
 val LocalAppContainer = staticCompositionLocalOf<AppContainer> {

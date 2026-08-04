@@ -9,6 +9,9 @@ import com.famex.core.model.PaymentMode
 import com.famex.core.model.Transaction
 import com.famex.core.model.TransactionType
 import com.famex.core.model.User
+import com.famex.core.util.todayLocalDate
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.minus
 
 private val alex = User(1, "alex@example.com", "Alex Rivera", "Alex")
 private val sam = User(2, "sam@example.com", "Sam Rivera", "Sam")
@@ -18,13 +21,13 @@ private fun member(user: User, role: MemberRole) = HouseholdMember(user.id, user
 
 private fun householdFor(scenario: DummyScenario): Household {
     val members = when (scenario) {
-        DummyScenario.SoloBudgeter -> listOf(member(alex, MemberRole.ADMIN))
+        DummyScenario.SoloBudgeter -> listOf(member(alex, MemberRole.OWNER))
         DummyScenario.FullHouseholdThreeMembers -> listOf(
-            member(alex, MemberRole.ADMIN),
+            member(alex, MemberRole.OWNER),
             member(sam, MemberRole.MEMBER),
             member(jo, MemberRole.MEMBER)
         )
-        else -> listOf(member(alex, MemberRole.ADMIN), member(sam, MemberRole.MEMBER))
+        else -> listOf(member(alex, MemberRole.OWNER), member(sam, MemberRole.MEMBER))
     }
     return Household(
         id = 1,
@@ -54,8 +57,8 @@ private fun categoriesFor(scenario: DummyScenario): List<Category> = when (scena
     )
 
     DummyScenario.OverBudgetCoral -> listOf(
-        Category(1, "Groceries", "cart", 800.0, 910.0),
-        Category(2, "Dining Out", "restaurant", 400.0, 455.0),
+        Category(1, "Groceries", "cart", 800.0, 680.0),
+        Category(2, "Dining Out", "restaurant", 400.0, 420.0),
         Category(3, "Utilities", "flash", 350.0, 210.0),
         Category(4, "Transportation", "car", 300.0, 150.0),
     )
@@ -70,7 +73,7 @@ private fun categoriesFor(scenario: DummyScenario): List<Category> = when (scena
 
 private fun budgetFor(scenario: DummyScenario, categories: List<Category>): Budget? {
     if (scenario == DummyScenario.NoBudgetSetup) return null
-    val goal = if (scenario == DummyScenario.OverBudgetCoral) 1500.0 else 1850.0
+    val goal = if (scenario == DummyScenario.OverBudgetCoral) 1400.0 else 1850.0
     return Budget(
         id = 1,
         name = "This Month's Household Budget",
@@ -95,8 +98,10 @@ private fun baseTransactions(scenario: DummyScenario): List<Transaction> {
         Triple("Uber", 24.00, "Transportation" to 4L),
         Triple("Trader Joe's", 76.40, "Groceries" to 1L),
     )
+    val paymentModes = listOf(PaymentMode.CARD, PaymentMode.BANK_TRANSFER, PaymentMode.CASH, PaymentMode.CARD, PaymentMode.OTHER)
 
     val count = if (scenario == DummyScenario.LongTransactionHistory) 40 else template.size
+    val today = todayLocalDate()
 
     return (0 until count).map { index ->
         val (merchant, amount, categoryPair) = template[index % template.size]
@@ -106,10 +111,11 @@ private fun baseTransactions(scenario: DummyScenario): List<Transaction> {
             merchant = merchant,
             amount = amount,
             type = TransactionType.EXPENSE,
-            paymentMode = PaymentMode.CARD,
+            paymentMode = paymentModes[index % paymentModes.size],
             categoryId = categoryId,
             categoryName = categoryName,
             paidBy = payers[index % payers.size],
+            transactionDate = today.minus(index + 1, DateTimeUnit.DAY),
             transactionDateText = "${index + 1}d ago",
             createdAtText = "${index + 1}d ago"
         )
