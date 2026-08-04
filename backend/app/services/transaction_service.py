@@ -40,8 +40,8 @@ class TransactionService:
             raise ValidationAppError("category_id does not belong to this household")
 
     def _assert_can_modify(self, transaction: Transaction, acting_membership: HouseholdMember) -> None:
-        is_owner = transaction.created_by_id == acting_membership.user_id
-        if acting_membership.role != MemberRole.ADMIN and not is_owner:
+        is_creator = transaction.created_by_id == acting_membership.user_id
+        if acting_membership.role not in (MemberRole.ADMIN, MemberRole.OWNER) and not is_creator:
             raise PermissionDeniedError("You can only edit or delete your own transactions")
 
     async def create_transaction(
