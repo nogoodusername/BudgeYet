@@ -18,10 +18,6 @@ fun DashboardBudgetDto.toDomain(): Budget = Budget(
     year = year
 )
 
-// See ActivityFeedItemDto's doc comment: `user` is created_by_user, not paid_by_user, and there's
-// no category_id in this response at all — only category_name. categoryId is left null here,
-// which costs ActivityFeedRow the category-specific icon/tint (it falls back to a default), but
-// the merchant/amount/date/category-name text all still render correctly via categoryName.
 fun ActivityFeedItemDto.toDomain(): Transaction {
     val date = parseIsoDateTimeToLocalDate(transactionDate)
     return Transaction(
@@ -30,9 +26,9 @@ fun ActivityFeedItemDto.toDomain(): Transaction {
         amount = amount.toDouble(),
         type = type.toDomain(),
         paymentMode = PaymentMode.CARD,
-        categoryId = null,
+        categoryId = categoryId,
         categoryName = categoryName,
-        paidBy = user.toDomain(),
+        paidBy = paidByUser.toDomain(),
         notes = null,
         transactionDate = date,
         transactionDateText = date.toDisplayText(),
