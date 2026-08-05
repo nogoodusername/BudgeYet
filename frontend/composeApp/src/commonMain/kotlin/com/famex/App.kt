@@ -1,8 +1,14 @@
 package com.famex
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -10,6 +16,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -18,13 +26,17 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import com.famex.core.di.AppContainer
 import com.famex.core.di.LocalAppContainer
@@ -32,6 +44,7 @@ import com.famex.core.model.AuthSession
 import com.famex.core.navigation.AppNavController
 import com.famex.core.navigation.BackHandler
 import com.famex.core.navigation.Screen
+import com.famex.core.offline.SyncEvent
 import com.famex.core.ui.BottomNavTab
 import com.famex.core.ui.FamExBottomNavBar
 import com.famex.feature.auth.presentation.OnboardingRoute
@@ -47,6 +60,7 @@ import com.famex.feature.transaction.presentation.EditTransactionRoute
 import com.famex.feature.transaction.presentation.HistoryRoute
 import com.famex.feature.transaction.presentation.TransactionDetailRoute
 import com.famex.fixtures.DummyScenario
+import com.famex.theme.BrandAmber
 import com.famex.theme.FamExTheme
 
 // Code-level dummy-data switch (no in-app dev switcher by design) — change and rebuild to
@@ -95,11 +109,29 @@ fun App() {
                         }
                     )
                 } else {
+                    // Offline sync: while signed in, watch connectivity and drain the pending
+                    // write queue on every offline→online transition. Starts as "online" so a cold
+                    // start with a leftover queue from a previous session syncs immediately.
+                    val connectivityFlow = remember(container) { container.connectivityObserver.observe() }
+                    val isOnline by connectivityFlow.collectAsState(initial = true)
+                    val pendingSyncCount by container.syncManager.pendingCount.collectAsState()
+
+                    LaunchedEffect(isOnline) {
+                        if (isOnline) container.syncManager.processQueue()
+                    }
+
+                    // Pick up a queue left behind by a previous session (e.g. the app was killed
+                    // while offline) so the badge shows immediately instead of only after a sync.
+                    LaunchedEffect(container.syncManager) {
+                        container.syncManager.refreshPendingCount()
+                    }
+
                     MainAppShell(
                         onSignOut = {
                             updateSession(null)
                             scope.launch { container.authRepository.clearPersistedSession() }
-                        }
+                        },
+                        pendingSyncCount = pendingSyncCount
                     )
                 }
             }
@@ -109,9 +141,14 @@ fun App() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MainAppShell(onSignOut: () -> Unit) {
+private fun MainAppShell(
+    onSignOut: () -> Unit,
+    pendingSyncCount: Int
+) {
+    val container = LocalAppContainer.current
     val navController = remember { AppNavController() }
     val current = navController.current
+    val snackbarHostState = remember { SnackbarHostState() }
 
     // Same rationale as OnboardingRoute's BackHandler — without it, system back skips our
     // back stack and exits the app from any pushed screen (detail views, add/edit forms)
@@ -119,7 +156,18 @@ private fun MainAppShell(onSignOut: () -> Unit) {
     // so back there falls through to the OS default (e.g. backgrounding the app).
     BackHandler(enabled = navController.canGoBack) { navController.back() }
 
+    // Offline-sync rejections (server-wins conflicts, permanent 4xx) surface as toasts so the
+    // user knows an offline change wasn't applied instead of silently losing it.
+    LaunchedEffect(container.syncManager) {
+        container.syncManager.events.collect { event ->
+            when (event) {
+                is SyncEvent.Rejected -> snackbarHostState.showSnackbar(event.message)
+            }
+        }
+    }
+
     Scaffold(
+            snackbarHost = { SnackbarHost(snackbarHostState) },
             topBar = {
                 TopAppBar(
                     title = { Text(text = current.title(), fontWeight = FontWeight.Bold) },
@@ -131,6 +179,24 @@ private fun MainAppShell(onSignOut: () -> Unit) {
                         }
                     },
                     actions = {
+                        // "N changes waiting to sync" — mirrors the amber pending-state token used
+                        // across the app (BrandAmber = 75-99%, here repurposed as "queued, not yet
+                        // confirmed"); disappears once SyncManager drains the queue.
+                        if (pendingSyncCount > 0) {
+                            Row(
+                                modifier = Modifier.padding(end = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(modifier = Modifier.size(8.dp).background(BrandAmber, CircleShape))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "$pendingSyncCount pending",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = BrandAmber
+                                )
+                            }
+                        }
                         if (current is Screen.TransactionDetail) {
                             TextButton(onClick = { navController.navigate(Screen.EditTransaction(current.transactionId)) }) {
                                 Text(text = "Edit", fontWeight = FontWeight.SemiBold)

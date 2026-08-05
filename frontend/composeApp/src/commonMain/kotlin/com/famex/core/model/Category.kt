@@ -1,7 +1,10 @@
 package com.famex.core.model
 
+import kotlinx.serialization.Serializable
+
 // Category limits reset every cycle with no rollover — historical spend for prior cycles
 // must still be queryable by date range once real networking lands.
+@Serializable
 data class Category(
     val id: Long,
     val name: String,

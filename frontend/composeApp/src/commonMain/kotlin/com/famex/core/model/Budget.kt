@@ -1,5 +1,8 @@
 package com.famex.core.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class Budget(
     val id: Long,
     val name: String,
