@@ -27,7 +27,6 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.LightMode
-import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.SettingsSuggest
@@ -44,8 +43,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -75,7 +72,6 @@ fun ProfileScreen(
     onCurrencyChange: (String) -> Unit,
     onLanguageChange: (String) -> Unit,
     onDisplayModeChange: (DisplayMode) -> Unit,
-    onPushNotificationsToggle: (Boolean) -> Unit,
     onManageMembers: () -> Unit,
     onSignOutClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -97,7 +93,6 @@ fun ProfileScreen(
             onCurrencyChange = onCurrencyChange,
             onLanguageChange = onLanguageChange,
             onDisplayModeChange = onDisplayModeChange,
-            onPushNotificationsToggle = onPushNotificationsToggle,
             onManageMembers = onManageMembers,
             onSignOutClick = onSignOutClick,
             modifier = modifier
@@ -114,7 +109,6 @@ private fun ProfileContent(
     onCurrencyChange: (String) -> Unit,
     onLanguageChange: (String) -> Unit,
     onDisplayModeChange: (DisplayMode) -> Unit,
-    onPushNotificationsToggle: (Boolean) -> Unit,
     onManageMembers: () -> Unit,
     onSignOutClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -179,27 +173,6 @@ private fun ProfileContent(
                         }
                     }
                     AppearancePicker(selected = user.displayMode, onSelect = onDisplayModeChange)
-                }
-
-                HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        SettingsIconCircle(icon = Icons.Default.NotificationsActive, tint = MaterialTheme.colorScheme.onSurface)
-                        Column {
-                            Text(text = "Push Notifications", style = famExType.labelMd, color = MaterialTheme.colorScheme.onSurface)
-                            Text(text = "Alerts for shared expenses", style = famExType.labelSm, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                    Switch(
-                        checked = user.pushNotificationsEnabled,
-                        onCheckedChange = onPushNotificationsToggle,
-                        colors = SwitchDefaults.colors(checkedTrackColor = MaterialTheme.colorScheme.secondary)
-                    )
                 }
             }
         }

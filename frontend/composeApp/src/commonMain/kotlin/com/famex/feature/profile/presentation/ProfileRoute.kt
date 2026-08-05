@@ -31,7 +31,6 @@ fun ProfileRoute(
         onCurrencyChange = controller::onCurrencyChange,
         onLanguageChange = controller::onLanguageChange,
         onDisplayModeChange = controller::onDisplayModeChange,
-        onPushNotificationsToggle = controller::onPushNotificationsToggle,
         onManageMembers = onNavigateToManageMembers,
         onSignOutClick = controller::onRequestSignOut,
         modifier = modifier

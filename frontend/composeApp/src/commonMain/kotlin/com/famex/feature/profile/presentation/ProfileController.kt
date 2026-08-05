@@ -86,13 +86,6 @@ class ProfileController(
         }
     }
 
-    fun onPushNotificationsToggle(enabled: Boolean) {
-        scope.launch {
-            val user = repository.updatePushNotifications(enabled)
-            _uiState.update { it.copy(user = user) }
-        }
-    }
-
     // Actually clearing the session lives at the App root (see App.kt) — this controller only
     // owns the confirmation dialog's visibility, same split as CategoryDetailController's
     // showDeleteDialog.
