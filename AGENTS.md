@@ -320,16 +320,10 @@ checkboxes as phases land so the plan survives across sessions.
   `CategoryWithStatsDto`/`TransactionTypeDto` out of `feature/auth`/`feature/category`/
   `feature/transaction` into shared `core/network/dto/`+`core/network/mapper/` too (same rationale
   as `UserResponseDto` above — Dashboard is now a second/third consumer of each). **The activity
-  feed has two real data gaps worth knowing about, not bugs to silently paper over:**
-  `ActivityFeedItem.user` is `created_by_user` (who logged it), not `paid_by_user` (who paid) —
-  see `dashboard_controller._to_activity_item` — but `ActivityFeedRow` only has one "who" slot, so
-  `DashboardMappers.kt` maps it into `Transaction.paidBy` anyway; this is only actually wrong when
-  one member logs a transaction paid by another. And `ActivityFeedItem` has no `category_id` at
-  all (only `category_name`), so mapped activity-feed transactions carry `categoryId = null` —
-  `ActivityFeedRow` still shows the right category name and amount, it just can't look up the
-  category's live icon/color and falls back to a default. Fixing either means widening
-  `ActivityFeedItem` on the backend; deferred since neither breaks the feature, only degrades it
-  cosmetically.
+  feed previously had two data gaps (created_by_user vs paid_by_user, and no category_id) — both
+  are now fixed: `ActivityFeedItem` returns `paid_by_user` + `category_id` alongside
+  `created_by_user`; see `backend/app/schemas/dashboard.py` and `_to_activity_item` in
+  `dashboard_controller.py`.
 - [~] **Phase 2 — Onboarding & auth funnel (PRD A) — screens landed on fake repos, no real
   networking yet.** Covers A0 (backend endpoint selection), A1 (welcome), A2/A2a (signup, PIN
   verify via login, forgot PIN), and household create/join — all in `feature/auth/

@@ -19,7 +19,9 @@ class ActivityFeedItem(BaseModel):
     amount: Decimal
     merchant: str
     category_name: Optional[str] = None
-    user: UserResponse
+    category_id: Optional[int] = None
+    created_by_user: UserResponse
+    paid_by_user: UserResponse
     transaction_date: datetime
     created_at: datetime
 

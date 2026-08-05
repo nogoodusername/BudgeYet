@@ -30,14 +30,9 @@ data class DashboardResponseDto(
     val categories: List<CategoryWithStatsDto> = emptyList()
 )
 
-// Mirrors backend/app/schemas/dashboard.py ActivityFeedItem. Note `user` here is
-// created_by_user, not paid_by_user (see dashboard_controller._to_activity_item) — the backend's
-// feed reports who *logged* the transaction, not who *paid*. DashboardMappers.kt maps it into
-// Transaction.paidBy anyway since that's the only "who" field ActivityFeedRow renders and the two
-// are the same person for the common case (someone logging their own expense); it'll only be
-// wrong for the edge case of one member logging a transaction paid by another. amount is a
-// Decimal field, same String-not-Double gotcha as everywhere else. There is no category_id here
-// (only category_name) — see DashboardMappers.kt for what that costs the UI.
+// Mirrors backend/app/schemas/dashboard.py ActivityFeedItem. created_by_user is the member who
+// logged the transaction; paid_by_user is the member who actually paid. category_id is now also
+// present so the UI can look up the live category's icon/color.
 @Serializable
 data class ActivityFeedItemDto(
     val id: Long,
@@ -45,7 +40,9 @@ data class ActivityFeedItemDto(
     val amount: String,
     val merchant: String,
     @SerialName("category_name") val categoryName: String? = null,
-    val user: UserResponseDto,
+    @SerialName("category_id") val categoryId: Long? = null,
+    @SerialName("created_by_user") val createdByUser: UserResponseDto,
+    @SerialName("paid_by_user") val paidByUser: UserResponseDto,
     @SerialName("transaction_date") val transactionDate: String,
     @SerialName("created_at") val createdAt: String
 )

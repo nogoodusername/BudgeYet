@@ -17,7 +17,9 @@ def _to_activity_item(transaction) -> ActivityFeedItem:
         amount=transaction.amount,
         merchant=transaction.merchant,
         category_name=transaction.category.name if transaction.category else None,
-        user=transaction.created_by_user,
+        category_id=transaction.category_id,
+        created_by_user=transaction.created_by_user,
+        paid_by_user=transaction.paid_by_user,
         transaction_date=transaction.transaction_date,
         created_at=transaction.created_at,
     )
