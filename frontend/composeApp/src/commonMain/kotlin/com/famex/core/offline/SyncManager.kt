@@ -40,6 +40,9 @@ class SyncManager(
     val pendingCount: StateFlow<Int> = _pendingCount.asStateFlow()
 
     private val _events = MutableSharedFlow<SyncEvent>(
+        // replay = 1 so a rejection emitted while no collector is attached (e.g. between screen
+        // swaps) isn't silently dropped — the most recent outcome is handed to the next collector.
+        replay = 1,
         extraBufferCapacity = 16,
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
@@ -89,7 +92,9 @@ class SyncManager(
     }
 
     private suspend fun replayAdd(op: OfflineOperation.AddTransaction): ReplayOutcome = try {
-        val serverTx = transactionRepository.addTransaction(op.transaction)
+        // The server's copy is authoritative — clear the pending clientId/temp-id markers so the
+        // confirmed row is indistinguishable from a server-fetched one (isPending becomes false).
+        val serverTx = transactionRepository.addTransaction(op.transaction).copy(clientId = null)
         clientIdToServerId[op.clientId] = serverTx.id
         cacheStore.cacheTransactions(replaceByClientId(op.clientId, serverTx))
         ReplayOutcome.SUCCESS
@@ -109,7 +114,7 @@ class SyncManager(
         val serverId = resolveServerId(op.transactionId, op.clientId)
             ?: return emitRejected("That change couldn't be applied: ${op.transaction.merchant}")
         return try {
-            val serverTx = transactionRepository.updateTransaction(op.transaction.copy(id = serverId))
+            val serverTx = transactionRepository.updateTransaction(op.transaction.copy(id = serverId)).copy(clientId = null)
             cacheStore.cacheTransactions(replaceByServerId(serverId, serverTx))
             ReplayOutcome.SUCCESS
         } catch (e: CancellationException) {
