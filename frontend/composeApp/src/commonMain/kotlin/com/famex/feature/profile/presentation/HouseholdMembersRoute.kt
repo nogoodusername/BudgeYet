@@ -16,7 +16,9 @@ fun HouseholdMembersRoute(
 ) {
     val container = LocalAppContainer.current
     val scope = rememberCoroutineScope()
-    val controller = remember(container) { HouseholdMembersController(container.profileRepository, scope) }
+    val controller = remember(container) {
+        HouseholdMembersController(container.profileRepository, scope, container.currentHouseholdHolder.userId)
+    }
     val uiState by controller.uiState.collectAsState()
 
     LaunchedEffect(controller) { controller.load() }
