@@ -356,8 +356,13 @@ checkboxes as phases land so the plan survives across sessions.
   longer server-generated/emailed at signup, so `AuthController.onSignUp` logs the user straight
   in afterward (`AuthEvent.LoggedIn`) instead of routing through a "check your email" step; **PIN
   Sent is now forgot-PIN only** (`OnboardingScreen.PinSent` dropped its `PinSentContext` param —
-  there's only one context left). The "Server Reachable" live-validation UI on Backend
-  Configuration isn't implemented — there's no real request to validate a custom URL against yet.
+there's only one context left). The "Server Reachable" live-validation UI on Backend
+   Configuration is now implemented — `BackendConfigController.schedulePing` debounces URL
+   input (500ms) and calls `AuthRepository.checkServerReachable` which hits the target server's
+   DB-independent `GET /api/v1/ping` endpoint (see `backend/app/api/v1/endpoints/health.py`).
+   The `ReachabilityIndicator` composable renders all five states (IDLE, INVALID, CHECKING,
+   REACHABLE, UNREACHABLE) and the Save button is disabled until the custom URL is confirmed
+   REACHABLE (`canSave` in `BackendConfigUiState`).
   **Budget monthly-goal-amount + initial category configuration (A3/A4) now land too:** after
   Create Household succeeds, Budget Goal (`BudgetGoal*` in `feature/auth/presentation`) collects
   a budget name/period/monthly goal amount (or can be skipped, completing onboarding without a

@@ -42,9 +42,9 @@ import com.famex.theme.LocalFamExTypography
 /**
  * Stitch "Backend Configuration" screen (bef77b03cd4240daba76886faf1e39ed) — reached from the
  * gear icon on the Sign In / Sign Up screen. PRD A0/Section 9.9: default to the hosted backend,
- * let the user point at a self-hosted deployment instead. In-memory only for now (see
- * BackendConfig) — no local persistence layer yet, so a saved custom URL doesn't survive a
- * cold start — but "Server Reachable" now pings the real DB-independent /api/v1/ping endpoint
+ * let the user point at a self-hosted deployment instead. Persisted via
+ * AuthRepository.getBackendConfig/setBackendConfig (backed by SettingsStorage), so a custom URL
+ * survives a cold start. "Server Reachable" pings the real DB-independent /api/v1/ping endpoint
  * (AuthRepository.checkServerReachable) rather than being a UI mock.
  */
 @Composable
