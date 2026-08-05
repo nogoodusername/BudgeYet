@@ -139,6 +139,7 @@ fun HouseholdMembersScreen(
                                 MemberRow(
                                     member = member,
                                     canManage = canManageMembers,
+                                    viewerRole = uiState.currentUserRole,
                                     currentUserId = uiState.currentUserId,
                                     onRoleChange = { newRole -> onRequestRoleChange(member, newRole) },
                                     onRemove = { onRequestRemove(member) }
@@ -265,6 +266,7 @@ fun HouseholdMembersScreen(
 private fun MemberRow(
     member: HouseholdMember,
     canManage: Boolean,
+    viewerRole: MemberRole?,
     currentUserId: Long?,
     onRoleChange: (MemberRole) -> Unit,
     onRemove: () -> Unit
@@ -329,11 +331,16 @@ private fun MemberRow(
                 }
                 DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
                     if (member.role == MemberRole.ADMIN) {
-                        DropdownMenuItem(
-                            text = { Text("Promote to Owner") },
-                            leadingIcon = { Icon(Icons.Default.Star, contentDescription = null) },
-                            onClick = { menuExpanded = false; onRoleChange(MemberRole.OWNER) }
-                        )
+                        // Transferring ownership is Owner-only (PRD §5) — an Admin viewer sees
+                        // only Demote/Remove on an Admin row; the backend 403s Promote to Owner
+                        // for anyone but the current Owner, so don't offer it up front.
+                        if (viewerRole == MemberRole.OWNER) {
+                            DropdownMenuItem(
+                                text = { Text("Promote to Owner") },
+                                leadingIcon = { Icon(Icons.Default.Star, contentDescription = null) },
+                                onClick = { menuExpanded = false; onRoleChange(MemberRole.OWNER) }
+                            )
+                        }
                         DropdownMenuItem(
                             text = { Text("Demote to Member") },
                             leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
