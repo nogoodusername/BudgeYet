@@ -137,7 +137,10 @@ for the collision it fixes.
   (transferring ownership) enforce that narrower check themselves in the service layer, on top of
   `require_admin_membership`.
 - `controllers/` — thin orchestration between routers and services; maps request schemas to service
-  calls and service results back to response schemas. No SQLAlchemy imports here.
+  calls and service results back to response schemas. No query-building here — a few controllers
+  (`auth_controller.py`, `dashboard_controller.py`, `user_controller.py`) import `AsyncSession`
+  purely to type-hint the `db` param they pass through to services, but none construct queries
+  with it directly.
 - `services/` — business rules (role permissions, the 3-member cap, future-date rejection, cycle
   math in `cycle_utils.py`, delete-blocked-by-transactions, invite expiry, "always exactly one
   Owner" (single-holder, transferred via `HouseholdService._transfer_ownership` — only the current
@@ -278,17 +281,21 @@ checkboxes as phases land so the plan survives across sessions.
   `/households/{id}/categories`. `CategoryRepository`'s interface takes no household id (it's
   called from `category`, `transaction`, and `dashboard` presentation code written before real
   networking existed) — `RealCategoryRepository` instead resolves it from
-  `core/network/HouseholdRequestContextProvider`, which bundles the current access token +
+  `core/network/HouseholdRequestContext.kt` (`HouseholdRequestContextProvider`), which bundles the
+  current access token +
   `BackendConfig` + household id (the last of those from `core/session/CurrentHouseholdHolder`, a
   small mutable holder `App.kt` keeps in sync with the signed-in session's `household.id` — set on
   restore/onboarding-complete, cleared on sign out). `RealTransactionRepository` uses the same
   provider — any future `Real*Repository` with the same "which household" problem (Dashboard)
   should too, rather than inventing another mechanism. One decoding gotcha worth knowing about:
-  the backend's `monthly_limit`/`spent`/`remaining` are Pydantic `Decimal` fields, which serialize
+  the backend's `monthly_limit`/`spent` are Pydantic `Decimal` fields, which serialize
   as JSON **strings** (`"12.50"`, confirmed against Pydantic v2's default encoder), not numbers —
-  `CategoryDtos.kt` declares them `String` and `CategoryMappers.kt` does the `.toDouble()`
-  conversion; declaring them `Double` directly would fail to decode. Same applies to
-  `Transaction.amount` (see below). `updateCategoryLimits` does one `PATCH` per changed category —
+  `feature/category/data/remote/dto/CategoryDtos.kt` declares `monthlyLimit: String` and
+  `core/network/dto/CategoryDto.kt` (`CategoryWithStatsDto`) declares `spent: String`, with
+  `CategoryMappers.kt` doing the `.toDouble()` conversion for both; declaring them `Double`
+  directly would fail to decode. `remaining` is never decoded at all — it's derived client-side
+  from `monthlyLimit`/`spent` and intentionally omitted from the DTO. Same string-decoding gotcha
+  applies to `Transaction.amount` (see below). `updateCategoryLimits` does one `PATCH` per changed category —
   no batch-update endpoint exists, same constraint `AuthRepository.setupCategories` already
   documented for create. `BackendConfig` persistence moved out of `RealAuthRepository` into a
   shared `core/network/BackendConfigStorage`, since every `Real*Repository` needs it, not just auth.
@@ -324,8 +331,12 @@ checkboxes as phases land so the plan survives across sessions.
   are now fixed: `ActivityFeedItem` returns `paid_by_user` + `category_id` alongside
   `created_by_user`; see `backend/app/schemas/dashboard.py` and `_to_activity_item` in
   `dashboard_controller.py`.
-- [~] **Phase 2 — Onboarding & auth funnel (PRD A) — screens landed on fake repos, no real
-  networking yet.** Covers A0 (backend endpoint selection), A1 (welcome), A2/A2a (signup, PIN
+- [x] **Phase 2 — Onboarding & auth funnel (PRD A) — screens are wired to real backend
+  networking.** (Note: this bullet originally read "screens landed on fake repos, no real
+  networking yet" — that was true when Phase 2 was first built on 2026-08-04, but stale after
+  commit `c639b37` wired `RealAuthRepository` into `AppContainer` on 2026-08-05; see "Real
+  networking" further down in this bullet for what's actually real.) Covers A0 (backend endpoint
+  selection), A1 (welcome), A2/A2a (signup, PIN
   verify via login, forgot PIN), and household create/join — all in `feature/auth/
   {data,domain,presentation}`, its own `core/navigation/OnboardingScreen.kt` +
   `OnboardingNavController.kt` (mirrors `AppNavController` — separate back stack, no bottom nav,
@@ -418,16 +429,16 @@ there's only one context left). The "Server Reachable" live-validation UI on Bac
   then deliberately dropped: there's no backend resend endpoint (see "Known gaps" above), so it had
   nothing real to call once networking lands — don't re-add it without the backend endpoint first.
   Editable profile (name/nickname, read-only email), household currency/language, display mode
-  preference — all in `feature/profile/`. Despite this bullet previously claiming
-  currency/language were "admin-gated": they are **not** — `ProfileScreen`/`ProfileController` and
-  `HouseholdMembersScreen`/`HouseholdMembersController` have no role check anywhere, member-only
-  or otherwise (confirmed by grep, not inference) — every management action (currency/language
-  edit, invite, revoke, role change, remove) is offered to any signed-in member regardless of
-  role. This was invisible against `FakeProfileRepository`, which never rejected anything; against
-  the real backend it surfaces as a `PermissionDeniedException` (403, `require_admin_membership`)
-  shown via each screen's existing `actionError`/`saveError` state, so nothing crashes — it just
-  means a plain Member sees a permission error only *after* trying, instead of the action being
-  hidden up front. Adding real role-gating to this UI is unstarted and still open.
+  preference — all in `feature/profile/`. **Role-gating is now implemented** (`c45d365`, `8d111ed`,
+  `a60d6c1`): `ProfileScreen` derives `currentUserRole` (via `Household.currentMemberRole`,
+  `core/model/Household.kt`) and hides the whole "Household Settings" card (Manage Members,
+  currency, language) from plain Members — `canManageHousehold = currentUserRole?.isAdminOrOwner`
+  — instead of only 403ing after the fact; Personal Settings (display mode) stays visible to
+  everyone. `HouseholdMembersScreen` similarly hides each row's admin action menu
+  (`canManage`) for plain-Member viewers, hides a member's own row's self-action menu, and only
+  offers "Promote to Owner" when the viewer *is* the current Owner (Admins can't see it on other
+  Admins). `CurrentHouseholdHolder` and `App.kt` were extended to carry the signed-in user's id
+  so role can be derived client-side without an extra call.
   **Gap:** the 7-day join-code expiry is now modeled and shown (`Household.joinCodeExpiresAt`,
   mirroring the backend's `Invite.expires_at`/`INVITE_EXPIRY_DAYS`, rendered on
   `InviteMemberScreen.kt` in place of the old static "7 days" copy), but shareable join link/QR
@@ -457,6 +468,37 @@ there's only one context left). The "Server Reachable" live-validation UI on Bac
   in `backend/app/schemas/user.py`, plus a migration) to persist to. Re-adding the row is then a
   pure UI change: restore the `Switch` block in `ProfileScreen.kt` and the two lines of plumbing in
   `ProfileRoute.kt`/`ProfileController.kt` — see git history for the exact removed block if needed.
+
+**Offline support (PRD §7) — queued transaction writes + read-through cache.** Every feature
+repository in `AppContainer` is now an `OfflineFirst*Repository` wrapping its `Real*Repository`.
+
+- **Reads** are network-first with cache fallback: `core/offline/NetworkFirstRead.kt` catches
+  `AppException.NetworkException`/`TimeoutException` and serves the last successful fetch from
+  `core/cache/LocalCacheStore` (JSON blobs in `core/cache/LocalFileStorage`, an expect/actual
+  file store — `filesDir` on Android, `Library/Caches` on iOS; deliberately not DataStore/Room,
+  same version-risk reasoning as `SettingsStorage`). Any other error (auth, permission, validation)
+  propagates untouched so a stale cache cannot mask a real rejection.
+
+- **Transaction writes** are the only offline write surface (per PRD §7: "Transactions can be added
+  offline and sync automatically on reconnect"): `OfflineFirstTransactionRepository`'s
+  `addTransaction` / `updateTransaction` / `deleteTransaction` park the operation in
+  `core/offline/OfflineQueue` (persistent FIFO JSON array via `SyncManager.enqueue`) when the
+  network call fails, and return a synthetic `Transaction` with a negative temp id + `clientId`
+  (`Transaction.isPending`) so the UI shows it immediately. Deleting a still-pending create drops
+  the queued `AddTransaction` outright. Every other write surface (categories, profile, members)
+  deliberately passes through and surfaces the `NetworkException` inline.
+
+- **Sync:** `core/offline/SyncManager` drains the queue FIFO against the real transaction repo
+  (never the wrapper) on each offline→online transition — `App.kt` observes
+  `core/util/ConnectivityObserver` (`ConnectivityManager` on Android, Network.framework's
+  `nw_path_monitor_*` C API on iOS — K/N 1.9.23 exposes the C API, not the ObjC NWPathMonitor
+  class). `ConflictResolver` implements "server wins, append-only safe": adds never conflict (new
+  rows); edit/delete conflicts and permanent 4xx rejections discard the change + emit a
+  `SyncEvent.Rejected` (snackbar); transient / 5xx / 429 / expired-token keep it queued. Pending
+  creates resolve to server ids via a clientId→serverId map populated as adds replay (queue is
+  FIFO, so the Add always precedes ops that reference it). `pendingCount` StateFlow drives the
+  amber "N pending" top-bar badge. Cache is updated on every successful sync so offline reads
+  stay current. Unit tests live in `composeApp/src/commonTest/.../core/offline/`.
 
 **Architecture choices made in Phase 1 (carry forward into later phases):**
 - Navigation is a hand-rolled `core/navigation/AppNavController` (sealed `Screen` + back-stack list),
