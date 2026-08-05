@@ -13,6 +13,9 @@ data class HouseholdMembersUiState(
     // member-management UI (role changes, remove, invite, revoke) for Admin/Owner only. null
     // until the household is loaded; treat as "no admin privileges".
     val currentUserRole: MemberRole? = null,
+    // The signed-in member's user id — used to hide the self-action menu on the viewer's own
+    // row (self-promote/demote/remove is backend-blocked).
+    val currentUserId: Long? = null,
     val errorMessage: String? = null,
     val pendingRoleChange: RoleChangeRequest? = null,
     val pendingRemoveMember: HouseholdMember? = null,

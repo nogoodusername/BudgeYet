@@ -28,7 +28,8 @@ class HouseholdMembersController(
                     it.copy(
                         isLoading = false,
                         household = household,
-                        currentUserRole = household.currentMemberRole(currentUserId)
+                        currentUserRole = household.currentMemberRole(currentUserId),
+                        currentUserId = currentUserId
                     )
                 }
             } catch (t: Throwable) {
@@ -53,6 +54,7 @@ class HouseholdMembersController(
                         isProcessing = false,
                         household = household,
                         currentUserRole = household.currentMemberRole(currentUserId),
+                        currentUserId = currentUserId,
                         pendingRoleChange = null
                     )
                 }
@@ -77,6 +79,7 @@ class HouseholdMembersController(
                         isProcessing = false,
                         household = household,
                         currentUserRole = household.currentMemberRole(currentUserId),
+                        currentUserId = currentUserId,
                         pendingRemoveMember = null
                     )
                 }
@@ -95,7 +98,8 @@ class HouseholdMembersController(
                     it.copy(
                         processingInviteId = null,
                         household = household,
-                        currentUserRole = household.currentMemberRole(currentUserId)
+                        currentUserRole = household.currentMemberRole(currentUserId),
+                        currentUserId = currentUserId
                     )
                 }
             } catch (t: Throwable) {

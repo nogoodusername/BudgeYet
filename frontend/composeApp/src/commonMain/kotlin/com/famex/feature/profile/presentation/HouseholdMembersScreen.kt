@@ -139,6 +139,7 @@ fun HouseholdMembersScreen(
                                 MemberRow(
                                     member = member,
                                     canManage = canManageMembers,
+                                    currentUserId = uiState.currentUserId,
                                     onRoleChange = { newRole -> onRequestRoleChange(member, newRole) },
                                     onRemove = { onRequestRemove(member) }
                                 )
@@ -264,6 +265,7 @@ fun HouseholdMembersScreen(
 private fun MemberRow(
     member: HouseholdMember,
     canManage: Boolean,
+    currentUserId: Long?,
     onRoleChange: (MemberRole) -> Unit,
     onRemove: () -> Unit
 ) {
@@ -319,7 +321,8 @@ private fun MemberRow(
         // promoted to Owner (an automatic ownership transfer, see updateMemberRole). The whole
         // menu is hidden from plain Members (canManage == false): role changes and removal are
         // Admin/Owner-only actions, so there's nothing a Member could legitimately do here.
-        if (canManage && member.role != MemberRole.OWNER) {
+        // Also hidden on the viewer's own row: self-promote/demote/remove is backend-blocked.
+        if (canManage && member.role != MemberRole.OWNER && member.user.id != currentUserId) {
             Box {
                 IconButton(onClick = { menuExpanded = true }) {
                     Icon(imageVector = Icons.Default.MoreVert, contentDescription = "Member actions", tint = MaterialTheme.colorScheme.onSurface)
