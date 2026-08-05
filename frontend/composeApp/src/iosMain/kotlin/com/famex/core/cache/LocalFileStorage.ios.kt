@@ -9,6 +9,8 @@ import kotlinx.cinterop.toKString
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import platform.Foundation.NSFileManager
+import platform.Foundation.NSFileProtectionCompleteUntilFirstUserAuthentication
+import platform.Foundation.NSFileProtectionKey
 import platform.Foundation.NSHomeDirectory
 import platform.posix.FILE
 import platform.posix.SEEK_END
@@ -45,7 +47,13 @@ private class IosLocalFileStorage : LocalFileStorage {
 
     override suspend fun writeString(key: String, value: String) = withContext(Dispatchers.Default) {
         ensureCacheDir()
-        writeFile(filePathFor(key), value)
+        val path = filePathFor(key)
+        writeFile(path, value)
+        // Apply NSFileProtectionCompleteUntilFirstUserAuthentication so the cached data is
+        // encrypted at rest when the device is locked (iOS Data Protection). The directory's
+        // own protection is set in ensureCacheDir, but posix-created files don't inherit it
+        // automatically — NSFileManager.setAttributes is needed explicitly per-file.
+        setProtection(path)
         Unit
     }
 
@@ -67,6 +75,11 @@ private class IosLocalFileStorage : LocalFileStorage {
             attributes = null,
             error = null
         )
+        // Files under Library/Caches are not backed up by default, but they are still stored
+        // in plaintext when the device is locked. NSFileProtectionCompleteUntilFirstUserAuth
+        // ensures the directory + its contents are encrypted with the device passcode and only
+        // accessible after the user has unlocked the device at least once since boot.
+        setProtection(cacheDirPath)
     }
 
     private fun readFile(path: String): String? = memScoped {
@@ -92,6 +105,17 @@ private class IosLocalFileStorage : LocalFileStorage {
         } finally {
             fclose(file)
         }
+    }
+
+    // iOS Data Protection: mark a file or directory as device-passcode-encrypted. After this,
+    // the item is only readable while the device is unlocked (has been unlocked once since boot).
+    // setAttributes uses C-style error pointers, hence @OptIn(ExperimentalForeignApi).
+    private fun setProtection(path: String) {
+        NSFileManager.defaultManager.setAttributes(
+            mapOf(NSFileProtectionKey to NSFileProtectionCompleteUntilFirstUserAuthentication),
+            ofItemAtPath = path,
+            error = null
+        )
     }
 
     companion object {

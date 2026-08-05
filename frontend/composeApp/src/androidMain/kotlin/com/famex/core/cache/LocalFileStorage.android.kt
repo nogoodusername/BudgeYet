@@ -5,12 +5,13 @@ import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-// One file per key, under an app-private filesDir subdirectory (never backed up, per
-// AndroidAutoBackup defaults for filesDir). Each op hops to Dispatchers.IO — the SharedPreferences
-// actual's threading pattern, so file I/O never blocks the main thread.
+// One file per key, under the device-level noBackupFilesDir (available from API 21+, minSdk is 24)
+// — files here are automatically excluded from Android Auto Backup, matching the semantics of
+// iOS Library/Caches (server-state mirror, safe to lose). Each op hops to Dispatchers.IO — the
+// SharedPreferences actual's threading pattern, so file I/O never blocks the main thread.
 private class AndroidLocalFileStorage : LocalFileStorage {
     private val cacheDir: File
-        get() = File(AndroidAppContext.applicationContext.filesDir, DIR_NAME).apply { mkdirs() }
+        get() = File(AndroidAppContext.applicationContext.noBackupFilesDir, DIR_NAME).apply { mkdirs() }
 
     private fun fileFor(key: String): File = File(cacheDir, key.replace(Regex("[^A-Za-z0-9._-]"), "_"))
 
