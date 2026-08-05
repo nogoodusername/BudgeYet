@@ -66,8 +66,18 @@ fun App() {
             // into MainAppShell instead of flashing OnboardingRoute first.
             var isRestoringSession by remember { mutableStateOf(true) }
 
+            // Keeps CurrentHouseholdHolder (core/session/) in step with the session — Real
+            // repositories whose interface doesn't take a household id (CategoryRepository
+            // today, more to follow) read it from there. MainAppShell only ever renders once
+            // newSession.household is non-null, so the holder is always populated by the time
+            // any of those repositories can actually be called.
+            fun updateSession(newSession: AuthSession?) {
+                session = newSession
+                container.currentHouseholdHolder.householdId = newSession?.household?.id
+            }
+
             LaunchedEffect(container) {
-                session = container.authRepository.getPersistedSession()
+                updateSession(container.authRepository.getPersistedSession())
                 isRestoringSession = false
             }
 
@@ -79,14 +89,14 @@ fun App() {
                 if (currentSession == null) {
                     OnboardingRoute(
                         onOnboardingComplete = { newSession ->
-                            session = newSession
+                            updateSession(newSession)
                             scope.launch { container.authRepository.persistSession(newSession) }
                         }
                     )
                 } else {
                     MainAppShell(
                         onSignOut = {
-                            session = null
+                            updateSession(null)
                             scope.launch { container.authRepository.clearPersistedSession() }
                         }
                     )

@@ -6,6 +6,7 @@ import com.famex.core.model.Household
 import com.famex.core.model.HouseholdMember
 import com.famex.core.model.MemberRole
 import com.famex.core.model.User
+import com.famex.core.network.apiUrl
 import com.famex.core.persistence.SettingsStorage
 import com.famex.core.util.todayLocalDate
 import com.famex.feature.auth.domain.AuthRepository
@@ -163,7 +164,7 @@ class FakeAuthRepository(
     // even if the target server's database isn't configured, which is exactly what "is this URL
     // a live Fam-Ex server" needs to check, independent of whether it's fully set up yet.
     override suspend fun checkServerReachable(url: String) {
-        val pingUrl = "${url.trim().trimEnd('/')}/api/v1/ping"
+        val pingUrl = BackendConfig.Custom(url).apiUrl("/ping")
         try {
             val response = httpClient.get(pingUrl)
             if (!response.status.isSuccess()) {
