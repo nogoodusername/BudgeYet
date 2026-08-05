@@ -11,7 +11,8 @@ import kotlinx.coroutines.launch
 
 class ProfileController(
     private val repository: ProfileRepository,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
+    private val currentUserId: Long?
 ) {
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
@@ -27,6 +28,7 @@ class ProfileController(
                         isLoading = false,
                         user = user,
                         household = household,
+                        currentUserRole = household.currentMemberRole(currentUserId),
                         fullNameDraft = user.fullName,
                         nicknameDraft = user.nickname
                     )
@@ -63,19 +65,29 @@ class ProfileController(
         }
     }
 
-    // Everything below applies immediately on selection — no separate Save step.
+    // Everything below applies immediately on selection — no separate Save step. The two
+    // household-setting setters are admin-only server-side; a 403 must surface like every other
+    // action error rather than crashing the coroutine (they previously had no catch at all).
 
     fun onCurrencyChange(value: String) {
         scope.launch {
-            val household = repository.updateCurrency(value)
-            _uiState.update { it.copy(household = household) }
+            try {
+                val household = repository.updateCurrency(value)
+                _uiState.update { it.copy(household = household) }
+            } catch (t: Throwable) {
+                _uiState.update { it.copy(saveError = t.message ?: "Couldn't update currency") }
+            }
         }
     }
 
     fun onLanguageChange(value: String) {
         scope.launch {
-            val household = repository.updateLanguage(value)
-            _uiState.update { it.copy(household = household) }
+            try {
+                val household = repository.updateLanguage(value)
+                _uiState.update { it.copy(household = household) }
+            } catch (t: Throwable) {
+                _uiState.update { it.copy(saveError = t.message ?: "Couldn't update language") }
+            }
         }
     }
 

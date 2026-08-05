@@ -9,6 +9,10 @@ data class RoleChangeRequest(val member: HouseholdMember, val newRole: MemberRol
 data class HouseholdMembersUiState(
     val isLoading: Boolean = false,
     val household: Household? = null,
+    // The signed-in member's role, derived from household.members after load — gates the
+    // member-management UI (role changes, remove, invite, revoke) for Admin/Owner only. null
+    // until the household is loaded; treat as "no admin privileges".
+    val currentUserRole: MemberRole? = null,
     val errorMessage: String? = null,
     val pendingRoleChange: RoleChangeRequest? = null,
     val pendingRemoveMember: HouseholdMember? = null,

@@ -74,6 +74,7 @@ fun App() {
             fun updateSession(newSession: AuthSession?) {
                 session = newSession
                 container.currentHouseholdHolder.householdId = newSession?.household?.id
+                container.currentHouseholdHolder.userId = newSession?.user?.id
             }
 
             LaunchedEffect(container) {
