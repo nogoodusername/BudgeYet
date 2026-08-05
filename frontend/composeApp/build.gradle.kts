@@ -76,6 +76,13 @@ kotlin {
                 implementation(libs.ktor.client.darwin)
             }
         }
+
+        val commonTest by getting {
+            dependencies {
+                implementation(libs.kotlin.test)
+                implementation(libs.kotlinx.coroutines.test)
+            }
+        }
     }
 
 

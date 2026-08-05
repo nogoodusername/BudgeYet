@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.sp
 import com.famex.core.model.Transaction
 import com.famex.core.model.TransactionType
 import com.famex.core.util.formatAmount
+import com.famex.theme.BrandAmber
 import com.famex.theme.BrandCoral
 import com.famex.theme.BrandTeal
 
@@ -60,6 +61,17 @@ fun TransactionRow(
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
+                    // Offline-created transaction waiting in the write queue (clientId != null) —
+                    // it exists locally but hasn't been confirmed by the server yet.
+                    if (transaction.isPending) {
+                        Text(
+                            text = "Pending sync",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = BrandAmber,
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
+                    }
                 }
             }
 
