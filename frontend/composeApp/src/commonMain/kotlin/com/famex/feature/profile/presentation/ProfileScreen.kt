@@ -116,6 +116,10 @@ private fun ProfileContent(
     val famExType = LocalFamExTypography.current
     val user = uiState.user!!
     val household = uiState.household!!
+    // Currency/language edits and Manage Members are Admin/Owner-only (PRD §5/E2) — hide the
+    // whole Household Settings card from plain Members instead of letting them 403 after the
+    // fact. Personal Settings (display mode) stays visible to everyone.
+    val canManageHousehold = uiState.currentUserRole?.isAdminOrOwner == true
 
     LazyColumn(
         modifier = modifier.fillMaxSize().padding(horizontal = 16.dp),
@@ -136,29 +140,31 @@ private fun ProfileContent(
             )
         }
 
-        item {
-            SettingsCard(title = "Household Settings") {
-                ManageMembersRow(onClick = onManageMembers)
-                HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
-                SettingsDropdownRow(
-                    icon = Icons.Default.Payments,
-                    iconTint = MaterialTheme.colorScheme.secondary,
-                    title = "Primary Currency",
-                    subtitle = "Used for all dashboard views",
-                    options = currencyOptions,
-                    selectedValue = household.currency,
-                    onSelect = onCurrencyChange
-                )
-                HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
-                SettingsDropdownRow(
-                    icon = Icons.Default.Language,
-                    iconTint = MaterialTheme.colorScheme.secondary,
-                    title = "Language",
-                    subtitle = "App interface language",
-                    options = languageOptions,
-                    selectedValue = household.language,
-                    onSelect = onLanguageChange
-                )
+        if (canManageHousehold) {
+            item {
+                SettingsCard(title = "Household Settings") {
+                    ManageMembersRow(onClick = onManageMembers)
+                    HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+                    SettingsDropdownRow(
+                        icon = Icons.Default.Payments,
+                        iconTint = MaterialTheme.colorScheme.secondary,
+                        title = "Primary Currency",
+                        subtitle = "Used for all dashboard views",
+                        options = currencyOptions,
+                        selectedValue = household.currency,
+                        onSelect = onCurrencyChange
+                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+                    SettingsDropdownRow(
+                        icon = Icons.Default.Language,
+                        iconTint = MaterialTheme.colorScheme.secondary,
+                        title = "Language",
+                        subtitle = "App interface language",
+                        options = languageOptions,
+                        selectedValue = household.language,
+                        onSelect = onLanguageChange
+                    )
+                }
             }
         }
 

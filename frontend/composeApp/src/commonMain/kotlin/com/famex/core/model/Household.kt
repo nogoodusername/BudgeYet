@@ -7,7 +7,15 @@ import kotlinx.serialization.Serializable
 // Ordered high-to-low: OWNER is a single-holder role (transferred, not duplicated) — see
 // FakeProfileRepository.updateMemberRole, which demotes the outgoing Owner to Admin whenever
 // a member is promoted to Owner.
-enum class MemberRole { OWNER, ADMIN, MEMBER }
+enum class MemberRole {
+    OWNER, ADMIN, MEMBER;
+
+    // Admin *or* Owner can manage household settings and members (PRD §5) — Owner is a
+    // superset of Admin, so this is the check the profile/members UI gates its admin-only
+    // actions behind. Member is the only role it excludes.
+    val isAdminOrOwner: Boolean
+        get() = this == ADMIN || this == OWNER
+}
 
 @Serializable
 data class HouseholdMember(
@@ -45,6 +53,12 @@ data class Household(
     @Serializable(with = LocalDateIso8601Serializer::class)
     val joinCodeExpiresAt: LocalDate
 ) {
+    // The signed-in member's role in this household, looked up by user id. null when the
+    // userId doesn't match any member (shouldn't happen inside a household, but callers must
+    // treat null as "no admin privileges" rather than assume a role).
+    fun currentMemberRole(userId: Long?): MemberRole? =
+        userId?.let { id -> members.find { it.user.id == id }?.role }
+
     companion object {
         const val MAX_MEMBERS = 3
         const val JOIN_CODE_EXPIRY_DAYS = 7

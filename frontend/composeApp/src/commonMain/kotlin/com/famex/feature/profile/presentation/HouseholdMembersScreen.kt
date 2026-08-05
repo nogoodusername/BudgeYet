@@ -108,6 +108,10 @@ fun HouseholdMembersScreen(
         uiState.household != null -> {
             val household = uiState.household
             val atCapacity = household.members.size >= Household.MAX_MEMBERS
+            // Role changes, remove, invite, and revoke are Admin/Owner-only (PRD §5/E1) — hide
+            // them from plain Members instead of letting them 403 after the fact. The members
+            // list itself stays readable for everyone.
+            val canManageMembers = uiState.currentUserRole?.isAdminOrOwner == true
 
             LazyColumn(
                 modifier = modifier.fillMaxSize().padding(horizontal = 16.dp),
@@ -134,6 +138,7 @@ fun HouseholdMembersScreen(
                             household.members.forEachIndexed { index, member ->
                                 MemberRow(
                                     member = member,
+                                    canManage = canManageMembers,
                                     onRoleChange = { newRole -> onRequestRoleChange(member, newRole) },
                                     onRemove = { onRequestRemove(member) }
                                 )
@@ -148,35 +153,38 @@ fun HouseholdMembersScreen(
                 items(household.pendingInvites, key = { it.id }) { invite ->
                     PendingInviteCard(
                         invite = invite,
+                        canRevoke = canManageMembers,
                         isProcessing = uiState.processingInviteId == invite.id,
                         errorMessage = uiState.inviteActionError.takeIf { uiState.failedInviteId == invite.id },
                         onRevoke = { onRevokeInvite(invite) }
                     )
                 }
 
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(if (atCapacity) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f) else BrandTeal.copy(alpha = 0.12f))
-                            .then(if (atCapacity) Modifier else Modifier.clickable(onClick = onNavigateToInvite))
-                            .padding(vertical = 14.dp),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.PersonAdd,
-                            contentDescription = null,
-                            tint = if (atCapacity) MaterialTheme.colorScheme.onSurfaceVariant else BrandTeal,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = if (atCapacity) "Household is full (${household.members.size}/${Household.MAX_MEMBERS})" else "Invite Member",
-                            style = famExType.headlineSm,
-                            color = if (atCapacity) MaterialTheme.colorScheme.onSurfaceVariant else BrandTeal
-                        )
+                if (canManageMembers) {
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (atCapacity) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f) else BrandTeal.copy(alpha = 0.12f))
+                                .then(if (atCapacity) Modifier else Modifier.clickable(onClick = onNavigateToInvite))
+                                .padding(vertical = 14.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PersonAdd,
+                                contentDescription = null,
+                                tint = if (atCapacity) MaterialTheme.colorScheme.onSurfaceVariant else BrandTeal,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = if (atCapacity) "Household is full (${household.members.size}/${Household.MAX_MEMBERS})" else "Invite Member",
+                                style = famExType.headlineSm,
+                                color = if (atCapacity) MaterialTheme.colorScheme.onSurfaceVariant else BrandTeal
+                            )
+                        }
                     }
                 }
 
@@ -253,7 +261,12 @@ fun HouseholdMembersScreen(
 }
 
 @Composable
-private fun MemberRow(member: HouseholdMember, onRoleChange: (MemberRole) -> Unit, onRemove: () -> Unit) {
+private fun MemberRow(
+    member: HouseholdMember,
+    canManage: Boolean,
+    onRoleChange: (MemberRole) -> Unit,
+    onRemove: () -> Unit
+) {
     val famExType = LocalFamExTypography.current
     var menuExpanded by remember { mutableStateOf(false) }
 
@@ -303,8 +316,10 @@ private fun MemberRow(member: HouseholdMember, onRoleChange: (MemberRole) -> Uni
         }
 
         // Owner has no self-action menu — its status only changes when someone else is
-        // promoted to Owner (an automatic ownership transfer, see updateMemberRole).
-        if (member.role != MemberRole.OWNER) {
+        // promoted to Owner (an automatic ownership transfer, see updateMemberRole). The whole
+        // menu is hidden from plain Members (canManage == false): role changes and removal are
+        // Admin/Owner-only actions, so there's nothing a Member could legitimately do here.
+        if (canManage && member.role != MemberRole.OWNER) {
             Box {
                 IconButton(onClick = { menuExpanded = true }) {
                     Icon(imageVector = Icons.Default.MoreVert, contentDescription = "Member actions", tint = MaterialTheme.colorScheme.onSurface)
@@ -342,6 +357,7 @@ private fun MemberRow(member: HouseholdMember, onRoleChange: (MemberRole) -> Uni
 @Composable
 private fun PendingInviteCard(
     invite: PendingInvite,
+    canRevoke: Boolean,
     isProcessing: Boolean,
     errorMessage: String?,
     onRevoke: () -> Unit
@@ -395,13 +411,15 @@ private fun PendingInviteCard(
 
             Spacer(modifier = Modifier.height(12.dp))
             HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                TextButton(onClick = onRevoke, enabled = !isProcessing) {
-                    Text(text = if (isProcessing) "Revoking…" else "Revoke", style = famExType.labelMd, color = MaterialTheme.colorScheme.error)
+            if (canRevoke) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(onClick = onRevoke, enabled = !isProcessing) {
+                        Text(text = if (isProcessing) "Revoking…" else "Revoke", style = famExType.labelMd, color = MaterialTheme.colorScheme.error)
+                    }
                 }
             }
         }

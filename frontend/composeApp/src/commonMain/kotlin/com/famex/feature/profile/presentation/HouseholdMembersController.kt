@@ -13,7 +13,8 @@ import kotlinx.coroutines.launch
 
 class HouseholdMembersController(
     private val repository: ProfileRepository,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
+    private val currentUserId: Long?
 ) {
     private val _uiState = MutableStateFlow(HouseholdMembersUiState())
     val uiState: StateFlow<HouseholdMembersUiState> = _uiState.asStateFlow()
@@ -23,7 +24,13 @@ class HouseholdMembersController(
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             try {
                 val household = repository.getHousehold()
-                _uiState.update { it.copy(isLoading = false, household = household) }
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        household = household,
+                        currentUserRole = household.currentMemberRole(currentUserId)
+                    )
+                }
             } catch (t: Throwable) {
                 _uiState.update { it.copy(isLoading = false, errorMessage = t.message ?: "Something went wrong") }
             }
@@ -41,7 +48,14 @@ class HouseholdMembersController(
             _uiState.update { it.copy(isProcessing = true, actionError = null) }
             try {
                 val household = repository.updateMemberRole(request.member.id, request.newRole)
-                _uiState.update { it.copy(isProcessing = false, household = household, pendingRoleChange = null) }
+                _uiState.update {
+                    it.copy(
+                        isProcessing = false,
+                        household = household,
+                        currentUserRole = household.currentMemberRole(currentUserId),
+                        pendingRoleChange = null
+                    )
+                }
             } catch (t: Throwable) {
                 _uiState.update { it.copy(isProcessing = false, actionError = t.message ?: "Couldn't update role") }
             }
@@ -58,7 +72,14 @@ class HouseholdMembersController(
             _uiState.update { it.copy(isProcessing = true, actionError = null) }
             try {
                 val household = repository.removeMember(member.id)
-                _uiState.update { it.copy(isProcessing = false, household = household, pendingRemoveMember = null) }
+                _uiState.update {
+                    it.copy(
+                        isProcessing = false,
+                        household = household,
+                        currentUserRole = household.currentMemberRole(currentUserId),
+                        pendingRemoveMember = null
+                    )
+                }
             } catch (t: Throwable) {
                 _uiState.update { it.copy(isProcessing = false, actionError = t.message ?: "Couldn't remove member") }
             }
@@ -70,7 +91,13 @@ class HouseholdMembersController(
             _uiState.update { it.copy(processingInviteId = invite.id, failedInviteId = null, inviteActionError = null) }
             try {
                 val household = repository.revokeInvite(invite.id)
-                _uiState.update { it.copy(processingInviteId = null, household = household) }
+                _uiState.update {
+                    it.copy(
+                        processingInviteId = null,
+                        household = household,
+                        currentUserRole = household.currentMemberRole(currentUserId)
+                    )
+                }
             } catch (t: Throwable) {
                 _uiState.update {
                     it.copy(processingInviteId = null, failedInviteId = invite.id, inviteActionError = t.message ?: "Couldn't revoke invite")
