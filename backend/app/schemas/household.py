@@ -21,6 +21,7 @@ class HouseholdUpdate(BaseModel):
 
 class HouseholdMemberResponse(BaseModel):
     id: int
+    household_id: int
     user: UserResponse
     role: MemberRole
     joined_at: datetime
