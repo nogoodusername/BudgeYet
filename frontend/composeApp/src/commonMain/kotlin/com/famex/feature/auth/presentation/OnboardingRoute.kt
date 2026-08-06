@@ -159,7 +159,11 @@ private fun OnboardingTopBar(title: String, canGoBack: Boolean, onBack: () -> Un
     ) {
         if (canGoBack) {
             IconButton(onClick = onBack) {
-                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
             }
         } else {
             Spacer(modifier = Modifier.width(48.dp))

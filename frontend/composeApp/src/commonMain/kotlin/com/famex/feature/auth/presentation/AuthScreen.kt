@@ -77,7 +77,11 @@ fun AuthScreen(
         ) {
             Text(text = "Fam-Ex", style = famExType.headlineMd, color = MaterialTheme.colorScheme.onSurface)
             IconButton(onClick = onOpenBackendConfig) {
-                Icon(imageVector = Icons.Default.Settings, contentDescription = "Backend Configuration")
+                Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = "Backend Configuration",
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
             }
         }
 
