@@ -216,15 +216,25 @@ instead of editing `pyproject.toml` by hand — it keeps `uv.lock` in sync autom
 
 ## Frontend (`frontend/`)
 
-**Stack:** Kotlin Multiplatform + Compose Multiplatform targeting Android, iOS, and Web (Wasm/JS), with
-Ktor as the HTTP client. Package root is `com.famex`.
+**Stack:** Kotlin Multiplatform + Compose Multiplatform targeting Android, iOS, and Web (JS), with
+Ktor as the HTTP client. Package root is `com.famex`. The web target uses `js(IR)` (Kotlin/JS) with
+`org.jetbrains.compose.experimental.jscanvas.enabled=true` in `gradle.properties` — the `wasmJs`
+target was replaced because Ktor 2.3.9 doesn't support Wasm. Web output is a static webpack bundle
+deployable to any static host (Cloudflare Pages, Netlify, Vercel).
 
 **Source sets** (under `composeApp/src/`):
 - `commonMain/` — shared UI (Compose), state, domain models, networking. Put new feature code here by
   default; only drop into a platform-specific source set for genuine platform APIs.
 - `androidMain/` — `MainActivity`, manifest, Android-only integrations.
 - `iosMain/` — `MainViewController` bridge consumed by the Xcode wrapper in `iosApp/`.
-- `wasmJsMain/` — browser entrypoint (`main.kt`) and `index.html`.
+- `jsMain/` — browser entrypoint (`main.kt`), `index.html`, and platform `actual` implementations
+  for the Kotlin/JS target (`js(IR)`). Uses `ktor-client-js` as the HTTP engine (same Ktor 2.3.9
+  version as Android/iOS). Four `expect`/`actual` pairs live here:
+  - `SettingsStorage.js.kt` — backed by `window.localStorage`
+  - `LocalFileStorage.js.kt` — backed by `window.localStorage` with `famex_cache_` key prefix
+  - `BackHandler.js.kt` — no-op (browser handles its own back navigation)
+  - `ConnectivityObserver.js.kt` — backed by `navigator.onLine` + `online`/`offline` events
+  The old `wasmJsMain/` directory is orphaned (the `wasmJs` target was replaced by `js(IR)`).
 
 For KMP/Compose development guidance (architecture, Koin, Ktor, Room KMP, iOS interop, testing), see the vendored
 guide in [`docs/kmp-compose-multiplatform/`](docs/kmp-compose-multiplatform/README.md) — start at `SKILL.md` and
@@ -236,7 +246,8 @@ where it conflicts with this file's frontend conventions, this file wins.
 ```bash
 cd frontend
 ./gradlew :composeApp:assembleDebug                          # Android
-./gradlew :composeApp:wasmJsBrowserDevelopmentRun             # Web (serves at localhost:8080)
+./gradlew :composeApp:jsBrowserDevelopmentRun                 # Web (serves at localhost:8080, hot-reload)
+./gradlew :composeApp:jsBrowserProductionWebpack              # Web production bundle (output: build/dist/js/productionExecutable/)
 ./gradlew :composeApp:embedAndSignAppleFrameworkForXcode      # iOS framework (then open iosApp/iosApp.xcodeproj in Xcode)
 ```
 Toolchain: Kotlin 1.9.23, Compose Multiplatform 1.6.1, Ktor 2.3.9, AGP 8.2.2, JDK 17. Versions are pinned
@@ -324,7 +335,8 @@ assumptions:
 - `uv.lock` is committed and CI runs `uv sync --frozen` (fails instead of silently re-resolving if the
   lockfile is stale) — if you add/bump a dependency, run `uv lock` (or `uv add`/`uv add --group dev`,
   which updates the lock for you) and commit the result alongside the `pyproject.toml` change.
-- `frontend-ci.yml`: validates Gradle build graph for Android, Web Wasm, and iOS framework compile targets
-  on every PR touching `frontend/**`.
+- `frontend-ci.yml`: validates Gradle build graph for Android, Web JS, and iOS framework compile targets
+  on every PR touching `frontend/**`. The web JS target uses `jsMainClasses` (compilation, not full
+  webpack bundling) for CI speed — the full production bundle is produced by `jsBrowserProductionWebpack`.
 
 Only run/validate the pipeline(s) relevant to the code you changed.

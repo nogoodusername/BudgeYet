@@ -36,8 +36,8 @@ jobs:
           cd frontend
           ./gradlew :composeApp:tasks || echo "Gradle tasks validated"
 
-  build-web-wasm:
-    name: Build Web Wasm Target
+  build-web-js:
+    name: Build Web JS Target
     runs-on: ubuntu-latest
 
     steps:
@@ -51,10 +51,10 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
-      - name: Validate Web Wasm Build
+      - name: Validate Web JS Build
         run: |
           cd frontend
-          ./gradlew :composeApp:wasmJsDevelopmentExecutableCompileSync || echo "Wasm build validated"
+          ./gradlew :composeApp:jsMainClasses
 
   build-ios-framework:
     name: Build iOS KMP Framework Target
