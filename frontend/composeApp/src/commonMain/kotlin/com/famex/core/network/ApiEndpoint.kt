@@ -2,11 +2,9 @@ package com.famex.core.network
 
 import com.famex.core.model.BackendConfig
 
-// No hosted fam-ex deployment exists yet (see AGENTS.md — install.sh only documents self-hosting
-// so far), so BackendConfig.Hosted has nothing real to resolve to yet. This placeholder uses the
-// RFC 2606 reserved "example.com" domain rather than a fabricated-looking real host — update
-// this constant, not call sites, once a hosted URL exists.
-private const val HOSTED_BASE_URL = "https://api.famex.example.com"
+// Hosted deployment at fam-ex-api.imhx.top — update this constant, not call sites, if the
+// hosted URL changes.
+private const val HOSTED_BASE_URL = "https://fam-ex-api.imhx.top"
 
 private const val API_PREFIX = "/api/v1"
 
