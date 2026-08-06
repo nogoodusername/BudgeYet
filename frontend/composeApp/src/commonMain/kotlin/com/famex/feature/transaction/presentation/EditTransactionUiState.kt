@@ -18,6 +18,7 @@ data class EditTransactionUiState(
     val selectedCategoryId: Long? = null,
     val selectedDate: LocalDate = todayLocalDate(),
     val householdMembers: List<HouseholdMember> = emptyList(),
+    val currency: String = "USD",
     val paidByMemberId: Long? = null,
     val paymentMode: PaymentMode = PaymentMode.CARD,
     val notes: String = "",

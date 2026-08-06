@@ -34,6 +34,7 @@ import com.famex.core.ui.PaidByFieldCard
 import com.famex.core.ui.PaymentModeFieldCard
 import com.famex.core.ui.TextFieldCard
 import com.famex.core.ui.TransactionTypeToggle
+import com.famex.core.util.currencySymbolFor
 import com.famex.theme.LocalFamExTypography
 
 // This one screen doubles as both the "Log Expense" and "Log Income" Stitch designs — they're
@@ -70,7 +71,13 @@ fun LogExpenseScreen(
     ) {
         item { TransactionTypeToggle(selected = uiState.type, onSelect = onTypeChange) }
 
-        item { AmountEntryCard(amountText = uiState.amountText, onAmountChange = onAmountChange) }
+        item {
+            AmountEntryCard(
+                amountText = uiState.amountText,
+                onAmountChange = onAmountChange,
+                currencySymbol = currencySymbolFor(uiState.currency)
+            )
+        }
 
         item {
             TextFieldCard(

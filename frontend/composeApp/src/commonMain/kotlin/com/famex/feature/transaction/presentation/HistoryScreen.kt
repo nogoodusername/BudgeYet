@@ -151,7 +151,7 @@ private fun HistoryContent(
     modifier: Modifier = Modifier
 ) {
     val famExType = LocalFamExTypography.current
-    val currencySymbol = currencySymbolFor("USD")
+    val currencySymbol = currencySymbolFor(uiState.currency)
     val filtered = uiState.filteredTransactions
     val categoriesById = uiState.categoriesById
     val today = todayLocalDate()

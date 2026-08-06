@@ -1,6 +1,7 @@
 package com.famex.feature.category.presentation
 
 import com.famex.feature.category.domain.CategoryRepository
+import com.famex.feature.profile.domain.ProfileRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,6 +18,7 @@ sealed class AddCategoryEvent {
 
 class AddCategoryController(
     private val repository: CategoryRepository,
+    private val profileRepository: ProfileRepository,
     private val scope: CoroutineScope
 ) {
     private val _uiState = MutableStateFlow(AddCategoryUiState())
@@ -25,6 +27,13 @@ class AddCategoryController(
     // Save is a one-time event, not state — matches the AddTransaction controller's pattern.
     private val _events = MutableSharedFlow<AddCategoryEvent>(replay = 0, extraBufferCapacity = 1)
     val events: SharedFlow<AddCategoryEvent> = _events.asSharedFlow()
+
+    fun load() {
+        scope.launch {
+            val household = profileRepository.getHousehold()
+            _uiState.update { it.copy(currency = household.currency) }
+        }
+    }
 
     fun onNameChange(value: String) = _uiState.update { it.copy(name = value, saveError = null) }
 

@@ -1,6 +1,7 @@
 package com.famex.feature.category.presentation
 
 import com.famex.feature.category.domain.CategoryRepository
+import com.famex.feature.profile.domain.ProfileRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -11,6 +12,7 @@ import kotlin.math.roundToInt
 
 class CategoryListController(
     private val repository: CategoryRepository,
+    private val profileRepository: ProfileRepository,
     private val scope: CoroutineScope
 ) {
     private val _uiState = MutableStateFlow(CategoryListUiState())
@@ -21,12 +23,14 @@ class CategoryListController(
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             try {
                 val categories = repository.getCategories()
+                val household = profileRepository.getHousehold()
                 _uiState.update {
                     it.copy(
                         isLoading = false,
                         categories = categories,
                         limitDrafts = categories.associate { c -> c.id to formatDraft(c.monthlyLimit) },
-                        totalMonthlyBudget = categories.sumOf { c -> c.monthlyLimit }
+                        totalMonthlyBudget = categories.sumOf { c -> c.monthlyLimit },
+                        currency = household.currency
                     )
                 }
             } catch (t: Throwable) {

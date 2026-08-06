@@ -107,7 +107,12 @@ private fun TypeToggleOption(label: String, selected: Boolean, onClick: () -> Un
 }
 
 @Composable
-fun AmountEntryCard(amountText: String, onAmountChange: (String) -> Unit, label: String = "Enter Amount") {
+fun AmountEntryCard(
+    amountText: String,
+    onAmountChange: (String) -> Unit,
+    currencySymbol: String,
+    label: String = "Enter Amount"
+) {
     val famExType = LocalFamExTypography.current
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -126,7 +131,7 @@ fun AmountEntryCard(amountText: String, onAmountChange: (String) -> Unit, label:
             )
             Spacer(modifier = Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.Bottom) {
-                Text(text = "$", style = famExType.headlineMd, color = MaterialTheme.colorScheme.secondary)
+                Text(text = currencySymbol, style = famExType.headlineMd, color = MaterialTheme.colorScheme.secondary)
                 Spacer(modifier = Modifier.width(4.dp))
                 BasicTextField(
                     value = amountText,

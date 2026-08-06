@@ -34,6 +34,7 @@ import com.famex.core.ui.NotesFieldCard
 import com.famex.core.ui.PaidByFieldCard
 import com.famex.core.ui.PaymentModeFieldCard
 import com.famex.core.ui.TextFieldCard
+import com.famex.core.util.currencySymbolFor
 import com.famex.theme.LocalFamExTypography
 
 @Composable
@@ -69,7 +70,14 @@ fun EditTransactionScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 contentPadding = PaddingValues(vertical = 16.dp)
             ) {
-                item { AmountEntryCard(amountText = uiState.amountText, onAmountChange = onAmountChange, label = "Amount") }
+                item {
+                    AmountEntryCard(
+                        amountText = uiState.amountText,
+                        onAmountChange = onAmountChange,
+                        currencySymbol = currencySymbolFor(uiState.currency),
+                        label = "Amount"
+                    )
+                }
 
                 item {
                     TextFieldCard(

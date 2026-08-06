@@ -59,6 +59,7 @@ import com.famex.theme.LocalFamExTypography
 @Composable
 fun ConfigureCategoriesScreen(
     uiState: ConfigureCategoriesUiState,
+    currencySymbol: String,
     onToggleCategory: (String) -> Unit,
     onLimitChange: (String, String) -> Unit,
     onCustomNameChange: (String, String) -> Unit,
@@ -132,6 +133,7 @@ fun ConfigureCategoriesScreen(
             items(uiState.categories, key = { it.key }) { category ->
                 CategoryConfigCard(
                     category = category,
+                    currencySymbol = currencySymbol,
                     onToggle = { onToggleCategory(category.key) },
                     onLimitChange = { onLimitChange(category.key, it) },
                     onNameChange = { onCustomNameChange(category.key, it) }
@@ -168,6 +170,7 @@ fun ConfigureCategoriesScreen(
 @Composable
 private fun CategoryConfigCard(
     category: ConfigureCategoryItem,
+    currencySymbol: String,
     onToggle: () -> Unit,
     onLimitChange: (String) -> Unit,
     onNameChange: (String) -> Unit
@@ -229,7 +232,7 @@ private fun CategoryConfigCard(
                         value = category.monthlyLimitText,
                         onValueChange = onLimitChange,
                         placeholder = { Text(text = "0.00", style = famExType.bodyMd) },
-                        leadingIcon = { Text(text = "$", style = famExType.bodyMd, color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                        leadingIcon = { Text(text = currencySymbol, style = famExType.bodyMd, color = MaterialTheme.colorScheme.onSurfaceVariant) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.fillMaxWidth(),

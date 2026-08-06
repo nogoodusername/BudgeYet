@@ -43,6 +43,7 @@ import com.famex.theme.LocalFamExTypography
 @Composable
 fun BudgetGoalScreen(
     uiState: BudgetGoalUiState,
+    currencySymbol: String,
     onBudgetNameChange: (String) -> Unit,
     onBudgetPeriodChange: (String) -> Unit,
     onGoalAmountChange: (String) -> Unit,
@@ -121,7 +122,7 @@ fun BudgetGoalScreen(
                     value = uiState.monthlyGoalAmountText,
                     onValueChange = onGoalAmountChange,
                     placeholder = { Text(text = "0.00", style = famExType.bodyLg) },
-                    leadingIcon = { Text(text = "$", style = famExType.bodyLg, color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    leadingIcon = { Text(text = currencySymbol, style = famExType.bodyLg, color = MaterialTheme.colorScheme.onSurfaceVariant) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth(),

@@ -33,7 +33,8 @@ class HistoryController(
                         isLoading = false,
                         transactions = transactions,
                         householdMembers = household.members,
-                        categories = categories
+                        categories = categories,
+                        currency = household.currency
                     )
                 }
             } catch (t: Throwable) {

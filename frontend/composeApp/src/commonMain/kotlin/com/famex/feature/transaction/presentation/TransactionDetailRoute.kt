@@ -25,6 +25,7 @@ fun TransactionDetailRoute(
             transactionId = transactionId,
             transactionRepository = container.transactionRepository,
             categoryRepository = container.categoryRepository,
+            profileRepository = container.profileRepository,
             scope = scope
         )
     }
@@ -52,7 +53,7 @@ fun TransactionDetailRoute(
             DeleteTransactionDialog(
                 merchant = transaction.merchant,
                 amount = transaction.amount,
-                currencySymbol = currencySymbolFor("USD"),
+                currencySymbol = currencySymbolFor(uiState.currency),
                 isDeleting = uiState.isDeleting,
                 onConfirm = controller::onConfirmDelete,
                 onDismiss = controller::onCancelDelete

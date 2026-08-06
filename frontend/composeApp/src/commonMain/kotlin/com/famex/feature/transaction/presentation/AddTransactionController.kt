@@ -51,7 +51,8 @@ class AddTransactionController(
                         categories = categories,
                         selectedCategoryId = state.selectedCategoryId ?: categories.firstOrNull()?.id,
                         householdMembers = household.members,
-                        paidByMemberId = state.paidByMemberId ?: defaultPayerId
+                        paidByMemberId = state.paidByMemberId ?: defaultPayerId,
+                        currency = household.currency
                     )
                 }
             } catch (t: Throwable) {

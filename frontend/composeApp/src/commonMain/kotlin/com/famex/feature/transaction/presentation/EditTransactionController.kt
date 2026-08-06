@@ -62,7 +62,8 @@ class EditTransactionController(
                         householdMembers = household.members,
                         paidByMemberId = payerId,
                         paymentMode = transaction.paymentMode,
-                        notes = transaction.notes ?: ""
+                        notes = transaction.notes ?: "",
+                        currency = household.currency
                     )
                 }
             } catch (t: Throwable) {

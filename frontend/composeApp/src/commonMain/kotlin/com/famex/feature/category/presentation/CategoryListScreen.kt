@@ -103,7 +103,7 @@ private fun CategoryLimitsContent(
     onAddCategory: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val currencySymbol = currencySymbolFor("USD")
+    val currencySymbol = currencySymbolFor(uiState.currency)
     val famExType = LocalFamExTypography.current
 
     LazyColumn(
@@ -122,6 +122,7 @@ private fun CategoryLimitsContent(
         items(uiState.categories, key = { it.id }) { category ->
             CategoryLimitRow(
                 category = category,
+                currencySymbol = currencySymbol,
                 draftValue = uiState.limitDrafts[category.id] ?: "",
                 percentOfTotal = uiState.draftPercent(category),
                 onValueChange = { onLimitChange(category.id, it) },
@@ -243,6 +244,7 @@ private fun AllocationBar(categories: List<Category>, fractionFor: (Category) ->
 @Composable
 private fun CategoryLimitRow(
     category: Category,
+    currencySymbol: String,
     draftValue: String,
     percentOfTotal: Int,
     onValueChange: (String) -> Unit,
@@ -290,7 +292,7 @@ private fun CategoryLimitRow(
                 onValueChange = onValueChange,
                 modifier = Modifier.width(112.dp),
                 textStyle = famExType.headlineSm.copy(textAlign = TextAlign.End, color = MaterialTheme.colorScheme.onSurface),
-                leadingIcon = { Text(text = "$", style = famExType.bodyMd, color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                leadingIcon = { Text(text = currencySymbol, style = famExType.bodyMd, color = MaterialTheme.colorScheme.onSurfaceVariant) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 shape = RoundedCornerShape(8.dp),
