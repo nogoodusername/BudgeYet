@@ -1,5 +1,6 @@
 package com.famex.feature.auth.presentation
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,7 +16,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.Button
@@ -31,7 +31,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.famex.generated.resources.Res
+import com.famex.generated.resources.fam_ex_logo
 import com.famex.theme.LocalFamExTypography
+import org.jetbrains.compose.resources.painterResource
 
 /**
  * Stitch "Welcome: Visibility (Text-Only)" screen (c319a67b8ac548c69ce6e4d5dce57e65) — the
@@ -51,12 +54,11 @@ fun WelcomeScreen(
     ) {
         Spacer(modifier = Modifier.height(48.dp))
 
-        Box(
-            modifier = Modifier.size(64.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(imageVector = Icons.Default.AccountBalance, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
-        }
+        Image(
+            painter = painterResource(Res.drawable.fam_ex_logo),
+            contentDescription = null,
+            modifier = Modifier.size(64.dp).clip(RoundedCornerShape(16.dp))
+        )
 
         Spacer(modifier = Modifier.height(24.dp))
 
