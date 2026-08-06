@@ -8,7 +8,20 @@ data class CreateHouseholdUiState(
     val error: String? = null
 )
 
-val createHouseholdCurrencyOptions = listOf("USD" to "USD ($)", "EUR" to "EUR (€)", "GBP" to "GBP (£)", "JPY" to "JPY (¥)")
+val createHouseholdCurrencyOptions = listOf(
+    "USD" to "USD ($)",
+    "EUR" to "EUR (€)",
+    "GBP" to "GBP (£)",
+    "INR" to "INR (₹)",
+    "JPY" to "JPY (¥)",
+    "CAD" to "CAD ($)",
+    "AUD" to "AUD ($)",
+    "CHF" to "CHF (Fr)",
+    "CNY" to "CNY (¥)",
+    "BRL" to "BRL (R$)",
+    "KRW" to "KRW (₩)",
+    "SEK" to "SEK (kr)",
+)
 val createHouseholdCycleStartDayOptions = listOf(1, 5, 10, 15, 20, 25)
 
 fun cycleStartDayLabel(day: Int): String {
