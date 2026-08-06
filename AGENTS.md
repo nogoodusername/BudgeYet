@@ -49,24 +49,17 @@ Backend and frontend have separate CI pipelines gated by path (`backend/**`, `fr
   `AuthenticationError` under `core/database.py` below). Money amounts (`Transaction.amount`,
   `Budget.monthly_goal_amount`) are `Numeric(12, 2)`/`Decimal`, not `Float` — keep new money columns
   consistent with that.
-- Frontend: Phase 1 (core daily-use loop), most of Phase 3 (collaboration/profile), and Phase 2's
-  onboarding/auth screens have landed (see "Frontend build plan" below) — feature-based navigation
-  (Dashboard/Categories/History/Add Transaction/Profile/Household Members/Invite Member/Welcome/
-  Auth/Backend Config/PIN Sent/Forgot PIN/Household Choice/Create Household/Join Household).
-  Every repository is now real — `AuthRepository`, `CategoryRepository`, `TransactionRepository`,
-  `DashboardRepository`, `ProfileRepository` (`RealAuthRepository`, `RealCategoryRepository`,
-  `RealTransactionRepository`, `RealDashboardRepository`, `RealProfileRepository` — see "Real
-  networking" under Phase 2 below and "Real networking: Category"/"Transaction"/"Dashboard"/
-  "Profile" under Phase 1/3 below). The `Fake*Repository` classes are all still in the codebase as
-  reference/offline-preview implementations (nothing in `AppContainer` constructs them anymore —
-  see its class doc), and `fixtures/DummyScenario.kt` is correspondingly dead weight now rather
-  than load-bearing; nothing currently reads it except those unused Fake classes and
-  `App.kt`/`AppContainer`'s now-inert `scenario` parameter. `App.kt` gates on a persisted
-  `AuthSession?`
-  (`core/persistence/SettingsStorage`): `null` renders `OnboardingRoute`, non-null renders the
-  Phase 1/3 main shell. The backend base URL is user-configurable via the Backend Configuration
-  screen (PRD A0/Section 9.9: hosted by default, or a self-hosted custom URL), stored as a
-  device-level `BackendConfig`, persisted the same way.
+- Frontend: All three phases (onboarding/auth, core daily-use loop, collaboration/profile) are
+  complete. The app covers the full PRD surface across ~18 screens (Dashboard, Categories, History,
+  Add Transaction, Profile, Household Members, Invite Member, Welcome, Auth, Backend Config,
+  PIN Sent, Forgot PIN, Household Choice, Create Household, Join Household, Budget Goal,
+  Configure Categories). Every repository is real — `RealAuthRepository`, `RealCategoryRepository`,
+  `RealTransactionRepository`, `RealDashboardRepository`, `RealProfileRepository` — wired through
+  `AppContainer`. `Fake*Repository` classes remain as reference implementations but are not
+  constructed anywhere. `App.kt` gates on a persisted `AuthSession?`
+  (`core/persistence/SettingsStorage`): `null` renders the onboarding route, non-null renders the
+  main app shell. The backend base URL is user-configurable via the Backend Configuration screen,
+  stored as a device-level `BackendConfig`.
 
 Don't assume a feature exists because it's in the PRD or in a model/schema — check the actual endpoint
 router and frontend screens first.
@@ -249,273 +242,42 @@ centrally in `gradle/libs.versions.toml` — add new dependencies there, referen
 Coral `#e11d48` = at/over 100% (over-budget warning). 8px rounded corners, card-based lists, persistent
 bottom nav + FAB. Reuse these tokens for any new UI — don't hardcode new colors ad hoc.
 
-## Frontend build plan
+## Frontend current state
 
-The full PRD frontend surface (~18 screens: onboarding/auth, dashboard, categories, transactions,
-collaboration, profile) is being built in three phases, backed by dummy/fake repository data until
-real Ktor networking is wired up (see "Frontend dummy data scenarios" below). Update this section's
-checkboxes as phases land so the plan survives across sessions.
+All three phases of the v1 frontend are complete. The app covers the full PRD surface across ~18 screens (Dashboard, Categories, History, Add Transaction, Profile, Household Members, Invite Member, Welcome, Auth, Backend Config, PIN Sent, Forgot PIN, Household Choice, Create Household, Join Household, Budget Goal, Configure Categories). Every repository is real — `RealAuthRepository`, `RealCategoryRepository`, `RealTransactionRepository`, `RealDashboardRepository`, `RealProfileRepository` — wired through `AppContainer`. `Fake*Repository` classes remain as reference implementations but are not constructed anywhere. `App.kt` gates on a persisted `AuthSession?` (`core/persistence/SettingsStorage`): `null` renders the onboarding route, non-null renders the main app shell. The backend base URL is user-configurable via the Backend Configuration screen, stored as a device-level `BackendConfig`.
 
-- [x] **Phase 1 — Core daily-use loop (PRD B/C/D).** Dashboard (empty states, FAB long-press
-  Add Expense/Income shortcuts, tap-through), Category Limits (C1, admin-gated, including the
-  Add Category form — name/limit/icon-grid picker, `feature/category/presentation/AddCategory*`)
-  + Category Detail (C3), Transaction History (D2, grouped/search/filter) + Transaction Detail
-  (D3, role-gated edit/delete) + Add Transaction (D1). Persistent bottom nav (Dashboard,
-  Categories, Add [FAB], History, Profile) with a minimal read-only Profile stub — full profile
-  editing is Phase 3. Feature-based folders under
-  `composeApp/src/commonMain/kotlin/com/famex/feature/{dashboard,category,transaction,
-  profile}/{data,domain,presentation}`, shared bits in `core/` (`navigation`, `model`, `ui`, `util`,
-  `di`), dummy scenarios in `fixtures/`. Category deletion (C1) is implemented: a "more_vert"
-  admin menu on Category Detail's summary card (`CategoryAdminMenu` in `CategoryDetailScreen.kt`,
-  from Stitch's "Category Detail (Admin Menu)" screen) opens a "Delete Category" action, which
-  shows `core/ui/DeleteCategoryDialog.kt` (Stitch's "Delete Category Confirmation" screen) — if the
-  category has transactions it requires picking a reassign target before enabling delete (blocking
-  otherwise, per PRD C1), matching the backend's `DELETE .../categories/{id}?reassign_to_category_id=`
-  contract. `TransactionRepository.reassignCategory` and `CategoryRepository.deleteCategory` back
-  this — both are real now (see below), so reassign-then-delete round-trips the actual backend.
-  The mockup's Edit Category/Category Settings menu items were left out — no corresponding
-  feature exists yet, so they'd be dead entries.
-  **Real networking: `CategoryRepository` is now real** (`RealCategoryRepository`,
-  `feature/category/data/`) — same `AuthApiService`/DTO/mapper shape as `RealAuthRepository`
-  (`CategoryApiService` + `feature/category/data/remote/dto/`, `data/mapper/`), hitting
-  `/households/{id}/categories`. `CategoryRepository`'s interface takes no household id (it's
-  called from `category`, `transaction`, and `dashboard` presentation code written before real
-  networking existed) — `RealCategoryRepository` instead resolves it from
-  `core/network/HouseholdRequestContext.kt` (`HouseholdRequestContextProvider`), which bundles the
-  current access token +
-  `BackendConfig` + household id (the last of those from `core/session/CurrentHouseholdHolder`, a
-  small mutable holder `App.kt` keeps in sync with the signed-in session's `household.id` — set on
-  restore/onboarding-complete, cleared on sign out). `RealTransactionRepository` uses the same
-  provider — any future `Real*Repository` with the same "which household" problem (Dashboard)
-  should too, rather than inventing another mechanism. One decoding gotcha worth knowing about:
-  the backend's `monthly_limit`/`spent` are Pydantic `Decimal` fields, which serialize
-  as JSON **strings** (`"12.50"`, confirmed against Pydantic v2's default encoder), not numbers —
-  `feature/category/data/remote/dto/CategoryDtos.kt` declares `monthlyLimit: String` and
-  `core/network/dto/CategoryDto.kt` (`CategoryWithStatsDto`) declares `spent: String`, with
-  `CategoryMappers.kt` doing the `.toDouble()` conversion for both; declaring them `Double`
-  directly would fail to decode. `remaining` is never decoded at all — it's derived client-side
-  from `monthlyLimit`/`spent` and intentionally omitted from the DTO. Same string-decoding gotcha
-  applies to `Transaction.amount` (see below). `updateCategoryLimits` does one `PATCH` per changed category —
-  no batch-update endpoint exists, same constraint `AuthRepository.setupCategories` already
-  documented for create. `BackendConfig` persistence moved out of `RealAuthRepository` into a
-  shared `core/network/BackendConfigStorage`, since every `Real*Repository` needs it, not just auth.
-  **Real networking: `TransactionRepository` is now real too** (`RealTransactionRepository`,
-  `feature/transaction/data/`, same `remote`/`dto`/`mapper` shape). `GET
-  /households/{id}/transactions` is paginated (`Page[TransactionResponse]`, capped at 200/page
-  server-side via `TransactionFilterParams.limit`), but `TransactionRepository.getTransactions()`
-  has no pagination in its signature — History's filtering/grouping is all client-side over the
-  full list (`HistoryController.load`) — so `TransactionApiService.listAllTransactions` pages
-  through with `limit=200` until it's collected everything (bounded at 25 pages as a safety net,
-  not because that's an expected ceiling). `reassignCategory` has no bulk-move endpoint either:
-  it lists every transaction in the source category (same pagination helper, filtered by
-  `category_id`) and issues one `PATCH .../transactions/{id}` per transaction with just
-  `category_id` changed. `TransactionResponse.amount` is the same Decimal-serializes-as-string
-  gotcha as Category's fields. `paid_by_id` is always sent explicitly on create/update (not
-  omitted to let the backend default it to the caller) since Add/EditTransactionController let
-  the user pick *any* household member as payer, not just themselves. `UserResponseDto` +
-  `DisplayModeDto` moved out of `feature/auth/data/remote/dto/` into shared
-  `core/network/dto/`+`core/network/mapper/` once Transaction needed the same nested-user shape
-  for `paid_by_user` — reuse those rather than re-declaring a per-feature copy.
-  **Real networking: `DashboardRepository` is now real too** (`RealDashboardRepository`,
-  `feature/dashboard/data/`). `DashboardData` needs three things no single backend response
-  provides together: `GET /households/{id}/dashboard` (budget + category snapshots, no
-  household), `GET /households/{id}` (the full household — same call `AuthApiService.getHousehold`
-  already makes, reusing the shared `HouseholdResponseDto`), and `GET
-  /households/{id}/activity-feed` (paginated; fetched with `limit=5` to match the fixture preview
-  size `dummyDashboardActivityFeed` used, since this is a preview, not full history). This is what
-  finally pushed `HouseholdResponseDto`/`HouseholdMemberResponseDto`/`MemberRoleDto` and
-  `CategoryWithStatsDto`/`TransactionTypeDto` out of `feature/auth`/`feature/category`/
-  `feature/transaction` into shared `core/network/dto/`+`core/network/mapper/` too (same rationale
-  as `UserResponseDto` above — Dashboard is now a second/third consumer of each). **The activity
-  feed previously had two data gaps (created_by_user vs paid_by_user, and no category_id) — both
-  are now fixed: `ActivityFeedItem` returns `paid_by_user` + `category_id` alongside
-  `created_by_user`; see `backend/app/schemas/dashboard.py` and `_to_activity_item` in
-  `dashboard_controller.py`.
-- [x] **Phase 2 — Onboarding & auth funnel (PRD A) — screens are wired to real backend
-  networking.** (Note: this bullet originally read "screens landed on fake repos, no real
-  networking yet" — that was true when Phase 2 was first built on 2026-08-04, but stale after
-  commit `c639b37` wired `RealAuthRepository` into `AppContainer` on 2026-08-05; see "Real
-  networking" further down in this bullet for what's actually real.) Covers A0 (backend endpoint
-  selection), A1 (welcome), A2/A2a (signup, PIN
-  verify via login, forgot PIN), and household create/join — all in `feature/auth/
-  {data,domain,presentation}`, its own `core/navigation/OnboardingScreen.kt` +
-  `OnboardingNavController.kt` (mirrors `AppNavController` — separate back stack, no bottom nav,
-  torn down once a household is ready). `App.kt` now gates on `AuthSession?`: `null` renders
-  `OnboardingRoute`, non-null renders the existing Phase 1/3 main shell (`MainAppShell`). Screens:
-  Welcome → Auth (Sign In/Sign Up as tabs on one screen, matching the Stitch pair) → Backend
-  Configuration (gear icon on Auth) → Forgot PIN → PIN Sent → Household Choice → Create
-  Household → Budget Goal → Configure Categories, or Join Household (Join skips Budget
-  Goal/Configure Categories entirely — it attaches to a household someone else already
-  budgeted/categorized). `FakeAuthRepository` seeds one demo account (`alex@example.com`,
-  PIN `123456`) whose household matches the rest of the app's `DummyScenario` fixtures — sign in
-  as that account to preview the full authenticated app; a fresh sign-up gets its own isolated
-  in-memory household that only the onboarding screens see, since it's deliberately **not** wired
-  into the other `Fake*Repository` instances (see the class doc on `FakeAuthRepository`).
-  The system back button is now wired into both hand-rolled nav stacks via a cross-platform
-  `BackHandler` (expect/actual — real handler on Android, no-op on iOS, which has no hardware
-  back button), disabled at each stack's root so back there still falls through to the platform
-  default (previously, system back bypassed `OnboardingNavController`/`AppNavController` entirely
-  and could finish the Activity outright, e.g. exiting the app from the Auth screen).
-  **Sign Up takes a user-chosen PIN** (Create PIN + Confirm PIN, validated 6-digit + matching in
-  `AuthController.onSignUp`) matching the backend's `UserCreate.pin` contract — the PIN is no
-  longer server-generated/emailed at signup, so `AuthController.onSignUp` logs the user straight
-  in afterward (`AuthEvent.LoggedIn`) instead of routing through a "check your email" step; **PIN
-  Sent is now forgot-PIN only** (`OnboardingScreen.PinSent` dropped its `PinSentContext` param —
-there's only one context left). The "Server Reachable" live-validation UI on Backend
-   Configuration is now implemented — `BackendConfigController.schedulePing` debounces URL
-   input (500ms) and calls `AuthRepository.checkServerReachable` which hits the target server's
-   DB-independent `GET /api/v1/ping` endpoint (see `backend/app/api/v1/endpoints/health.py`).
-   The `ReachabilityIndicator` composable renders all five states (IDLE, INVALID, CHECKING,
-   REACHABLE, UNREACHABLE) and the Save button is disabled until the custom URL is confirmed
-   REACHABLE (`canSave` in `BackendConfigUiState`).
-  **Budget monthly-goal-amount + initial category configuration (A3/A4) now land too:** after
-  Create Household succeeds, Budget Goal (`BudgetGoal*` in `feature/auth/presentation`) collects
-  a budget name/period/monthly goal amount (or can be skipped, completing onboarding without a
-  budget), then Configure Categories (`ConfigureCategories*`) offers the 6 starter categories
-  from the Stitch mockup as a checkbox list with per-category monthly limits, an "Automated
-  Distribution" toggle that splits the goal amount evenly across whichever are checked, and an
-  "Add custom category" row. Both call new `AuthRepository.setupBudget`/`setupCategories` methods
-  (mirroring `createHousehold`) — `FakeAuthRepository`'s implementations just validate the
-  household exists, matching this phase's fake-repo/no-real-networking stance; there's no
-  dedicated backend "onboarding batch" endpoint, so the real implementation will need one
-  `POST .../budgets` call + one `POST .../categories` call per category, same as `feature/
-  category`'s Add Category flow does today. `AuthSession` and `BackendConfig` now survive a cold
-  start via `core/persistence/SettingsStorage` — a hand-rolled key-value store (`expect`/`actual`:
-  `SharedPreferences` on Android, `NSUserDefaults` on iOS), deliberately not DataStore/Room, same
-  version-risk reasoning as avoiding Koin/navigation-compose (see "Architecture choices" below).
-  `AuthRepository.getPersistedSession`/`persistSession`/`clearPersistedSession` (and
-  `getBackendConfig`/`setBackendConfig`, now backed by the same storage instead of an in-memory
-  var) serialize `AuthSession`/`BackendConfig` to JSON via `kotlinx.serialization` — both models
-  (and `Household`/`HouseholdMember`/`PendingInvite`/`User`) are now `@Serializable`;
-  `Household.joinCodeExpiresAt` uses kotlinx-datetime's built-in `LocalDateIso8601Serializer`.
-  `App.kt` gates its first frame on a `getPersistedSession()` read (blank `Surface` while
-  `isRestoringSession`) so a signed-in cold start renders straight into `MainAppShell` instead of
-  flashing `OnboardingRoute` first; `onOnboardingComplete` persists, Sign Out clears. A Sign Out
-  row + `SignOutDialog` confirmation live on the Profile screen (mirrors `DeleteCategoryDialog`'s
-  confirm-destructive-action pattern; uses `Icons.AutoMirrored.Filled.Logout`, not the deprecated
-  non-mirrored `Icons.Default.Logout`, to avoid RTL flip issues) — confirming clears both the
-  in-memory `AuthSession` and the persisted one, dropping `App.kt` back to `OnboardingRoute` for
-  good (not just until the next cold start).
-  **`AuthRepository` is now real** (`RealAuthRepository` in `feature/auth/data/`, replacing
-  `FakeAuthRepository` in `AppContainer` — the fake implementation is left in place as a
-  reference/offline fallback but nothing wires to it anymore). Backed by `core/network/`: a
-  shared `HttpClient` (`HttpClientFactory.kt`), a typed `AppException` hierarchy + `safeApiCall`
-  wrapper that parses both of the backend's error body shapes (`{"detail": "msg"}` from the
-  `AppError` hierarchy and `{"detail": [{"msg": ...}]}` from raw pydantic validation errors),
-  `AuthTokenStorage` (access-token-only — the backend issues no refresh token, so an expired
-  token means signing in again, not a silent refresh), and `BackendConfig.apiUrl(path)` to build
-  request URLs. `AuthApiService` + `feature/auth/data/remote/dto/`/`data/mapper/` hold the
-  request/response DTOs and DTO→domain mapping. `setupBudget`/`setupCategories` do exactly the
-  `POST .../budgets` + one `POST .../categories`-per-category sequence anticipated above — there's
-  still no batch "onboarding" endpoint. Two small backend additions were needed to make this work
-  at all: `HouseholdMemberResponse` gained a `household_id` field (was missing it entirely, so a
-  client couldn't tell which household `POST /households/join` had just added it to), and a new
-  `GET /users/me/household` endpoint (nullable `HouseholdResponse`) resolves the current user's
-  household — neither `/auth/login` nor `/households/join` returned one, and v1 caps a user to a
-  single household anyway, so this is how `RealAuthRepository.login`/`joinHousehold` now resolve
-  it. `Household.joinCodeExpiresAt` is populated as `created_at + 7 days` (`INVITE_EXPIRY_DAYS`)
-  since the backend still has no real household-level join code (see the E1 gap under Phase 3) —
-  a placeholder, not real data.
-- [~] **Phase 3 — Collaboration & full profile (PRD E1/E2) — mostly landed, one gap remains.**
-  Done: household member list with roles (`feature/profile/presentation/HouseholdMembers*`),
-  promote/demote/remove for any role (`ac07262`, `1837cfe`), invite-by-email now creates a revocable
-  pending invite instead of adding the member directly (`core/model/Household.PendingInvite` +
-  `ProfileRepository.inviteMember`/`revokeInvite`), rendered as
-  `PendingInviteCard` on `HouseholdMembersScreen.kt` with a Revoke action and a teal-tinted Invite
-  CTA row (Stitch "Member Management (With Invite CTA)" / "(With Pending Invite)"), with
-  `InviteMemberScreen.kt` (Stitch "Invite Options") slimmed down to just the email-invite and
-  join-code cards — the duplicate current-members list that used to live there was removed since
-  pending invites now show on `HouseholdMembersScreen` instead. A Resend Invite action was tried and
-  then deliberately dropped: there's no backend resend endpoint (see "Known gaps" above), so it had
-  nothing real to call once networking lands — don't re-add it without the backend endpoint first.
-  Editable profile (name/nickname, read-only email), household currency/language, display mode
-  preference — all in `feature/profile/`. **Role-gating is now implemented** (`c45d365`, `8d111ed`,
-  `a60d6c1`): `ProfileScreen` derives `currentUserRole` (via `Household.currentMemberRole`,
-  `core/model/Household.kt`) and hides the whole "Household Settings" card (Manage Members,
-  currency, language) from plain Members — `canManageHousehold = currentUserRole?.isAdminOrOwner`
-  — instead of only 403ing after the fact; Personal Settings (display mode) stays visible to
-  everyone. `HouseholdMembersScreen` similarly hides each row's admin action menu
-  (`canManage`) for plain-Member viewers, hides a member's own row's self-action menu, and only
-  offers "Promote to Owner" when the viewer *is* the current Owner (Admins can't see it on other
-  Admins). `CurrentHouseholdHolder` and `App.kt` were extended to carry the signed-in user's id
-  so role can be derived client-side without an extra call.
-  **Gap:** the 7-day join-code expiry is now modeled and shown (`Household.joinCodeExpiresAt`,
-  mirroring the backend's `Invite.expires_at`/`INVITE_EXPIRY_DAYS`, rendered on
-  `InviteMemberScreen.kt` in place of the old static "7 days" copy), but shareable join link/QR
-  code (the other half of E1) is still not implemented.
-  **Real networking: `ProfileRepository` is now real** (`RealProfileRepository`,
-  `feature/profile/data/`, same `remote`/`dto`/`mapper` shape as the others) — this was the last
-  fake repository; every repository in the app is now real (see the top of this file). Fans out
-  across `/users/me` (get/update) and `/households/{id}` + `/households/{id}/invites` (get/update
-  household, list/create/revoke invites) + `/households/{id}/members/{id}` (role update, remove).
-  `HouseholdResponse` never includes pending invites (they're a separate admin-only list) — every
-  method that returns a `Household` goes through a private `fetchHousehold()` that fetches both
-  and stitches them together, catching a `PermissionDeniedException` on the invites call
-  specifically (since a plain Member 403s there, per the gating gap above) and treating it as "no
-  invites to show" rather than failing the whole screen load.
-  **Push notifications toggle removed from the UI (not the repository).** `updatePushNotifications`
-  has no backend field to persist to (`UserResponse`/`User` model have none) — it was only ever
-  applied locally on top of a fresh `/users/me` fetch and never actually saved, silently resetting
-  to the default (`true`) on every reload. Since that's misleading (a toggle that visually "stays
-  on" but never really persists anything), the Push Notifications row was removed from
-  `ProfileScreen.kt` (`Personal Settings` card) along with the `onPushNotificationsToggle` plumbing
-  through `ProfileRoute.kt` and `ProfileController.kt` (the latter's handler function was deleted
-  outright, not just disconnected — nothing called it anymore). `ProfileRepository.
-  updatePushNotifications` and both implementations (`RealProfileRepository`,
-  `FakeProfileRepository`) were deliberately left in place — this is a UI-visibility fix, not a
-  capability removal, so there's a working repository method ready to wire back in once the
-  backend actually has a `User.push_notifications_enabled`-style field (`UserUpdate`/`UserResponse`
-  in `backend/app/schemas/user.py`, plus a migration) to persist to. Re-adding the row is then a
-  pure UI change: restore the `Switch` block in `ProfileScreen.kt` and the two lines of plumbing in
-  `ProfileRoute.kt`/`ProfileController.kt` — see git history for the exact removed block if needed.
+### Screen map
 
-**Offline support (PRD §7) — queued transaction writes + read-through cache.** Every feature
-repository in `AppContainer` is now an `OfflineFirst*Repository` wrapping its `Real*Repository`.
+- **Onboarding & auth (PRD A):** Welcome → Auth (Sign In/Sign Up as tabs) → Backend Configuration (gear icon, with live `GET /api/v1/ping` reachability check) → Forgot PIN → PIN Sent → Household Choice → Create Household → Budget Goal → Configure Categories, or Join Household (skips Budget Goal/Configure Categories — attaches to an existing household). `ReachabilityIndicator` composable renders all five states (IDLE, INVALID, CHECKING, REACHABLE, UNREACHABLE); Save disabled until confirmed reachable.
+- **Core daily-use loop (PRD B/C/D):** Dashboard (budget overview, category snapshots, activity feed preview), Category Limits (admin-gated add/edit/delete with reassign-before-delete confirmation dialog), Category Detail, Transaction History (grouped/search/filtered with pagination), Transaction Detail (role-gated edit/delete), Add Transaction (expense/income with payer picker). Persistent bottom nav + FAB with long-press shortcuts (Add Expense / Add Income).
+- **Collaboration & profile (PRD E):** Household member list with roles, promote/demote/remove (role-gated: Members can't see admin actions, Admins can't promote to Owner, only the current Owner can), invite-by-email (revocable pending invites rendered as `PendingInviteCard`), editable profile (name/nickname, read-only email), household currency/language, display mode preference. Push notifications toggle removed from the UI (no backend field to persist to — `ProfileRepository.updatePushNotifications` method remains for later wiring).
 
-- **Reads** are network-first with cache fallback: `core/offline/NetworkFirstRead.kt` catches
-  `AppException.NetworkException`/`TimeoutException` and serves the last successful fetch from
-  `core/cache/LocalCacheStore` (JSON blobs in `core/cache/LocalFileStorage`, an expect/actual
-  file store — `filesDir` on Android, `Library/Caches` on iOS; deliberately not DataStore/Room,
-  same version-risk reasoning as `SettingsStorage`). Any other error (auth, permission, validation)
-  propagates untouched so a stale cache cannot mask a real rejection.
+### Real networking
 
-- **Transaction writes** are the only offline write surface (per PRD §7: "Transactions can be added
-  offline and sync automatically on reconnect"): `OfflineFirstTransactionRepository`'s
-  `addTransaction` / `updateTransaction` / `deleteTransaction` park the operation in
-  `core/offline/OfflineQueue` (persistent FIFO JSON array via `SyncManager.enqueue`) when the
-  network call fails, and return a synthetic `Transaction` with a negative temp id + `clientId`
-  (`Transaction.isPending`) so the UI shows it immediately. Deleting a still-pending create drops
-  the queued `AddTransaction` outright. Every other write surface (categories, profile, members)
-  deliberately passes through and surfaces the `NetworkException` inline.
+Every repository is real. `RealCategoryRepository`, `RealTransactionRepository`, `RealDashboardRepository`, and `RealProfileRepository` resolve the current household id from `core/network/HouseholdRequestContext.kt` (`HouseholdRequestContextProvider`), which bundles the access token + `BackendConfig` + household id — set on restore/onboarding-complete, cleared on sign out. `RealProfileRepository` fans out to `/users/me`, `/households/{id}`, `/households/{id}/invites`, and `/households/{id}/members/{id}`; `HouseholdResponse` never includes pending invites (admin-only fetch), so `fetchHousehold()` catches `PermissionDeniedException` on the invites call and treats it as "no invites" for plain Members.
 
-- **Sync:** `core/offline/SyncManager` drains the queue FIFO against the real transaction repo
-  (never the wrapper) on each offline→online transition — `App.kt` observes
-  `core/util/ConnectivityObserver` (`ConnectivityManager` on Android, Network.framework's
-  `nw_path_monitor_*` C API on iOS — K/N 1.9.23 exposes the C API, not the ObjC NWPathMonitor
-  class). `ConflictResolver` implements "server wins, append-only safe": adds never conflict (new
-  rows); edit/delete conflicts and permanent 4xx rejections discard the change + emit a
-  `SyncEvent.Rejected` (snackbar); transient / 5xx / 429 / expired-token keep it queued. Pending
-  creates resolve to server ids via a clientId→serverId map populated as adds replay (queue is
-  FIFO, so the Add always precedes ops that reference it). `pendingCount` StateFlow drives the
-  amber "N pending" top-bar badge. Cache is updated on every successful sync so offline reads
-  stay current. Unit tests live in `composeApp/src/commonTest/.../core/offline/`.
+**Dtos and mappers:** The backend's `monthly_limit`/`spent`/`amount` are Pydantic `Decimal` fields that serialize as JSON strings (not numbers) — all feature DTOs declare these as `String` with `.toDouble()` conversion in the mapper. `remaining` is derived client-side, never decoded from the API. `UserResponseDto`/`DisplayModeDto`/`HouseholdResponseDto`/`HouseholdMemberResponseDto`/`MemberRoleDto`/`CategoryWithStatsDto`/`TransactionTypeDto` live in shared `core/network/dto/`+`core/network/mapper/` (not per-feature copies).
 
-**Architecture choices made in Phase 1 (carry forward into later phases):**
-- Navigation is a hand-rolled `core/navigation/AppNavController` (sealed `Screen` + back-stack list),
-  not `androidx.navigation.compose` — avoids version risk against the pinned Kotlin 1.9.23/Compose
-  Multiplatform 1.6.1 toolchain. Keep using it rather than introducing a nav library mid-build.
-- DI is a manual `core/di/AppContainer` (composition root + `CompositionLocal`), not Koin — repos are
-  interface-first (`XRepository` + `FakeXRepository`) so swapping in Koin + real Ktor implementations
-  later only touches the container, not screens.
-- State holders are plain Kotlin classes exposing `StateFlow<UiState>`/`SharedFlow<Event>` with a
-  manually-scoped `CoroutineScope`, not `androidx.lifecycle.ViewModel` (same version-risk reasoning).
+### Offline support (PRD §7) — queued transaction writes + read-through cache
 
-**Frontend dummy data scenarios** (`fixtures/DummyScenario.kt`) — code-level switch only (change the
-constant in `App.kt` and rebuild; no in-app dev switcher by design): `NoBudgetSetup`,
-`EmptyBudgetNoTransactions`, `HealthyMidMonth`, `NearLimitAmber`, `OverBudgetCoral`, `SoloBudgeter`,
-`FullHouseholdThreeMembers`, `LongTransactionHistory`, `SimulatedLoadingAndError`. Fake repos add a
-short `delay()` before returning so Loading states are real, and `SimulatedLoadingAndError` forces a
-throw once so Error/retry UI is exercised too — these aren't just Success-state fixtures.
+Every feature repository in `AppContainer` is now an `OfflineFirst*Repository` wrapping its `Real*Repository`.
+
+- **Reads** are network-first with cache fallback: `core/offline/NetworkFirstRead.kt` catches `AppException.NetworkException`/`TimeoutException` and serves the last successful fetch from `core/cache/LocalCacheStore` (JSON blobs in `core/cache/LocalFileStorage`, an expect/actual file store — `filesDir` on Android, `Library/Caches` on iOS; deliberately not DataStore/Room, same version-risk reasoning as `SettingsStorage`). Any other error (auth, permission, validation) propagates untouched so a stale cache cannot mask a real rejection.
+
+- **Transaction writes** are the only offline write surface (per PRD §7: "Transactions can be added offline and sync automatically on reconnect"): `OfflineFirstTransactionRepository`'s `addTransaction`/`updateTransaction`/`deleteTransaction` park the operation in `core/offline/OfflineQueue` (persistent FIFO JSON array via `SyncManager.enqueue`) when the network call fails, and return a synthetic `Transaction` with a negative temp id + `clientId` (`Transaction.isPending`) so the UI shows it immediately. Deleting a still-pending create drops the queued `AddTransaction` outright. Every other write surface (categories, profile, members) deliberately passes through and surfaces the `NetworkException` inline.
+
+- **Sync:** `core/offline/SyncManager` drains the queue FIFO against the real transaction repo (never the wrapper) on each offline→online transition — `App.kt` observes `core/util/ConnectivityObserver` (`ConnectivityManager` on Android, Network.framework's `nw_path_monitor_*` C API on iOS). `ConflictResolver` implements "server wins, append-only safe": adds never conflict (new rows); edit/delete conflicts and permanent 4xx rejections discard the change + emit a `SyncEvent.Rejected` (snackbar); transient / 5xx / 429 / expired-token keep it queued. Pending creates resolve to server ids via a clientId→serverId map populated as adds replay (queue is FIFO, so the Add always precedes ops that reference it). `pendingCount` StateFlow drives the amber "N pending" top-bar badge. Cache is updated on every successful sync so offline reads stay current. Unit tests live in `composeApp/src/commonTest/.../core/offline/`.
+
+### Architecture choices
+
+- Navigation is a hand-rolled `core/navigation/AppNavController` (sealed `Screen` + back-stack list), not `androidx.navigation.compose` — avoids version risk against the pinned Kotlin 1.9.23/Compose Multiplatform 1.6.1 toolchain. Keep using it rather than introducing a nav library mid-build.
+- DI is a manual `core/di/AppContainer` (composition root + `CompositionLocal`), not Koin — repos are interface-first (`XRepository` + `FakeXRepository`) so swapping in Koin + real Ktor implementations later only touches the container, not screens.
+- State holders are plain Kotlin classes exposing `StateFlow<UiState>`/`SharedFlow<Event>` with a manually-scoped `CoroutineScope`, not `androidx.lifecycle.ViewModel` (same version-risk reasoning).
+- Persistence is a hand-rolled `core/persistence/SettingsStorage` (`expect`/`actual`: `SharedPreferences` on Android, `NSUserDefaults` on iOS), deliberately not DataStore/Room, same version-risk reasoning.
+
+### Dummy data scenarios
+
+`fixtures/DummyScenario.kt` — code-level switch only (change the constant in `App.kt` and rebuild; no in-app dev switcher by design): `NoBudgetSetup`, `EmptyBudgetNoTransactions`, `HealthyMidMonth`, `NearLimitAmber`, `OverBudgetCoral`, `SoloBudgeter`, `FullHouseholdThreeMembers`, `LongTransactionHistory`, `SimulatedLoadingAndError`. Fake repos add a short `delay()` before returning so Loading states are real, and `SimulatedLoadingAndError` forces a throw once so Error/retry UI is exercised too — these aren't just Success-state fixtures. Nothing currently reads `DummyScenario` except the unused `Fake*Repository` classes and `App.kt`/`AppContainer`'s now-inert `scenario` parameter.
 
 ## Key business rules to respect (from the PRD)
 
