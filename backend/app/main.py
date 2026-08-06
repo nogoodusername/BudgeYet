@@ -1,7 +1,8 @@
+from pathlib import Path
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from app.core.config import settings
 from app.core.database import async_engine
 from app.core.exceptions import (
@@ -81,6 +82,14 @@ async def root():
         "health": "/health",
         "database": settings.DATABASE_TYPE,
     }
+
+# Serve robots.txt to block crawlers on the API subdomain
+@app.get("/robots.txt", summary="Robots Exclusion", include_in_schema=False)
+async def robots_txt():
+    return FileResponse(
+        Path(__file__).parent / "static" / "robots.txt",
+        media_type="text/plain",
+    )
 
 # Include API v1 routes
 app.include_router(api_router, prefix=settings.API_V1_STR)
