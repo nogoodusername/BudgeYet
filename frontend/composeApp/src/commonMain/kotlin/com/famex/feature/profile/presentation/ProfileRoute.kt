@@ -8,12 +8,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import com.famex.core.di.LocalAppContainer
+import com.famex.core.model.DisplayMode
 import com.famex.core.ui.SignOutDialog
 
 @Composable
 fun ProfileRoute(
     onNavigateToManageMembers: () -> Unit = {},
     onSignOut: () -> Unit = {},
+    onDisplayModeChanged: (DisplayMode) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val container = LocalAppContainer.current
@@ -32,7 +34,10 @@ fun ProfileRoute(
         onSaveProfile = controller::onSaveProfile,
         onCurrencyChange = controller::onCurrencyChange,
         onLanguageChange = controller::onLanguageChange,
-        onDisplayModeChange = controller::onDisplayModeChange,
+        onDisplayModeChange = { mode ->
+            controller.onDisplayModeChange(mode)
+            onDisplayModeChanged(mode)
+        },
         onManageMembers = onNavigateToManageMembers,
         onSignOutClick = controller::onRequestSignOut,
         modifier = modifier
