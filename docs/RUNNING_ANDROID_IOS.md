@@ -22,7 +22,7 @@ Both workflows assume you are in the repository root:
 | **Java 21 (JBR)** – used by the Gradle wrapper | `"$JAVA_HOME/bin/java" -version` (should show `openjdk version "21.0.10"`). The wrapper is already configured to use the JBR shipped with Android Studio. |
 | **Android SDK** | `echo $ANDROID_HOME` → should point to `~/Library/Android/sdk`. |
 | **Platform‑tools (adb, emulator)** | `$ANDROID_HOME/platform-tools/adb version` |
-| **Gradle wrapper** (binary `./gradlew`) | `./gradlew -v` – should report Gradle 8.9. |
+| **Gradle wrapper** (binary `./gradlew`) | `./gradlew -v` – should report Gradle 8.4. |
 | **AVD** (optional) | `emulator -list-avds` – you already have `Medium_Phone`. |
 
 If you prefer a **physical device**, enable **Developer options → USB debugging** and connect it via USB.
@@ -161,7 +161,7 @@ If you have [SideStore](https://sidestore.io) installed on your iPhone and want 
 
 ```bash
 # Build the .app for a physical device (unsigned — SideStore re-signs)
-export JAVA_HOME=$(/usr/libexec/java_home -v 17)
+export JAVA_HOME=$(/usr/libexec/java_home)
 xcodebuild -project iosApp/iosApp.xcodeproj \
     -scheme iosApp \
     -configuration Debug \
@@ -191,7 +191,7 @@ cd /tmp/famex-ipa && zip -qry "$OLDPWD/build/famex.ipa" Payload/ && cd -
 
 | Step | Android | iOS (Physical) | iOS (Simulator) | iOS (SideStore) |
 |------|---------|----------------|-----------------|-----------------|
-| **1. Prereqs** | JDK 21, Android SDK, Gradle 8.9 | Xcode ≥ 15, Apple ID | Xcode ≥ 15, Simulator | Xcode ≥ 15, JDK 17, SideStore on iPhone |
+| **1. Prereqs** | JDK 21, Android SDK, Gradle 8.4 | Xcode ≥ 15, Apple ID | Xcode ≥ 15, Simulator | Xcode ≥ 15, JDK (any recent, e.g. 17+), SideStore on iPhone |
 | **2. Launch device** | `emulator …` *or* plug phone | Connect USB, trust Mac | `xcrun simctl boot …` | — |
 | **3. Open project** | `./gradlew :composeApp:installDebug` | `open iosApp/iosApp.xcodeproj` | same | CLI build (see §7) |
 | **4. Signing** | N/A (debug key) | Automatic signing in Xcode | Automatic signing (simulators don't need it) | Unsigned (SideStore re-signs) |
