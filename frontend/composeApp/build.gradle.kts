@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
-
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidApplication)
@@ -31,10 +29,11 @@ kotlin {
         }
     }
 
-    // 3. Web Target (Wasm / JS) - Disabled until Ktor 3.0+ upgrade
-    /*
-    @OptIn(ExperimentalWasmDsl::class)
-    wasmJs {
+    // 3. Web Target (JS) — uses Kotlin/JS with the IR compiler backend, targeting browsers.
+    //    The ktor-client-js engine (jsMain dependency below) handles HTTP on the JS target.
+    //    Output is a static webpack bundle (index.html + composeApp.js) deployable to any
+    //    static host (Cloudflare Pages, etc.).
+    js(IR) {
         moduleName = "composeApp"
         browser {
             commonWebpackConfig {
@@ -43,7 +42,6 @@ kotlin {
         }
         binaries.executable()
     }
-    */
 
     sourceSets {
         commonMain.dependencies {
@@ -74,6 +72,12 @@ kotlin {
         val iosMain by getting {
             dependencies {
                 implementation(libs.ktor.client.darwin)
+            }
+        }
+
+        val jsMain by getting {
+            dependencies {
+                implementation(libs.ktor.client.js)
             }
         }
 

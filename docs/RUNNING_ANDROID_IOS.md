@@ -155,18 +155,48 @@ xcodebuild -project iosApp/iosApp.xcodeproj \
 
 > The CLI method is handy for CI pipelines; for everyday development the Xcode UI is faster.
 
+### 7️⃣ Sideload with SideStore (physical device, no developer account)
+
+If you have [SideStore](https://sidestore.io) installed on your iPhone and want to avoid Xcode's 7-day re-signing limitation, build an unsigned `.ipa` and install it via SideStore:
+
+```bash
+# Build the .app for a physical device (unsigned — SideStore re-signs)
+export JAVA_HOME=$(/usr/libexec/java_home -v 17)
+xcodebuild -project iosApp/iosApp.xcodeproj \
+    -scheme iosApp \
+    -configuration Debug \
+    -destination 'generic/platform=iOS' \
+    -derivedDataPath build/DerivedData \
+    CODE_SIGNING_ALLOWED=NO \
+    CODE_SIGN_IDENTITY=- \
+    build
+
+# Package into .ipa
+rm -rf /tmp/famex-ipa
+mkdir -p /tmp/famex-ipa/Payload
+cp -R build/DerivedData/Build/Products/Debug-iphoneos/iosApp.app /tmp/famex-ipa/Payload/
+cd /tmp/famex-ipa && zip -qry "$OLDPWD/build/famex.ipa" Payload/ && cd -
+```
+
+**Install steps:**
+1. AirDrop `frontend/build/famex.ipa` to your iPhone.
+2. Open SideStore on the phone → tap the IPA → **Install**.
+3. If prompted, enable **Developer Mode** (Settings → Privacy & Security → Developer Mode) and trust the certificate (Settings → General → VPN & Device Management).
+
+> **Note:** The Xcode project requires minimum iOS 17.0. To change it, update `IPHONEOS_DEPLOYMENT_TARGET` in both Debug and Release configurations of `iosApp/iosApp.xcodeproj/project.pbxproj`.
+
 ---
 
 ## 📋 Quick Checklist
 
-| Step | Android | iOS (Physical) | iOS (Simulator) |
-|------|---------|----------------|-----------------|
-| **1. Prereqs** | JDK 21, Android SDK, Gradle 8.9 | Xcode ≥ 15, Apple ID | Xcode ≥ 15, Simulator |
-| **2. Launch device** | `emulator …` *or* plug phone | Connect USB, trust Mac | `xcrun simctl boot …` |
-| **3. Open project** | `./gradlew :composeApp:installDebug` | `open iosApp/iosApp.xcodeproj` | same |
-| **4. Signing** | N/A (debug key) | Automatic signing in Xcode | Automatic signing (simulators don’t need it) |
-| **5. Run** | `adb shell am start …` (optional) | Press **⌘ R** in Xcode | Press **⌘ R** or use `xcrun simctl launch` |
-| **6. Verify** | `adb shell pidof com.famex` | Check Xcode console | Check Simulator logs |
+| Step | Android | iOS (Physical) | iOS (Simulator) | iOS (SideStore) |
+|------|---------|----------------|-----------------|-----------------|
+| **1. Prereqs** | JDK 21, Android SDK, Gradle 8.9 | Xcode ≥ 15, Apple ID | Xcode ≥ 15, Simulator | Xcode ≥ 15, JDK 17, SideStore on iPhone |
+| **2. Launch device** | `emulator …` *or* plug phone | Connect USB, trust Mac | `xcrun simctl boot …` | — |
+| **3. Open project** | `./gradlew :composeApp:installDebug` | `open iosApp/iosApp.xcodeproj` | same | CLI build (see §7) |
+| **4. Signing** | N/A (debug key) | Automatic signing in Xcode | Automatic signing (simulators don't need it) | Unsigned (SideStore re-signs) |
+| **5. Run** | `adb shell am start …` (optional) | Press **⌘ R** in Xcode | Press **⌘ R** or use `xcrun simctl launch` | AirDrop `.ipa` → SideStore → Install |
+| **6. Verify** | `adb shell pidof com.famex` | Check Xcode console | Check Simulator logs | App icon on home screen |
 
 ---
 

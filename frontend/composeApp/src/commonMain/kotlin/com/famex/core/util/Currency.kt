@@ -7,6 +7,14 @@ fun currencySymbolFor(currencyCode: String): String = when (currencyCode.upperca
     "EUR" -> "€"
     "GBP" -> "£"
     "INR" -> "₹"
+    "JPY" -> "¥"
+    "CAD" -> "CA$"
+    "AUD" -> "AU$"
+    "CHF" -> "Fr"
+    "CNY" -> "¥"
+    "BRL" -> "R$"
+    "KRW" -> "₩"
+    "SEK" -> "kr"
     else -> "$currencyCode "
 }
 

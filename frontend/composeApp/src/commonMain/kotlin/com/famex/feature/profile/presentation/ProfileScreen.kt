@@ -60,7 +60,20 @@ import com.famex.core.ui.fieldColors
 import com.famex.theme.BrandTeal
 import com.famex.theme.LocalFamExTypography
 
-private val currencyOptions = listOf("USD" to "USD ($)", "EUR" to "EUR (€)", "GBP" to "GBP (£)", "INR" to "INR (₹)")
+private val currencyOptions = listOf(
+    "USD" to "USD ($)",
+    "EUR" to "EUR (€)",
+    "GBP" to "GBP (£)",
+    "INR" to "INR (₹)",
+    "JPY" to "JPY (¥)",
+    "CAD" to "CAD ($)",
+    "AUD" to "AUD ($)",
+    "CHF" to "CHF (Fr)",
+    "CNY" to "CNY (¥)",
+    "BRL" to "BRL (R$)",
+    "KRW" to "KRW (₩)",
+    "SEK" to "SEK (kr)",
+)
 private val languageOptions = listOf("en" to "English", "es" to "Español", "fr" to "Français")
 
 @Composable
