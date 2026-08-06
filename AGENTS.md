@@ -226,6 +226,12 @@ Ktor as the HTTP client. Package root is `com.famex`.
 - `iosMain/` — `MainViewController` bridge consumed by the Xcode wrapper in `iosApp/`.
 - `wasmJsMain/` — browser entrypoint (`main.kt`) and `index.html`.
 
+For KMP/Compose development guidance (architecture, Koin, Ktor, Room KMP, iOS interop, testing), see the vendored
+guide in [`docs/kmp-compose-multiplatform/`](docs/kmp-compose-multiplatform/README.md) — start at `SKILL.md` and
+drill into `references/`. It's mirrored from the MIT-licensed
+[felipechaux/kmp-compose-multiplatform-skill](https://github.com/felipechaux/kmp-compose-multiplatform-skill);
+where it conflicts with this file's frontend conventions, this file wins.
+
 **Commands:**
 ```bash
 cd frontend
