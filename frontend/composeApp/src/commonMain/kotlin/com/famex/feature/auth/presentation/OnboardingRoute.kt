@@ -1,5 +1,6 @@
 package com.famex.feature.auth.presentation
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.Column
@@ -60,7 +61,11 @@ fun OnboardingRoute(
         onOnboardingComplete(AuthSession(user = user, household = household))
     }
 
-    Column(modifier = modifier.fillMaxSize()) {
+    // Unlike MainAppShell (Scaffold, which paints its own background), this root has no
+    // Surface/Scaffold under it — without an explicit fill the canvas stays whatever the
+    // platform default is (white on iOS) regardless of theme, so dark-theme text (chosen
+    // for a dark background) went near-invisible here specifically.
+    Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         if (current.showsSharedTopBar()) {
             OnboardingTopBar(title = current.topBarTitle(), canGoBack = nav.canGoBack, onBack = { nav.back() })
         }

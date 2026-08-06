@@ -8,9 +8,10 @@ import androidx.compose.ui.unit.sp
 
 // Text roles from the Stitch design system that don't map 1:1 onto Material3's
 // Typography scale — most importantly the large currency "display-amount" style
-// used on the budget overview card. Only one Manrope weight file is bundled
-// (variable-font instance), so heavier weights below rely on Compose's synthetic
-// (faux) bold rather than a dedicated static weight file.
+// used on the budget overview card. Manrope is bundled as static per-weight TTFs
+// (Regular/Medium/SemiBold/Bold) rather than the variable-font instance: Skia's
+// iOS backend doesn't interpolate variable font weight axes correctly, which
+// rendered all text as near-invisible hairlines on iOS.
 data class FamExTypography(
     val displayAmount: TextStyle,
     val headlineLg: TextStyle,

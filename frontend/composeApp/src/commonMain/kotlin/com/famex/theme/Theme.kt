@@ -11,9 +11,13 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.famex.generated.resources.Res
-import com.famex.generated.resources.manrope
+import com.famex.generated.resources.manrope_bold
+import com.famex.generated.resources.manrope_medium
+import com.famex.generated.resources.manrope_regular
+import com.famex.generated.resources.manrope_semibold
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.resources.Font
 
@@ -68,7 +72,12 @@ fun FamExTheme(
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
-    val manrope = FontFamily(Font(Res.font.manrope))
+    val manrope = FontFamily(
+        Font(Res.font.manrope_regular, weight = FontWeight.Normal),
+        Font(Res.font.manrope_medium, weight = FontWeight.Medium),
+        Font(Res.font.manrope_semibold, weight = FontWeight.SemiBold),
+        Font(Res.font.manrope_bold, weight = FontWeight.Bold)
+    )
     val famExTypography = famExTypography(manrope)
 
     CompositionLocalProvider(LocalFamExTypography provides famExTypography) {
