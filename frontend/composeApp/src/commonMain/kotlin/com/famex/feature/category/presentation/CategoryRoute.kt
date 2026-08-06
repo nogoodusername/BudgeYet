@@ -17,7 +17,9 @@ fun CategoryRoute(
 ) {
     val container = LocalAppContainer.current
     val scope = rememberCoroutineScope()
-    val controller = remember(container) { CategoryListController(container.categoryRepository, scope) }
+    val controller = remember(container) {
+        CategoryListController(container.categoryRepository, container.profileRepository, scope)
+    }
     val uiState by controller.uiState.collectAsState()
 
     LaunchedEffect(controller) { controller.load() }

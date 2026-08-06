@@ -6,6 +6,7 @@ data class AddCategoryUiState(
     val name: String = "",
     val monthlyLimitText: String = "",
     val selectedIcon: String = categoryIconChoices.first(),
+    val currency: String = "USD",
     val isSaving: Boolean = false,
     val saveError: String? = null
 ) {

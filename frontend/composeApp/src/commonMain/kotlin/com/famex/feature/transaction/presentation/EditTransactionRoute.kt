@@ -65,7 +65,7 @@ fun EditTransactionRoute(
         DeleteTransactionDialog(
             merchant = uiState.merchant,
             amount = uiState.amountText.toDoubleOrNull() ?: 0.0,
-            currencySymbol = currencySymbolFor("USD"),
+            currencySymbol = currencySymbolFor(uiState.currency),
             isDeleting = uiState.isDeleting,
             onConfirm = controller::onDelete,
             onDismiss = { showDeleteConfirm = false }

@@ -16,6 +16,7 @@ data class HistoryUiState(
     val transactions: List<Transaction> = emptyList(),
     val householdMembers: List<HouseholdMember> = emptyList(),
     val categories: List<Category> = emptyList(),
+    val currency: String = "USD",
     val errorMessage: String? = null,
     val searchQuery: String = "",
     val dateRangeFilter: DateRangeFilter = DateRangeFilter.ALL,

@@ -9,6 +9,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import com.famex.core.di.LocalAppContainer
 import com.famex.core.model.Household
+import com.famex.core.util.currencySymbolFor
 
 @Composable
 fun ConfigureCategoriesRoute(
@@ -34,6 +35,7 @@ fun ConfigureCategoriesRoute(
 
     ConfigureCategoriesScreen(
         uiState = uiState,
+        currencySymbol = currencySymbolFor(household.currency),
         onToggleCategory = controller::onToggleCategory,
         onLimitChange = controller::onLimitChange,
         onCustomNameChange = controller::onCustomNameChange,

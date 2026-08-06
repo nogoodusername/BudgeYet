@@ -72,6 +72,7 @@ fun CategoryDetailScreen(
         else -> CategoryDetailContent(
             category = uiState.category,
             transactions = uiState.transactions,
+            currency = uiState.currency,
             onDeleteCategoryClick = onDeleteCategoryClick,
             modifier = modifier
         )
@@ -82,10 +83,11 @@ fun CategoryDetailScreen(
 private fun CategoryDetailContent(
     category: Category,
     transactions: List<Transaction>,
+    currency: String,
     onDeleteCategoryClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val currencySymbol = currencySymbolFor("USD")
+    val currencySymbol = currencySymbolFor(currency)
     val famExType = LocalFamExTypography.current
     val groups = remember(transactions) { transactions.groupBy { it.transactionDateText } }
 

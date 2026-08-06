@@ -59,7 +59,7 @@ fun AddCategoryScreen(
     modifier: Modifier = Modifier
 ) {
     val famExType = LocalFamExTypography.current
-    val currencySymbol = currencySymbolFor("USD")
+    val currencySymbol = currencySymbolFor(uiState.currency)
 
     LazyColumn(
         modifier = modifier.fillMaxSize().padding(horizontal = 16.dp),
@@ -75,7 +75,13 @@ fun AddCategoryScreen(
             )
         }
 
-        item { MonthlyLimitFieldCard(value = uiState.monthlyLimitText, onValueChange = onMonthlyLimitChange) }
+        item {
+            MonthlyLimitFieldCard(
+                value = uiState.monthlyLimitText,
+                currencySymbol = currencySymbol,
+                onValueChange = onMonthlyLimitChange
+            )
+        }
 
         item { IconSelectionCard(selectedIcon = uiState.selectedIcon, onIconSelected = onIconSelected) }
 
@@ -111,7 +117,7 @@ fun AddCategoryScreen(
 }
 
 @Composable
-private fun MonthlyLimitFieldCard(value: String, onValueChange: (String) -> Unit) {
+private fun MonthlyLimitFieldCard(value: String, currencySymbol: String, onValueChange: (String) -> Unit) {
     val famExType = LocalFamExTypography.current
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -126,7 +132,7 @@ private fun MonthlyLimitFieldCard(value: String, onValueChange: (String) -> Unit
                 value = value,
                 onValueChange = onValueChange,
                 placeholder = { Text(text = "0.00", style = famExType.bodyMd) },
-                leadingIcon = { Text(text = "$", style = famExType.headlineSm, color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                leadingIcon = { Text(text = currencySymbol, style = famExType.headlineSm, color = MaterialTheme.colorScheme.onSurfaceVariant) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth(),

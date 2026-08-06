@@ -6,6 +6,7 @@ import com.famex.core.model.Transaction
 data class CategoryDetailUiState(
     val isLoading: Boolean = false,
     val category: Category? = null,
+    val currency: String = "USD",
     val transactions: List<Transaction> = emptyList(),
     val errorMessage: String? = null,
     // Other household categories, offered as reassign targets when deleting this one (PRD C1).

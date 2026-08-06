@@ -69,7 +69,7 @@ fun TransactionDetailScreen(
 
         else -> {
             val transaction = uiState.transaction
-            val currencySymbol = currencySymbolFor("USD")
+            val currencySymbol = currencySymbolFor(uiState.currency)
             val isExpense = transaction.type == TransactionType.EXPENSE
 
             Column(

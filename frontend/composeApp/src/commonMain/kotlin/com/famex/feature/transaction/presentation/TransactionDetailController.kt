@@ -1,6 +1,7 @@
 package com.famex.feature.transaction.presentation
 
 import com.famex.feature.category.domain.CategoryRepository
+import com.famex.feature.profile.domain.ProfileRepository
 import com.famex.feature.transaction.domain.TransactionRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -20,6 +21,7 @@ class TransactionDetailController(
     private val transactionId: Long,
     private val transactionRepository: TransactionRepository,
     private val categoryRepository: CategoryRepository,
+    private val profileRepository: ProfileRepository,
     private val scope: CoroutineScope
 ) {
     private val _uiState = MutableStateFlow(TransactionDetailUiState())
@@ -36,11 +38,13 @@ class TransactionDetailController(
                 val category = transaction?.categoryId?.let { id ->
                     categoryRepository.getCategories().find { it.id == id }
                 }
+                val household = profileRepository.getHousehold()
                 _uiState.update {
                     it.copy(
                         isLoading = false,
                         transaction = transaction,
                         category = category,
+                        currency = household.currency,
                         errorMessage = if (transaction == null) "Transaction not found" else null
                     )
                 }

@@ -12,6 +12,7 @@ data class CategoryListUiState(
     // Snapshot of the allocated total at the last load/save — the fixed reference point
     // "Allocated"/"Remaining" are measured against as the user reallocates.
     val totalMonthlyBudget: Double = 0.0,
+    val currency: String = "USD",
     val isSaving: Boolean = false,
     val saveError: String? = null,
     val errorMessage: String? = null

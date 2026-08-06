@@ -9,6 +9,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import com.famex.core.di.LocalAppContainer
 import com.famex.core.model.Household
+import com.famex.core.ui.MonthYearPickerDialog
+import com.famex.core.util.currencySymbolFor
 
 @Composable
 fun BudgetGoalRoute(
@@ -33,11 +35,21 @@ fun BudgetGoalRoute(
 
     BudgetGoalScreen(
         uiState = uiState,
+        currencySymbol = currencySymbolFor(household.currency),
         onBudgetNameChange = controller::onBudgetNameChange,
-        onBudgetPeriodChange = controller::onBudgetPeriodChange,
+        onOpenPeriodPicker = controller::onOpenPeriodPicker,
         onGoalAmountChange = controller::onGoalAmountChange,
         onSave = controller::onSave,
         onSkip = controller::onSkip,
         modifier = modifier
     )
+
+    if (uiState.showPeriodPicker) {
+        MonthYearPickerDialog(
+            selectedMonth = uiState.periodMonth,
+            selectedYear = uiState.periodYear,
+            onDismiss = controller::onClosePeriodPicker,
+            onConfirm = controller::onPeriodSelected
+        )
+    }
 }

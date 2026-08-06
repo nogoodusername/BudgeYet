@@ -15,7 +15,13 @@ fun CategoryDetailRoute(categoryId: Long, onDeleted: () -> Unit, modifier: Modif
     val container = LocalAppContainer.current
     val scope = rememberCoroutineScope()
     val controller = remember(container, categoryId) {
-        CategoryDetailController(categoryId, container.categoryRepository, container.transactionRepository, scope)
+        CategoryDetailController(
+            categoryId,
+            container.categoryRepository,
+            container.transactionRepository,
+            container.profileRepository,
+            scope
+        )
     }
     val uiState by controller.uiState.collectAsState()
 
