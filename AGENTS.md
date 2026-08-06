@@ -259,6 +259,25 @@ centrally in `gradle/libs.versions.toml` — add new dependencies there, referen
 Coral `#e11d48` = at/over 100% (over-budget warning). 8px rounded corners, card-based lists, persistent
 bottom nav + FAB. Reuse these tokens for any new UI — don't hardcode new colors ad hoc.
 
+**App icon / logo:** Source SVGs live in `composeApp/icon-source/` (not shipped directly, used only to
+regenerate platform assets via `inkscape`/ImageMagick — see git history for the exact export commands):
+`fam-ex.svg` (original, rounded card with transparent corners), `fam-ex-square.svg` (`rx=0` variant, for
+platforms needing an opaque square — iOS App Icon, Android legacy fallback), `fam-ex-foreground.svg`
+(background rect stripped, for the Android adaptive icon foreground layer). Regenerate all exported PNGs
+from these sources — never hand-edit the exported PNGs/XMLs directly. Wired up as:
+- **Android**: adaptive icon (`res/mipmap-anydpi-v26/ic_launcher*.xml` + `res/drawable/ic_launcher_background.xml`
+  gradient vector + per-density `res/mipmap-*/ic_launcher_foreground.png`) with legacy
+  `ic_launcher.png`/`ic_launcher_round.png` fallback for API <26. Referenced from `AndroidManifest.xml`
+  via `android:icon`/`android:roundIcon`.
+- **iOS**: `iosApp/iosApp/Assets.xcassets/AppIcon.appiconset/` (single 1024×1024 opaque PNG, modern
+  Xcode "universal" format), wired into `project.pbxproj` via a `PBXResourcesBuildPhase` and
+  `ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon` on both Debug/Release configs.
+- **Web**: `jsMain/resources/favicon.svg` + `apple-touch-icon.png`, linked from `index.html`'s `<head>`.
+  `jsMain/resources/` contents are copied as-is into the JS dist bundle — no webpack/gradle wiring needed.
+- **In-app**: `commonMain/composeResources/drawable/fam_ex_logo.png` (first drawable resource in the
+  project — Compose Multiplatform resources generates `Res.drawable.fam_ex_logo`), used on
+  `WelcomeScreen.kt` as the brand mark.
+
 ## Frontend current state
 
 All three phases of the v1 frontend are complete. The app covers the full PRD surface across ~18 screens (Dashboard, Categories, History, Add Transaction, Profile, Household Members, Invite Member, Welcome, Auth, Backend Config, PIN Sent, Forgot PIN, Household Choice, Create Household, Join Household, Budget Goal, Configure Categories). Every repository is real — `RealAuthRepository`, `RealCategoryRepository`, `RealTransactionRepository`, `RealDashboardRepository`, `RealProfileRepository` — wired through `AppContainer`. `Fake*Repository` classes remain as reference implementations but are not constructed anywhere. `App.kt` gates on a persisted `AuthSession?` (`core/persistence/SettingsStorage`): `null` renders the onboarding route, non-null renders the main app shell. The backend base URL is user-configurable via the Backend Configuration screen, stored as a device-level `BackendConfig`.
