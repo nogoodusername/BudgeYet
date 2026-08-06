@@ -1,6 +1,7 @@
 package com.famex
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -41,6 +42,7 @@ import kotlinx.coroutines.launch
 import com.famex.core.di.AppContainer
 import com.famex.core.di.LocalAppContainer
 import com.famex.core.model.AuthSession
+import com.famex.core.model.DisplayMode
 import com.famex.core.navigation.AppNavController
 import com.famex.core.navigation.BackHandler
 import com.famex.core.navigation.Screen
@@ -70,27 +72,43 @@ private val ActiveDummyScenario = DummyScenario.HealthyMidMonth
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun App() {
-    FamExTheme {
-        val container = remember { AppContainer(scenario = ActiveDummyScenario) }
-        val scope = rememberCoroutineScope()
+    val container = remember { AppContainer(scenario = ActiveDummyScenario) }
+    val scope = rememberCoroutineScope()
+    var session by remember { mutableStateOf<AuthSession?>(null) }
+    // Gates the very first frame on a SettingsStorage read (see
+    // AuthRepository.getPersistedSession) so a signed-in cold start renders straight
+    // into MainAppShell instead of flashing OnboardingRoute first.
+    var isRestoringSession by remember { mutableStateOf(true) }
+
+    // Keeps CurrentHouseholdHolder (core/session/) in step with the session — Real
+    // repositories whose interface doesn't take a household id (CategoryRepository
+    // today, more to follow) read it from there. MainAppShell only ever renders once
+    // newSession.household is non-null, so the holder is always populated by the time
+    // any of those repositories can actually be called.
+    fun updateSession(newSession: AuthSession?) {
+        session = newSession
+        container.currentHouseholdHolder.householdId = newSession?.household?.id
+        container.currentHouseholdHolder.userId = newSession?.user?.id
+    }
+
+    val darkTheme = when (session?.user?.displayMode) {
+        DisplayMode.DARK -> true
+        DisplayMode.LIGHT -> false
+        DisplayMode.SYSTEM, null -> isSystemInDarkTheme()
+    }
+
+    val onDisplayModeChanged: (DisplayMode) -> Unit = { mode ->
+        session?.let { currentSession ->
+            val updatedSession = currentSession.copy(
+                user = currentSession.user.copy(displayMode = mode)
+            )
+            updateSession(updatedSession)
+            scope.launch { container.authRepository.persistSession(updatedSession) }
+        }
+    }
+
+    FamExTheme(darkTheme = darkTheme) {
         CompositionLocalProvider(LocalAppContainer provides container) {
-            var session by remember { mutableStateOf<AuthSession?>(null) }
-            // Gates the very first frame on a SettingsStorage read (see
-            // AuthRepository.getPersistedSession) so a signed-in cold start renders straight
-            // into MainAppShell instead of flashing OnboardingRoute first.
-            var isRestoringSession by remember { mutableStateOf(true) }
-
-            // Keeps CurrentHouseholdHolder (core/session/) in step with the session — Real
-            // repositories whose interface doesn't take a household id (CategoryRepository
-            // today, more to follow) read it from there. MainAppShell only ever renders once
-            // newSession.household is non-null, so the holder is always populated by the time
-            // any of those repositories can actually be called.
-            fun updateSession(newSession: AuthSession?) {
-                session = newSession
-                container.currentHouseholdHolder.householdId = newSession?.household?.id
-                container.currentHouseholdHolder.userId = newSession?.user?.id
-            }
-
             LaunchedEffect(container) {
                 updateSession(container.authRepository.getPersistedSession())
                 isRestoringSession = false
@@ -131,7 +149,8 @@ fun App() {
                             updateSession(null)
                             scope.launch { container.authRepository.clearPersistedSession() }
                         },
-                        pendingSyncCount = pendingSyncCount
+                        pendingSyncCount = pendingSyncCount,
+                        onDisplayModeChanged = onDisplayModeChanged
                     )
                 }
             }
@@ -143,7 +162,8 @@ fun App() {
 @Composable
 private fun MainAppShell(
     onSignOut: () -> Unit,
-    pendingSyncCount: Int
+    pendingSyncCount: Int,
+    onDisplayModeChanged: (DisplayMode) -> Unit = {}
 ) {
     val container = LocalAppContainer.current
     val navController = remember { AppNavController() }
@@ -254,7 +274,8 @@ private fun MainAppShell(
                     Screen.AddTransaction -> AddTransactionRoute(onSaved = { navController.back() })
                     Screen.Profile -> ProfileRoute(
                         onNavigateToManageMembers = { navController.navigate(Screen.HouseholdMembers) },
-                        onSignOut = onSignOut
+                        onSignOut = onSignOut,
+                        onDisplayModeChanged = onDisplayModeChanged
                     )
                     Screen.HouseholdMembers -> HouseholdMembersRoute(
                         onNavigateToInvite = { navController.navigate(Screen.InviteMember) }
