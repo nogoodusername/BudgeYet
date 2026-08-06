@@ -249,7 +249,7 @@ fun DateFieldCard(dateText: String, onClick: () -> Unit, modifier: Modifier = Mo
 }
 
 @Composable
-private fun TriggerField(
+fun TriggerField(
     text: String,
     placeholder: Boolean,
     onClick: () -> Unit,

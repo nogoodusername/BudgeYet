@@ -2,6 +2,7 @@ package com.famex.feature.auth.presentation
 
 import com.famex.core.model.Household
 import com.famex.core.util.currentMonthYearLabel
+import com.famex.core.util.toMonthYearText
 import com.famex.feature.auth.domain.AuthRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalDate
 
 sealed class BudgetGoalEvent {
     data class Saved(val household: Household, val monthlyGoalAmount: Double) : BudgetGoalEvent()
@@ -35,7 +37,20 @@ class BudgetGoalController(
     val events: SharedFlow<BudgetGoalEvent> = _events.asSharedFlow()
 
     fun onBudgetNameChange(value: String) = _uiState.update { it.copy(budgetName = value, error = null) }
-    fun onBudgetPeriodChange(value: String) = _uiState.update { it.copy(budgetPeriod = value, error = null) }
+
+    fun onOpenPeriodPicker() = _uiState.update { it.copy(showPeriodPicker = true) }
+
+    fun onClosePeriodPicker() = _uiState.update { it.copy(showPeriodPicker = false) }
+
+    fun onPeriodSelected(month: Int, year: Int) = _uiState.update {
+        it.copy(
+            periodMonth = month,
+            periodYear = year,
+            budgetPeriod = LocalDate(year, month, 1).toMonthYearText(),
+            showPeriodPicker = false,
+            error = null
+        )
+    }
 
     fun onGoalAmountChange(value: String) {
         if (value.isNotEmpty() && !value.matches(Regex("^\\d*\\.?\\d{0,2}$"))) return

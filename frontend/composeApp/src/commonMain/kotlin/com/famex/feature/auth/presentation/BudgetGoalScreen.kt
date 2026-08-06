@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -32,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.famex.core.ui.TriggerField
 import com.famex.core.ui.fieldColors
 import com.famex.theme.LocalFamExTypography
 
@@ -45,7 +47,7 @@ fun BudgetGoalScreen(
     uiState: BudgetGoalUiState,
     currencySymbol: String,
     onBudgetNameChange: (String) -> Unit,
-    onBudgetPeriodChange: (String) -> Unit,
+    onOpenPeriodPicker: () -> Unit,
     onGoalAmountChange: (String) -> Unit,
     onSave: () -> Unit,
     onSkip: () -> Unit,
@@ -105,13 +107,11 @@ fun BudgetGoalScreen(
 
                 Text(text = "Budget Period", style = famExType.labelMd, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = uiState.budgetPeriod,
-                    onValueChange = onBudgetPeriodChange,
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp),
-                    colors = fieldColors()
+                TriggerField(
+                    text = uiState.budgetPeriod,
+                    placeholder = false,
+                    leadingIcon = Icons.Default.CalendarToday,
+                    onClick = onOpenPeriodPicker
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
