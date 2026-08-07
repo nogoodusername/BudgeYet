@@ -43,12 +43,14 @@ import com.famex.core.di.AppContainer
 import com.famex.core.di.LocalAppContainer
 import com.famex.core.model.AuthSession
 import com.famex.core.model.DisplayMode
+import com.famex.core.model.Household
 import com.famex.core.navigation.AppNavController
 import com.famex.core.navigation.BackHandler
 import com.famex.core.navigation.Screen
 import com.famex.core.offline.SyncEvent
 import com.famex.core.ui.BottomNavTab
 import com.famex.core.ui.FamExBottomNavBar
+import com.famex.feature.auth.presentation.BudgetGoalRoute
 import com.famex.feature.auth.presentation.OnboardingRoute
 import com.famex.feature.category.presentation.AddCategoryRoute
 import com.famex.feature.category.presentation.CategoryDetailRoute
@@ -145,6 +147,10 @@ fun App() {
                     }
 
                     MainAppShell(
+                        // Safe: onOnboardingComplete/getPersistedSession only ever hand back a
+                        // session once a household exists (see AuthSession's doc comment) — this
+                        // branch only renders after that's guaranteed.
+                        household = requireNotNull(currentSession.household),
                         onSignOut = {
                             updateSession(null)
                             scope.launch { container.authRepository.clearPersistedSession() }
@@ -161,6 +167,7 @@ fun App() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MainAppShell(
+    household: Household,
     onSignOut: () -> Unit,
     pendingSyncCount: Int,
     onDisplayModeChanged: (DisplayMode) -> Unit = {}
@@ -232,7 +239,7 @@ private fun MainAppShell(
                     // Hidden on the add/edit transaction forms and Add Category — it would
                     // float on top of those screens' own Save/Add button.
                     showAddButton = current != Screen.AddTransaction && current !is Screen.EditTransaction &&
-                        current != Screen.AddCategory,
+                        current != Screen.AddCategory && current != Screen.BudgetSetup,
                     onDashboard = { navController.switchTab(Screen.Dashboard) },
                     onCategories = { navController.switchTab(Screen.Categories) },
                     onAdd = { navController.navigate(Screen.AddTransaction) },
@@ -246,7 +253,13 @@ private fun MainAppShell(
                     Screen.Dashboard -> DashboardRoute(
                         onNavigateToCategoryDetail = { navController.navigate(Screen.CategoryDetail(it)) },
                         onNavigateToHistory = { navController.switchTab(Screen.History) },
-                        onNavigateToSetUpBudget = { navController.switchTab(Screen.Categories) }
+                        onNavigateToSetUpBudget = { navController.navigate(Screen.BudgetSetup) }
+                    )
+                    Screen.BudgetSetup -> BudgetGoalRoute(
+                        household = household,
+                        isOnboarding = false,
+                        onSaved = { _, _ -> navController.switchTab(Screen.Dashboard) },
+                        onSkipped = { navController.back() }
                     )
                     Screen.Categories -> CategoryRoute(
                         onNavigateToCategoryDetail = { navController.navigate(Screen.CategoryDetail(it)) },
@@ -291,6 +304,7 @@ private fun Screen.title(): String = when (this) {
     Screen.Categories -> "Category Limits"
     is Screen.CategoryDetail -> "Category Detail"
     Screen.AddCategory -> "Add Category"
+    Screen.BudgetSetup -> "Set Up Budget"
     Screen.History -> "Transaction History"
     is Screen.TransactionDetail -> "Transaction Detail"
     is Screen.EditTransaction -> "Edit Transaction"
@@ -301,7 +315,7 @@ private fun Screen.title(): String = when (this) {
 }
 
 private fun Screen.toBottomNavTab(): BottomNavTab = when (this) {
-    Screen.Dashboard -> BottomNavTab.Dashboard
+    Screen.Dashboard, Screen.BudgetSetup -> BottomNavTab.Dashboard
     Screen.Categories, is Screen.CategoryDetail, Screen.AddCategory -> BottomNavTab.Categories
     Screen.History, is Screen.TransactionDetail, is Screen.EditTransaction -> BottomNavTab.History
     Screen.Profile, Screen.HouseholdMembers, Screen.InviteMember -> BottomNavTab.Profile

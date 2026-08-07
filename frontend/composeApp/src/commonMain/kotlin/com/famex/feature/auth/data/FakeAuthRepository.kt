@@ -133,7 +133,7 @@ class FakeAuthRepository(
     // DummyScenario the rest of the app serves" stance as createHousehold/joinHousehold above.
     // Real persistence lands with the networking layer; for now this just validates the
     // household exists and lets the onboarding funnel proceed.
-    override suspend fun setupBudget(householdId: Long, name: String, period: String, monthlyGoalAmount: Double) {
+    override suspend fun setupBudget(householdId: Long, name: String, monthlyGoalAmount: Double) {
         delay(400)
         accounts.values.find { it.household?.id == householdId }
             ?: throw IllegalStateException("No household found for id $householdId")

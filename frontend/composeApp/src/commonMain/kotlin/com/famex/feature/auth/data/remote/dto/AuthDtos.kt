@@ -42,10 +42,9 @@ data class HouseholdCreateRequestDto(
 @Serializable
 data class JoinHouseholdRequestDto(val token: String)
 
-// Mirrors backend/app/schemas/budget.py BudgetCreate. month/year are omitted — the frontend's
-// onboarding "period" field (BudgetGoalUiState.budgetPeriod) is a free-text display label with
-// no backend equivalent, so it isn't sent; the backend defaults an omitted month/year to the
-// current cycle, which is exactly what onboarding wants anyway.
+// Mirrors backend/app/schemas/budget.py BudgetCreate. month/year are omitted — there's no
+// per-budget period selection in the frontend; the backend defaults an omitted month/year to
+// the current cycle, which is exactly what onboarding wants anyway.
 @Serializable
 data class BudgetCreateRequestDto(
     val name: String,

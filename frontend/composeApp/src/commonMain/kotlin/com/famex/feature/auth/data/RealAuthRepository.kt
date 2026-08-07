@@ -64,7 +64,7 @@ class RealAuthRepository(
         return api.getHousehold(config, token, membership.householdId).toDomain()
     }
 
-    override suspend fun setupBudget(householdId: Long, name: String, period: String, monthlyGoalAmount: Double) {
+    override suspend fun setupBudget(householdId: Long, name: String, monthlyGoalAmount: Double) {
         val config = getBackendConfig()
         api.createBudget(config, currentAccessToken(), householdId, name, monthlyGoalAmount)
     }

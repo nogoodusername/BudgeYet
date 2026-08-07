@@ -26,7 +26,7 @@ interface AuthRepository {
     // real backend's POST /households/{id}/budgets and one-POST-per-category
     // /households/{id}/categories, but as a single call each since the fake repo has no
     // per-category network round trip to simulate.
-    suspend fun setupBudget(householdId: Long, name: String, period: String, monthlyGoalAmount: Double)
+    suspend fun setupBudget(householdId: Long, name: String, monthlyGoalAmount: Double)
     suspend fun setupCategories(householdId: Long, categories: List<CategorySetupInput>)
 
     suspend fun getBackendConfig(): BackendConfig

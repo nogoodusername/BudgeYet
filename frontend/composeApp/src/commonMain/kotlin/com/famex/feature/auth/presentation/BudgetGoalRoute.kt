@@ -9,7 +9,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import com.famex.core.di.LocalAppContainer
 import com.famex.core.model.Household
-import com.famex.core.ui.MonthYearPickerDialog
 import com.famex.core.util.currencySymbolFor
 
 @Composable
@@ -17,6 +16,12 @@ fun BudgetGoalRoute(
     household: Household,
     onSaved: (Household, Double) -> Unit,
     onSkipped: (Household) -> Unit,
+    // True when reached from the onboarding funnel (Next leads into Configure Categories, and
+    // Skip is a valid way to finish onboarding without a budget). False when reused from the
+    // main app (e.g. Dashboard's "Set Up Budget" for a household that already has categories) —
+    // there, "skip" and "configure categories next" don't make sense, so BudgetGoalScreen swaps
+    // in a plain Save action and hides Skip.
+    isOnboarding: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val container = LocalAppContainer.current
@@ -36,20 +41,11 @@ fun BudgetGoalRoute(
     BudgetGoalScreen(
         uiState = uiState,
         currencySymbol = currencySymbolFor(household.currency),
+        isOnboarding = isOnboarding,
         onBudgetNameChange = controller::onBudgetNameChange,
-        onOpenPeriodPicker = controller::onOpenPeriodPicker,
         onGoalAmountChange = controller::onGoalAmountChange,
         onSave = controller::onSave,
         onSkip = controller::onSkip,
         modifier = modifier
     )
-
-    if (uiState.showPeriodPicker) {
-        MonthYearPickerDialog(
-            selectedMonth = uiState.periodMonth,
-            selectedYear = uiState.periodYear,
-            onDismiss = controller::onClosePeriodPicker,
-            onConfirm = controller::onPeriodSelected
-        )
-    }
 }

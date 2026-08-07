@@ -19,7 +19,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
-import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -36,7 +35,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.famex.core.ui.TriggerField
 import com.famex.core.ui.fieldColors
 import com.famex.theme.LocalFamExTypography
 
@@ -49,8 +47,8 @@ import com.famex.theme.LocalFamExTypography
 fun BudgetGoalScreen(
     uiState: BudgetGoalUiState,
     currencySymbol: String,
+    isOnboarding: Boolean = true,
     onBudgetNameChange: (String) -> Unit,
-    onOpenPeriodPicker: () -> Unit,
     onGoalAmountChange: (String) -> Unit,
     onSave: () -> Unit,
     onSkip: () -> Unit,
@@ -111,17 +109,6 @@ fun BudgetGoalScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Text(text = "Budget Period", style = famExType.labelMd, color = MaterialTheme.colorScheme.onSurface)
-                Spacer(modifier = Modifier.height(8.dp))
-                TriggerField(
-                    text = uiState.budgetPeriod,
-                    placeholder = false,
-                    leadingIcon = Icons.Default.CalendarToday,
-                    onClick = onOpenPeriodPicker
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
                 Text(text = "Monthly Goal Amount", style = famExType.labelMd, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
@@ -167,11 +154,15 @@ fun BudgetGoalScreen(
                 contentColor = MaterialTheme.colorScheme.onPrimary
             )
         ) {
-            Text(text = if (uiState.isSaving) "Saving…" else "Next: Configure Categories", style = famExType.headlineSm)
+            val savingLabel = "Saving…"
+            val savedLabel = if (isOnboarding) "Next: Configure Categories" else "Save Budget"
+            Text(text = if (uiState.isSaving) savingLabel else savedLabel, style = famExType.headlineSm)
         }
 
-        TextButton(onClick = onSkip, enabled = !uiState.isSaving) {
-            Text(text = "Skip for now", style = famExType.labelMd, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (isOnboarding) {
+            TextButton(onClick = onSkip, enabled = !uiState.isSaving) {
+                Text(text = "Skip for now", style = famExType.labelMd, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
     }
 }
