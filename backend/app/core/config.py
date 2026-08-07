@@ -2,7 +2,7 @@ from typing import Literal
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "fam-ex Backend"
+    PROJECT_NAME: str = "budge-yet Backend"
     DEBUG: bool = True
     API_V1_STR: str = "/api/v1"
     
@@ -10,14 +10,14 @@ class Settings(BaseSettings):
     DATABASE_TYPE: Literal["sqlite", "postgres"] = "sqlite"
     
     # SQLite Options
-    SQLITE_DB_FILE: str = "./data/fam_ex.db"
+    SQLITE_DB_FILE: str = "./data/budge_yet.db"
     
     # Postgres / Supabase / Aiven Options
     POSTGRES_SERVER: str = "localhost"
     POSTGRES_PORT: int = 5432
     POSTGRES_USER: str = "postgres"
     POSTGRES_PASSWORD: str = "postgres"
-    POSTGRES_DB: str = "fam_ex"
+    POSTGRES_DB: str = "budge_yet"
     POSTGRES_SSL: bool = False
     
     # Auth & Security

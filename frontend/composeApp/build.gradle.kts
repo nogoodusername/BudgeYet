@@ -93,11 +93,11 @@ kotlin {
 }
 
 android {
-    namespace = "com.famex"
+    namespace = "com.budgeyet"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.famex"
+        applicationId = "com.budgeyet"
         minSdk = 24
         targetSdk = 34
         versionCode = 1
@@ -112,6 +112,6 @@ android {
 
 compose {
     resources {
-        packageOfResClass = "com.famex.generated.resources"
+        packageOfResClass = "com.budgeyet.generated.resources"
     }
 }

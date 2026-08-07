@@ -62,4 +62,4 @@ jobs:
       - name: Build Backend Container
         run: |
           cd backend
-          docker build -t fam-ex-backend:ci .
+          docker build -t budge-yet-backend:ci .

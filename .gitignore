@@ -1,4 +1,4 @@
-# root gitignore for fam-ex monorepo
+# root gitignore for budge-yet monorepo
 
 # Build outputs & IDEs
 .idea/

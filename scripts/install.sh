@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# fam-ex backend installer — clones the repo, configures the environment, and
+# budge-yet backend installer — clones the repo, configures the environment, and
 # starts the API via Docker Compose. Designed to run standalone on a fresh
 # server with nothing but git, docker, and python3 already present:
 #
-#   curl -fsSL https://raw.githubusercontent.com/nogoodusername/fam-ex/main/scripts/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/nogoodusername/budge-yet/main/scripts/install.sh | bash
 #
 # Non-interactive/automation use (Ansible, cloud-init, CI, ...):
 #
@@ -18,11 +18,11 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 # Defaults (overridable via flags or env vars)
 # ---------------------------------------------------------------------------
-REPO_URL="${FAMEX_REPO:-https://github.com/nogoodusername/fam-ex.git}"
-BRANCH="${FAMEX_BRANCH:-main}"
-INSTALL_DIR="${FAMEX_DIR:-fam-ex}"
-NON_INTERACTIVE="${FAMEX_NONINTERACTIVE:-0}"
-DB_CHOICE="${FAMEX_DB:-}"                      # sqlite | postgres
+REPO_URL="${BUDGEYET_REPO:-https://github.com/nogoodusername/budge-yet.git}"
+BRANCH="${BUDGEYET_BRANCH:-main}"
+INSTALL_DIR="${BUDGEYET_DIR:-budge-yet}"
+NON_INTERACTIVE="${BUDGEYET_NONINTERACTIVE:-0}"
+DB_CHOICE="${BUDGEYET_DB:-}"                      # sqlite | postgres
 POSTGRES_USER_IN="${POSTGRES_USER:-}"
 POSTGRES_PASSWORD_IN="${POSTGRES_PASSWORD:-}"
 POSTGRES_DB_IN="${POSTGRES_DB:-}"
@@ -43,24 +43,24 @@ die()     { printf '%s[x]%s %s\n' "$C_ERR" "$C_RESET" "$1" >&2; exit 1; }
 
 usage() {
   cat <<'EOF'
-fam-ex backend installer
+budge-yet backend installer
 
 Usage: install.sh [options]
 
 Options:
-  --dir PATH               Install into PATH (default: ./fam-ex)
+  --dir PATH               Install into PATH (default: ./budge-yet)
   --branch NAME             Git branch/tag to clone (default: main)
   --repo URL                 Repository URL (default: upstream GitHub repo)
   --db sqlite|postgres      Database backend; skips the interactive prompt
   --postgres-user NAME       Postgres user (postgres db only)
   --postgres-password PASS  Postgres password (postgres db only; random if omitted)
-  --postgres-db NAME         Postgres database name (default: fam_ex)
+  --postgres-db NAME         Postgres database name (default: budge_yet)
   --reconfigure               Regenerate backend/.env even if one already exists
   --yes, --non-interactive  Never prompt; use flags/env-var values or defaults
   -h, --help                  Show this help and exit
 
 Environment variables (same effect as the matching flag):
-  FAMEX_REPO, FAMEX_BRANCH, FAMEX_DIR, FAMEX_DB, FAMEX_NONINTERACTIVE,
+  BUDGEYET_REPO, BUDGEYET_BRANCH, BUDGEYET_DIR, BUDGEYET_DB, BUDGEYET_NONINTERACTIVE,
   POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB
 EOF
 }
@@ -197,14 +197,14 @@ random_password() {
 if [ "$SKIP_ENV_SETUP" != "1" ]; then
   if [ "$DB_CHOICE" = "postgres" ]; then
     POSTGRES_USER="${POSTGRES_USER_IN:-postgres}"
-    POSTGRES_DB="${POSTGRES_DB_IN:-fam_ex}"
+    POSTGRES_DB="${POSTGRES_DB_IN:-budge_yet}"
 
     if [ -n "$POSTGRES_PASSWORD_IN" ]; then
       POSTGRES_PASSWORD="$POSTGRES_PASSWORD_IN"
     elif [ "$NON_INTERACTIVE" != "1" ]; then
       read -r -p "Postgres user (default: postgres): " reply_user
       POSTGRES_USER="${reply_user:-$POSTGRES_USER}"
-      read -r -p "Postgres database name (default: fam_ex): " reply_db
+      read -r -p "Postgres database name (default: budge_yet): " reply_db
       POSTGRES_DB="${reply_db:-$POSTGRES_DB}"
       read -r -s -p "Postgres password (leave blank to auto-generate): " reply_pw
       echo
@@ -236,7 +236,7 @@ if ! grep -q '^COMPOSE_PROJECT_NAME=' .env 2>/dev/null; then
   # printf (not echo/basename's own trailing newline piped through tr) — `tr -c`
   # would otherwise translate that trailing newline into a stray literal '-' too.
   project_slug="$(printf '%s' "$(basename "$ABS_INSTALL_DIR")" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9_.-' '-')"
-  echo "COMPOSE_PROJECT_NAME=famex-${project_slug}" >> .env
+  echo "COMPOSE_PROJECT_NAME=budgeyet-${project_slug}" >> .env
 fi
 
 # ---------------------------------------------------------------------------
@@ -279,7 +279,7 @@ fi
 PUBLIC_IP="$(curl -fsS --max-time 2 https://ifconfig.me 2>/dev/null || true)"
 
 echo
-success "fam-ex backend is up (database: $CONFIGURED_DB)."
+success "budge-yet backend is up (database: $CONFIGURED_DB)."
 echo "  Local:    http://localhost:8000/docs"
 [ -n "$PUBLIC_IP" ] && echo "  Public:   http://$PUBLIC_IP:8000/docs  (open port 8000 in your firewall/security group if needed)"
 echo

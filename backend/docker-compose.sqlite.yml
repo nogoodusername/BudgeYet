@@ -3,12 +3,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: fam_ex_backend_sqlite
+    container_name: budge_yet_backend_sqlite
     ports:
       - "8000:8000"
     environment:
       - DATABASE_TYPE=sqlite
-      - SQLITE_DB_FILE=/app/data/fam_ex.db
+      - SQLITE_DB_FILE=/app/data/budge_yet.db
       - SECRET_KEY=${SECRET_KEY:?Set SECRET_KEY in backend/.env (run scripts/setup_env.py first) or export it before running compose}
     volumes:
       - sqlite_data:/app/data
@@ -18,10 +18,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: fam_ex_login_cleanup_sqlite
+    container_name: budge_yet_login_cleanup_sqlite
     environment:
       - DATABASE_TYPE=sqlite
-      - SQLITE_DB_FILE=/app/data/fam_ex.db
+      - SQLITE_DB_FILE=/app/data/budge_yet.db
     volumes:
       - sqlite_data:/app/data
     # No cron daemon in the image, so this loops the purge script once a day

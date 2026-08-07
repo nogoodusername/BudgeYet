@@ -1,6 +1,6 @@
-# fam-ex Frontend (Compose Multiplatform)
+# budge-yet Frontend (Compose Multiplatform)
 
-Cross-platform client application for **fam-ex**, built using **Kotlin Multiplatform (KMP)** and **Compose Multiplatform (CMP)** for Android, iOS, and Web.
+Cross-platform client application for **budge-yet**, built using **Kotlin Multiplatform (KMP)** and **Compose Multiplatform (CMP)** for Android, iOS, and Web.
 
 ---
 

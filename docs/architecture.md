@@ -1,4 +1,4 @@
-# Technical Architecture Specification — fam-ex
+# Technical Architecture Specification — budge-yet
 
 **Version:** 1.0  
 **Date:** July 2026  
@@ -8,7 +8,7 @@
 
 ## 1. System Architecture Overview
 
-`fam-ex` is designed as a modular, decoupled application composed of an asynchronous **FastAPI backend** and a multiplatform **Kotlin Compose Multiplatform (CMP) frontend**. 
+`budge-yet` is designed as a modular, decoupled application composed of an asynchronous **FastAPI backend** and a multiplatform **Kotlin Compose Multiplatform (CMP) frontend**. 
 
 ```
                                     +--------------------------------+
@@ -66,7 +66,7 @@ The repository follows a single-repo, multi-project structure:
 The application supports two database drivers configured at setup time via environment variables (`DATABASE_TYPE`):
 
 1. **Local SQLite (`DATABASE_TYPE=sqlite`)**:
-   - Connection URL: `sqlite+aiosqlite:///./data/fam_ex.db`
+   - Connection URL: `sqlite+aiosqlite:///./data/budge_yet.db`
    - Configured with WAL mode (`PRAGMA journal_mode=WAL`) and foreign key enforcement (`PRAGMA foreign_keys=ON`).
    - Ideal for quick local testing, offline development, or embedded lightweight deployments.
 

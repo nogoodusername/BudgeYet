@@ -8,7 +8,7 @@ The project supports two native targets:
 Both workflows assume you are in the repository root:
 
 ```
-/Users/kshitijnagvekar/Projects/Personal/fam-ex/frontend
+/Users/kshitijnagvekar/Projects/Personal/budge-yet/frontend
 ```
 
 ---
@@ -56,7 +56,7 @@ export PATH=$ANDROID_HOME/platform-tools:$PATH
 ### 4️⃣ Launch the app (if not auto‑started)
 
 ```bash
-adb shell am start -n com.famex/com.famex.MainActivity
+adb shell am start -n com.budgeyet/com.budgeyet.MainActivity
 ```
 
 You should see the **fam‑ex** UI on the device/emulator.
@@ -64,7 +64,7 @@ You should see the **fam‑ex** UI on the device/emulator.
 ### 5️⃣ Verify the process (optional)
 
 ```bash
-adb shell pidof com.famex   # prints the PID of the running process
+adb shell pidof com.budgeyet   # prints the PID of the running process
 ```
 
 ---
@@ -81,7 +81,7 @@ adb shell pidof com.famex   # prints the PID of the running process
 | **CocoaPods** (optional, for certain dependencies) | `pod --version`. |
 
 > **Note:** The iOS Xcode project lives at
-> `[iosApp](/Users/kshitijnagvekar/Projects/Personal/fam-ex/frontend/iosApp/iosApp.xcodeproj)`.
+> `[iosApp](/Users/kshitijnagvekar/Projects/Personal/budge-yet/frontend/iosApp/iosApp.xcodeproj)`.
 
 ### 2️⃣ Open the Xcode project
 
@@ -122,7 +122,7 @@ Press **⌘ R** (or click the *Run* button). Xcode will:
 1. Invoke the Gradle task `linkDebugFrameworkIosArm64` (or the appropriate SDK for the selected device).
 2. Build the Kotlin/Native binary, embed it into an Xcode app bundle.
 3. Install the bundle on the selected device/simulator.
-4. Launch `MainActivity` (iOS entry point is `MainActivity` in the same package `com.famex`).
+4. Launch `MainActivity` (iOS entry point is `MainActivity` in the same package `com.budgeyet`).
 
 You should now see the same UI that runs on Android.
 
@@ -150,7 +150,7 @@ xcodebuild -project iosApp/iosApp.xcodeproj \
 
 # Install on the booted simulator:
  xcrun simctl install booted iosApp/build/Debug-iphonesimulator/iosApp.app
- xcrun simctl launch booted com.famex
+ xcrun simctl launch booted com.budgeyet
 ```
 
 > The CLI method is handy for CI pipelines; for everyday development the Xcode UI is faster.
@@ -172,14 +172,14 @@ xcodebuild -project iosApp/iosApp.xcodeproj \
     build
 
 # Package into .ipa
-rm -rf /tmp/famex-ipa
-mkdir -p /tmp/famex-ipa/Payload
-cp -R build/DerivedData/Build/Products/Debug-iphoneos/iosApp.app /tmp/famex-ipa/Payload/
-cd /tmp/famex-ipa && zip -qry "$OLDPWD/build/famex.ipa" Payload/ && cd -
+rm -rf /tmp/budgeyet-ipa
+mkdir -p /tmp/budgeyet-ipa/Payload
+cp -R build/DerivedData/Build/Products/Debug-iphoneos/iosApp.app /tmp/budgeyet-ipa/Payload/
+cd /tmp/budgeyet-ipa && zip -qry "$OLDPWD/build/budgeyet.ipa" Payload/ && cd -
 ```
 
 **Install steps:**
-1. AirDrop `frontend/build/famex.ipa` to your iPhone.
+1. AirDrop `frontend/build/budgeyet.ipa` to your iPhone.
 2. Open SideStore on the phone → tap the IPA → **Install**.
 3. If prompted, enable **Developer Mode** (Settings → Privacy & Security → Developer Mode) and trust the certificate (Settings → General → VPN & Device Management).
 
@@ -196,7 +196,7 @@ cd /tmp/famex-ipa && zip -qry "$OLDPWD/build/famex.ipa" Payload/ && cd -
 | **3. Open project** | `./gradlew :composeApp:installDebug` | `open iosApp/iosApp.xcodeproj` | same | CLI build (see §7) |
 | **4. Signing** | N/A (debug key) | Automatic signing in Xcode | Automatic signing (simulators don't need it) | Unsigned (SideStore re-signs) |
 | **5. Run** | `adb shell am start …` (optional) | Press **⌘ R** in Xcode | Press **⌘ R** or use `xcrun simctl launch` | AirDrop `.ipa` → SideStore → Install |
-| **6. Verify** | `adb shell pidof com.famex` | Check Xcode console | Check Simulator logs | App icon on home screen |
+| **6. Verify** | `adb shell pidof com.budgeyet` | Check Xcode console | Check Simulator logs | App icon on home screen |
 
 ---
 

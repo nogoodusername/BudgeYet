@@ -1,6 +1,6 @@
-# fam-ex Backend Service
+# budge-yet Backend Service
 
-FastAPI-powered REST API backend for the `fam-ex` collaborative household budget application.
+FastAPI-powered REST API backend for the `budge-yet` collaborative household budget application.
 
 ---
 

@@ -22,7 +22,7 @@ from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.repositories.login_attempt_repository import LoginAttemptRepository
 
-logger = logging.getLogger("fam_ex.cleanup_login_failures")
+logger = logging.getLogger("budge_yet.cleanup_login_failures")
 logger.setLevel(logging.INFO)
 if not logger.handlers:
     # Own handler so run output is visible on stdout when this runs standalone

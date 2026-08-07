@@ -25,7 +25,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    description="FastAPI Backend for fam-ex Collaborative Household Budget App (OpenAPI 3.0)",
+    description="FastAPI Backend for budge-yet Collaborative Household Budget App (OpenAPI 3.0)",
     version="0.1.0",
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     docs_url="/docs",
@@ -77,7 +77,7 @@ _register_exception_handlers(app)
 @app.get("/", summary="Root API Welcome")
 async def root():
     return {
-        "message": "Welcome to fam-ex Household Budget API",
+        "message": "Welcome to budge-yet Household Budget API",
         "docs": "/docs",
         "health": "/health",
         "database": settings.DATABASE_TYPE,

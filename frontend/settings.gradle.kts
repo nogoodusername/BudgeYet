@@ -13,5 +13,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "fam-ex-frontend"
+rootProject.name = "budge-yet-frontend"
 include(":composeApp")
