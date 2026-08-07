@@ -33,7 +33,6 @@ import androidx.compose.ui.unit.sp
 import com.famex.core.model.Category
 import com.famex.core.model.SpendStatus
 import com.famex.theme.LocalFamExTypography
-import com.famex.theme.SlateMuted
 import kotlin.math.roundToInt
 
 @Composable
@@ -108,6 +107,7 @@ fun CategorySnapshotCard(
 @Composable
 fun AddCategoryPlaceholderCard(modifier: Modifier = Modifier) {
     val outlineVariant = MaterialTheme.colorScheme.outlineVariant
+    val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
     Column(
         modifier = modifier
             .aspectRatio(1f)
@@ -119,14 +119,14 @@ fun AddCategoryPlaceholderCard(modifier: Modifier = Modifier) {
         Icon(
             imageVector = Icons.Default.Add,
             contentDescription = "Add Category",
-            tint = SlateMuted,
+            tint = onSurfaceVariant,
             modifier = Modifier.size(26.dp)
         )
         Spacer(modifier = Modifier.height(6.dp))
         Text(
             text = "Add Category",
             style = LocalFamExTypography.current.labelMd,
-            color = SlateMuted
+            color = onSurfaceVariant
         )
     }
 }

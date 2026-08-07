@@ -33,7 +33,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.unit.dp
 import com.famex.theme.LocalFamExTypography
-import com.famex.theme.Slate900
 
 /**
  * Consistent bottom navigation bar (Stitch screen f77403d7db614bcba0e872081e09dfee):
@@ -110,13 +109,13 @@ fun FamExBottomNavBar(
                     ),
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.surface,
-                border = BorderStroke(2.dp, Slate900)
+                border = BorderStroke(2.dp, MaterialTheme.colorScheme.onSurface)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = Icons.Filled.Add,
                         contentDescription = "Add Transaction",
-                        tint = Slate900,
+                        tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(26.dp)
                     )
                 }

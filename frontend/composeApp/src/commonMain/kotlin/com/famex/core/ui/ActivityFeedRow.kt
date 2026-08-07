@@ -23,7 +23,6 @@ import com.famex.core.model.TransactionType
 import com.famex.core.util.formatAmount
 import com.famex.theme.BrandTeal
 import com.famex.theme.LocalFamExTypography
-import com.famex.theme.SlateMuted
 
 // One line of the "Family Activity" feed — a sentence ("Dad paid $45 for Groceries")
 // rather than a standalone amount row, matching the Stitch dashboard design. `category`
@@ -42,7 +41,8 @@ fun ActivityFeedRow(
     val preposition = if (isIncome) "to" else "for"
     val target = category?.name ?: transaction.categoryName ?: transaction.merchant
 
-    val iconTint = category?.let { colorFor(it.status) } ?: if (isIncome) BrandTeal else SlateMuted
+    val iconTint = category?.let { colorFor(it.status) }
+        ?: if (isIncome) BrandTeal else MaterialTheme.colorScheme.onSurfaceVariant
     val iconVector = categoryIcon(category?.icon ?: if (isIncome) "savings" else "")
     val famExType = LocalFamExTypography.current
 
