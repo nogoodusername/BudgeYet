@@ -290,8 +290,8 @@ private fun CategoryLimitRow(
             OutlinedTextField(
                 value = draftValue,
                 onValueChange = onValueChange,
-                modifier = Modifier.width(112.dp),
-                textStyle = famExType.headlineSm.copy(textAlign = TextAlign.End, color = MaterialTheme.colorScheme.onSurface),
+                modifier = Modifier.width(150.dp),
+                textStyle = famExType.bodyLg.copy(textAlign = TextAlign.End, color = MaterialTheme.colorScheme.onSurface),
                 leadingIcon = { Text(text = currencySymbol, style = famExType.bodyMd, color = MaterialTheme.colorScheme.onSurfaceVariant) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
