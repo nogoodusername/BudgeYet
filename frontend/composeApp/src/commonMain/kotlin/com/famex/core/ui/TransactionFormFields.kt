@@ -52,13 +52,26 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import kotlin.math.pow
 import com.famex.core.model.HouseholdMember
 import com.famex.core.model.PaymentMode
 import com.famex.core.model.TransactionType
 import com.famex.core.util.epochMillisToLocalDate
 import com.famex.core.util.toUtcEpochMillis
+import com.famex.theme.BrandTealLight
 import com.famex.theme.LocalFamExTypography
 import kotlinx.datetime.LocalDate
+
+private val Color.isDark: Boolean
+    get() = {
+        val r = red
+        val g = green
+        val b = blue
+        val linearize = { c: Float ->
+            if (c <= 0.03928f) c / 12.92f else ((c + 0.055f) / 1.055f).pow(2.4f)
+        }
+        (0.2126f * linearize(r) + 0.7152f * linearize(g) + 0.0722f * linearize(b)) < 0.5f
+    }()
 
 // Shared building blocks for the Log Expense / Log Income / Edit Transaction screens — all
 // three are visual "variations" of the same aligned form from the Stitch export (segmented
@@ -127,21 +140,21 @@ fun AmountEntryCard(
             Text(
                 text = label.uppercase(),
                 style = famExType.labelSm,
-                color = MaterialTheme.colorScheme.outline
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.Bottom) {
-                Text(text = currencySymbol, style = famExType.headlineMd, color = MaterialTheme.colorScheme.secondary)
+                Text(text = currencySymbol, style = famExType.headlineMd, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(modifier = Modifier.width(4.dp))
                 BasicTextField(
                     value = amountText,
                     onValueChange = onAmountChange,
                     singleLine = true,
                     textStyle = famExType.displayAmount.copy(
-                        color = MaterialTheme.colorScheme.secondary,
+                        color = MaterialTheme.colorScheme.onSurface,
                         textAlign = TextAlign.Center
                     ),
-                    cursorBrush = SolidColor(MaterialTheme.colorScheme.secondary),
+                    cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.width(160.dp)
                 )
@@ -359,9 +372,11 @@ private fun PaymentModeOption(
     modifier: Modifier = Modifier
 ) {
     val famExType = LocalFamExTypography.current
-    val borderColor = if (selected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.surfaceVariant
-    val contentColor = if (selected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outline
-    val containerColor = if (selected) MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f) else Color.Transparent
+    val isDark = MaterialTheme.colorScheme.surface.isDark
+    val selectedAccent = if (isDark) BrandTealLight else MaterialTheme.colorScheme.secondary
+    val borderColor = if (selected) selectedAccent else MaterialTheme.colorScheme.outlineVariant
+    val contentColor = if (selected) selectedAccent else MaterialTheme.colorScheme.onSurfaceVariant
+    val containerColor = if (selected) selectedAccent.copy(alpha = 0.12f) else Color.Transparent
 
     Row(
         modifier = modifier

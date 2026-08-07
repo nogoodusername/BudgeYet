@@ -30,7 +30,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.unit.dp
 import com.famex.theme.LocalFamExTypography
 
@@ -58,10 +57,11 @@ fun FamExBottomNavBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(64.dp)
-                .align(Alignment.BottomCenter)
-                .shadow(elevation = 12.dp, shape = RoundedCornerShape(8.dp)),
+                .align(Alignment.BottomCenter),
             shape = RoundedCornerShape(8.dp),
             color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 0.dp,
+            shadowElevation = 0.dp,
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
         ) {
             Row(
@@ -101,7 +101,6 @@ fun FamExBottomNavBar(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .size(60.dp)
-                    .shadow(elevation = 8.dp, shape = CircleShape)
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
@@ -109,6 +108,8 @@ fun FamExBottomNavBar(
                     ),
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 0.dp,
+                shadowElevation = 0.dp,
                 border = BorderStroke(2.dp, MaterialTheme.colorScheme.onSurface)
             ) {
                 Box(contentAlignment = Alignment.Center) {
