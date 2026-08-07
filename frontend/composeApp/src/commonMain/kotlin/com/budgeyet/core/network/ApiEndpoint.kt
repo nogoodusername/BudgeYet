@@ -2,9 +2,9 @@ package com.budgeyet.core.network
 
 import com.budgeyet.core.model.BackendConfig
 
-// Hosted deployment at budge-yet-api.imhx.top — update this constant, not call sites, if the
+// Hosted deployment at budgeyet-api.imhx.top — update this constant, not call sites, if the
 // hosted URL changes.
-private const val HOSTED_BASE_URL = "https://budge-yet-api.imhx.top"
+private const val HOSTED_BASE_URL = "https://budgeyet-api.imhx.top"
 
 private const val API_PREFIX = "/api/v1"
 
