@@ -56,6 +56,6 @@ docs/kmp-compose-multiplatform/
 
 ## Relation to this repo's frontend
 
-The fam-ex frontend (`frontend/`) is a KMP + Compose Multiplatform project (Kotlin 1.9.23, Compose Multiplatform
+The budge-yet frontend (`frontend/`) is a KMP + Compose Multiplatform project (Kotlin 1.9.23, Compose Multiplatform
 1.6.1, Ktor 2.3.9). See [AGENTS.md](../../AGENTS.md) for the project's own frontend architecture choices, which
 are the binding conventions for this codebase — where this guide and AGENTS.md conflict, **AGENTS.md wins**.

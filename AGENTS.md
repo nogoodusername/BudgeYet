@@ -1,10 +1,10 @@
-# AGENTS.md — fam-ex
+# AGENTS.md — budge-yet
 
 Instructions for AI coding agents working in this repository. Read this before making changes. Update the AGENTS.md regularly to reflect new reality.
 
 ## What this is
 
-`fam-ex` is a collaborative household budget app (v1/MVP, currently early scaffolding). Households share a
+`budge-yet` is a collaborative household budget app (v1/MVP, currently early scaffolding). Households share a
 single monthly budget with categories, limits, and a transaction ledger; members see each other's spending
 in real time. Full product intent lives in [docs/household-budget-app-prd.md](docs/household-budget-app-prd.md)
 — **read it before implementing any feature**, since business rules (roles, limits, rollover behavior) are
@@ -13,7 +13,7 @@ specific and easy to get wrong by guessing. Technical design lives in [docs/arch
 Monorepo with two independently-built projects:
 
 ```
-fam-ex/
+budge-yet/
 ├── backend/     FastAPI (Python 3.11+) REST API
 ├── frontend/    Kotlin Multiplatform + Compose Multiplatform (Android, iOS, Web/Wasm)
 └── docs/        PRD + architecture spec — source of truth for product behavior
@@ -218,7 +218,7 @@ instead of editing `pyproject.toml` by hand — it keeps `uv.lock` in sync autom
 ## Frontend (`frontend/`)
 
 **Stack:** Kotlin Multiplatform + Compose Multiplatform targeting Android, iOS, and Web (JS), with
-Ktor as the HTTP client. Package root is `com.famex`. The web target uses `js(IR)` (Kotlin/JS) with
+Ktor as the HTTP client. Package root is `com.budgeyet`. The web target uses `js(IR)` (Kotlin/JS) with
 `org.jetbrains.compose.experimental.jscanvas.enabled=true` in `gradle.properties` — the `wasmJs`
 target was replaced because Ktor 2.3.9 doesn't support Wasm. Web output is a static webpack bundle
 deployable to any static host (Cloudflare Pages, Netlify, Vercel).
@@ -232,7 +232,7 @@ deployable to any static host (Cloudflare Pages, Netlify, Vercel).
   for the Kotlin/JS target (`js(IR)`). Uses `ktor-client-js` as the HTTP engine (same Ktor 2.3.9
   version as Android/iOS). Four `expect`/`actual` pairs live here:
   - `SettingsStorage.js.kt` — backed by `window.localStorage`
-  - `LocalFileStorage.js.kt` — backed by `window.localStorage` with `famex_cache_` key prefix
+  - `LocalFileStorage.js.kt` — backed by `window.localStorage` with `budgeyet_cache_` key prefix
   - `BackHandler.js.kt` — no-op (browser handles its own back navigation)
   - `ConnectivityObserver.js.kt` — backed by `navigator.onLine` + `online`/`offline` events
   The old `wasmJsMain/` directory is orphaned (the `wasmJs` target was replaced by `js(IR)`).
@@ -260,23 +260,24 @@ centrally in `gradle/libs.versions.toml` — add new dependencies there, referen
 Coral `#e11d48` = at/over 100% (over-budget warning). 8px rounded corners, card-based lists, persistent
 bottom nav + FAB. Reuse these tokens for any new UI — don't hardcode new colors ad hoc.
 
-**App icon / logo:** Source SVGs live in `composeApp/icon-source/` (not shipped directly, used only to
-regenerate platform assets via `inkscape`/ImageMagick — see git history for the exact export commands):
-`fam-ex.svg` (original, rounded card with transparent corners), `fam-ex-square.svg` (`rx=0` variant, for
-platforms needing an opaque square — iOS App Icon, Android legacy fallback), `fam-ex-foreground.svg`
-(background rect stripped, for the Android adaptive icon foreground layer). Regenerate all exported PNGs
-from these sources — never hand-edit the exported PNGs/XMLs directly. Wired up as:
+**App icon / logo:** Source master lives at `composeApp/icon-source/budge-yet-master.png` (2048×2048
+raster illustration — a panda mascot on a teal `#91CBBD` opaque square background; not shipped directly,
+used only to regenerate platform assets via ImageMagick, e.g. `magick icon-source/budge-yet-master.png
+-resize <N>x<N>^ -gravity center -extent <N>x<N> <dest>` — see git history for the exact export commands).
+Regenerate all exported PNGs from this source — never hand-edit the exported PNGs/XMLs directly. Wired up as:
 - **Android**: adaptive icon (`res/mipmap-anydpi-v26/ic_launcher*.xml` + `res/drawable/ic_launcher_background.xml`
-  gradient vector + per-density `res/mipmap-*/ic_launcher_foreground.png`) with legacy
-  `ic_launcher.png`/`ic_launcher_round.png` fallback for API <26. Referenced from `AndroidManifest.xml`
-  via `android:icon`/`android:roundIcon`.
+  teal gradient vector matching the master's background + per-density full-bleed
+  `res/mipmap-*/ic_launcher_foreground.png`) with legacy `ic_launcher.png`/`ic_launcher_round.png`
+  fallback (identical square art; the OS applies its own mask) for API <26. Referenced from
+  `AndroidManifest.xml` via `android:icon`/`android:roundIcon`.
 - **iOS**: `iosApp/iosApp/Assets.xcassets/AppIcon.appiconset/` (single 1024×1024 opaque PNG, modern
   Xcode "universal" format), wired into `project.pbxproj` via a `PBXResourcesBuildPhase` and
   `ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon` on both Debug/Release configs.
-- **Web**: `jsMain/resources/favicon.svg` + `apple-touch-icon.png`, linked from `index.html`'s `<head>`.
-  `jsMain/resources/` contents are copied as-is into the JS dist bundle — no webpack/gradle wiring needed.
-- **In-app**: `commonMain/composeResources/drawable/fam_ex_logo.png` (first drawable resource in the
-  project — Compose Multiplatform resources generates `Res.drawable.fam_ex_logo`), used on
+- **Web**: `jsMain/resources/favicon.png` (512×512 raster, `image/png`) + `apple-touch-icon.png` (180×180),
+  linked from `index.html`'s `<head>`. `jsMain/resources/` contents are copied as-is into the JS dist
+  bundle — no webpack/gradle wiring needed.
+- **In-app**: `commonMain/composeResources/drawable/budge_yet_logo.png` (first drawable resource in the
+  project — Compose Multiplatform resources generates `Res.drawable.budge_yet_logo`), used on
   `WelcomeScreen.kt` as the brand mark.
 
 ## Frontend current state

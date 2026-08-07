@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: fam_ex_backend
+    container_name: budge_yet_backend
     ports:
       - "8000:8000"
     environment:
@@ -12,7 +12,7 @@ services:
       - POSTGRES_PORT=5432
       - POSTGRES_USER=${POSTGRES_USER:-postgres}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in backend/.env (run scripts/setup_env.py postgres first) or export it before running compose}
-      - POSTGRES_DB=${POSTGRES_DB:-fam_ex}
+      - POSTGRES_DB=${POSTGRES_DB:-budge_yet}
       - SECRET_KEY=${SECRET_KEY:?Set SECRET_KEY in backend/.env (run scripts/setup_env.py first) or export it before running compose}
     depends_on:
       postgres:
@@ -23,14 +23,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: fam_ex_login_cleanup
+    container_name: budge_yet_login_cleanup
     environment:
       - DATABASE_TYPE=${DATABASE_TYPE:-postgres}
       - POSTGRES_SERVER=postgres
       - POSTGRES_PORT=5432
       - POSTGRES_USER=${POSTGRES_USER:-postgres}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in backend/.env (run scripts/setup_env.py postgres first) or export it before running compose}
-      - POSTGRES_DB=${POSTGRES_DB:-fam_ex}
+      - POSTGRES_DB=${POSTGRES_DB:-budge_yet}
     depends_on:
       postgres:
         condition: service_healthy
@@ -43,13 +43,13 @@ services:
 
   postgres:
     image: postgres:16-alpine
-    container_name: fam_ex_postgres
+    container_name: budge_yet_postgres
     ports:
       - "5432:5432"
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-postgres}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in backend/.env (run scripts/setup_env.py postgres first) or export it before running compose}
-      - POSTGRES_DB=${POSTGRES_DB:-fam_ex}
+      - POSTGRES_DB=${POSTGRES_DB:-budge_yet}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:

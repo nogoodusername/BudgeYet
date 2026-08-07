@@ -6,9 +6,9 @@ build-backend = "setuptools.build_meta"
 include = ["app*"]
 
 [project]
-name = "fam-ex-backend"
+name = "budge-yet-backend"
 version = "0.1.0"
-description = "FastAPI Backend for fam-ex Collaborative Household Budget App"
+description = "FastAPI Backend for budge-yet Collaborative Household Budget App"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

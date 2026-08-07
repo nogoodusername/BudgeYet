@@ -1,4 +1,4 @@
-# Multi-stage Dockerfile for fam-ex FastAPI Backend — dependencies managed by uv.
+# Multi-stage Dockerfile for budge-yet FastAPI Backend — dependencies managed by uv.
 
 # Stage 1: Build stage
 FROM python:3.11-slim AS builder
