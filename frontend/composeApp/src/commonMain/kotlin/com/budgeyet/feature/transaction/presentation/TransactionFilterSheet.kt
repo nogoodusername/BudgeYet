@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -67,9 +68,14 @@ fun TransactionFilterSheet(
     val budgeYetType = LocalBudgeYetTypography.current
 
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Box(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.88f), contentAlignment = Alignment.BottomCenter) {
+        // The Dialog's platform window defaults to WRAP_CONTENT height + center gravity, so a
+        // fractional-height outer Box here would shrink the whole window to that fraction and
+        // have it centered on screen instead of docked to the bottom. fillMaxSize() on the
+        // outer Box forces the window to size to the full screen; the height fraction goes on
+        // the Surface instead, which BottomCenter then has real slack to anchor at the bottom.
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
             Surface(
-                modifier = Modifier.fillMaxWidth().fillMaxHeight(),
+                modifier = Modifier.fillMaxWidth().fillMaxHeight(0.88f),
                 shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
                 color = MaterialTheme.colorScheme.surface
             ) {

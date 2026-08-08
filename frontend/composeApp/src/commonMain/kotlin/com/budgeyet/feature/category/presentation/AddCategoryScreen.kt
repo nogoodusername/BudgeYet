@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -27,6 +28,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.budgeyet.core.ui.TextFieldCard
 import com.budgeyet.core.ui.categoryIcon
 import com.budgeyet.core.ui.categoryIconChoices
+import com.budgeyet.core.ui.categoryIconGridPreviewCount
 import com.budgeyet.core.ui.fieldColors
 import com.budgeyet.core.util.currencySymbolFor
 import com.budgeyet.core.util.formatAmount
@@ -52,11 +55,21 @@ fun AddCategoryScreen(
     onNameChange: (String) -> Unit,
     onMonthlyLimitChange: (String) -> Unit,
     onIconSelected: (String) -> Unit,
+    onSeeAllIcons: () -> Unit,
+    onDismissIconPicker: () -> Unit,
     onSave: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val budgeYetType = LocalBudgeYetTypography.current
     val currencySymbol = currencySymbolFor(uiState.currency)
+
+    if (uiState.isIconPickerOpen) {
+        IconPickerSheet(
+            selectedIcon = uiState.selectedIcon,
+            onIconSelected = onIconSelected,
+            onDismiss = onDismissIconPicker
+        )
+    }
 
     LazyColumn(
         modifier = modifier.fillMaxSize().padding(horizontal = 16.dp),
@@ -80,7 +93,13 @@ fun AddCategoryScreen(
             )
         }
 
-        item { IconSelectionCard(selectedIcon = uiState.selectedIcon, onIconSelected = onIconSelected) }
+        item {
+            IconSelectionCard(
+                selectedIcon = uiState.selectedIcon,
+                onIconSelected = onIconSelected,
+                onSeeAllIcons = onSeeAllIcons
+            )
+        }
 
         item {
             PreviewCard(
@@ -141,7 +160,7 @@ private fun MonthlyLimitFieldCard(value: String, currencySymbol: String, onValue
 }
 
 @Composable
-private fun IconSelectionCard(selectedIcon: String, onIconSelected: (String) -> Unit) {
+private fun IconSelectionCard(selectedIcon: String, onIconSelected: (String) -> Unit, onSeeAllIcons: () -> Unit) {
     val budgeYetType = LocalBudgeYetTypography.current
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -153,11 +172,13 @@ private fun IconSelectionCard(selectedIcon: String, onIconSelected: (String) -> 
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(text = "Select Icon", style = budgeYetType.labelMd, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-            // Fixed 8-icon set, laid out as plain rows of 4 rather than a LazyVerticalGrid —
-            // a hardcoded height estimate for the grid clipped icons whenever the actual cell
-            // width (screen-size dependent) came out taller than the guess. Rows of square
-            // (aspectRatio 1f) items size themselves correctly at any width instead.
-            categoryIconChoices.chunked(4).forEach { row ->
+            // Only the first categoryIconGridPreviewCount icons render inline (as plain rows
+            // of 5, not a LazyVerticalGrid — a hardcoded grid height previously clipped icons
+            // whenever the actual cell width came out taller than the guess; square
+            // (aspectRatio 1f) row items size themselves correctly at any width instead).
+            // The full set — which can grow freely — lives behind "See all icons" so this
+            // card's height never scales with categoryIconChoices' size.
+            categoryIconChoices.take(categoryIconGridPreviewCount).chunked(5).forEach { row ->
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     row.forEach { iconKey ->
                         IconGridItem(
@@ -167,6 +188,13 @@ private fun IconSelectionCard(selectedIcon: String, onIconSelected: (String) -> 
                             modifier = Modifier.weight(1f)
                         )
                     }
+                    repeat(5 - row.size) { Spacer(modifier = Modifier.weight(1f)) }
+                }
+            }
+
+            if (categoryIconChoices.size > categoryIconGridPreviewCount) {
+                TextButton(onClick = onSeeAllIcons, modifier = Modifier.fillMaxWidth()) {
+                    Text(text = "See all icons", style = budgeYetType.labelMd, color = MaterialTheme.colorScheme.secondary)
                 }
             }
         }
@@ -174,7 +202,7 @@ private fun IconSelectionCard(selectedIcon: String, onIconSelected: (String) -> 
 }
 
 @Composable
-private fun IconGridItem(iconKey: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+internal fun IconGridItem(iconKey: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val borderColor = if (selected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.surfaceVariant
     val contentColor = if (selected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant
     val containerColor = if (selected) MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.background

@@ -8,7 +8,8 @@ data class AddCategoryUiState(
     val selectedIcon: String = categoryIconChoices.first(),
     val currency: String = "USD",
     val isSaving: Boolean = false,
-    val saveError: String? = null
+    val saveError: String? = null,
+    val isIconPickerOpen: Boolean = false
 ) {
     val previewName: String get() = name.ifBlank { "New Category" }
 
