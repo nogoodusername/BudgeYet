@@ -13,38 +13,31 @@
             margin: 0;
             padding: 0;
             overflow: hidden;
-            background-color: #0f172a;
-            font-family: system-ui, -apple-system, sans-serif;
+            background-color: #020617;
         }
-        #ComposeTarget {
+        body {
+            display: flex;
+            justify-content: center;
+        }
+        /*
+         * Compose sizes its WASM canvas backing store from window.innerWidth/innerHeight,
+         * not the canvas element's own CSS box — so constraining the canvas's CSS width alone
+         * would just scale a full-desktop-resolution bitmap down non-uniformly (visibly
+         * squished text/icons). Loading the app in an iframe capped to mobile width gives it
+         * its own browsing context, so window.innerWidth inside resolves to the iframe's
+         * width and Compose renders a genuinely narrow layout instead of a shrunk-down one.
+         */
+        #app-frame {
             width: 100%;
+            max-width: 480px;
             height: 100%;
+            border: none;
+            display: block;
+            background-color: #0f172a;
         }
     </style>
 </head>
 <body>
-    <canvas id="ComposeTarget"></canvas>
-    <script type="application/javascript" src="skiko.js"></script>
-    <script type="application/javascript">
-        // skiko's WASM module is instantiated asynchronously, and skiko.js itself claims
-        // Module.onRuntimeInitialized for its own internal readiness promise (so setting it
-        // before loading skiko.js gets clobbered). composeApp.js starts creating Skia objects
-        // (Paint, etc.) the moment it runs, so it must not load until skiko's wasm runtime has
-        // actually finished initializing — otherwise calls into skiko land on stub bindings
-        // that throw "is not a function". By the time this script tag runs, skiko.js's
-        // synchronous top-level code (including its own onRuntimeInitialized assignment) has
-        // already executed, even though the wasm instantiation it kicked off is still pending
-        // — so wrapping the callback here is safe. (Production builds parse fast enough to
-        // lose this race every time if composeApp.js is loaded unconditionally; unminified dev
-        // builds happen to be slow enough to win it, which is why this only shows up in prod.)
-        var skikoReady = window.Module.onRuntimeInitialized;
-        window.Module.onRuntimeInitialized = function () {
-            skikoReady();
-            var script = document.createElement('script');
-            script.type = 'application/javascript';
-            script.src = 'composeApp.js';
-            document.body.appendChild(script);
-        };
-    </script>
+    <iframe id="app-frame" src="app.html" title="budge-yet"></iframe>
 </body>
 </html>
