@@ -32,7 +32,7 @@ class InviteMemberController(
         scope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             try {
-                val household = repository.getHousehold()
+                val household = repository.ensureJoinCode()
                 _uiState.update { it.copy(isLoading = false, household = household) }
             } catch (t: Throwable) {
                 _uiState.update { it.copy(isLoading = false, errorMessage = t.message ?: "Something went wrong") }

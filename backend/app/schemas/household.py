@@ -45,6 +45,7 @@ class InviteResponse(BaseModel):
     id: int
     household_id: int
     email: Optional[str] = None
+    token: str
     expires_at: datetime
     accepted_at: Optional[datetime] = None
     revoked: bool

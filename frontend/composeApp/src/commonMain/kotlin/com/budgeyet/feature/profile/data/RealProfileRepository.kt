@@ -65,6 +65,15 @@ class RealProfileRepository(
         return fetchHousehold()
     }
 
+    override suspend fun ensureJoinCode(): Household {
+        val household = fetchHousehold()
+        if (household.pendingInvites.any { it.email.isBlank() }) return household
+
+        val (config, token, householdId) = contextProvider.get()
+        api.createInvite(config, token, householdId, email = null)
+        return fetchHousehold()
+    }
+
     override suspend fun revokeInvite(inviteId: Long): Household {
         val (config, token, householdId) = contextProvider.get()
         api.revokeInvite(config, token, householdId, inviteId)

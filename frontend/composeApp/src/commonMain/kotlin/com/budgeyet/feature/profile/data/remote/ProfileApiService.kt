@@ -83,7 +83,7 @@ class ProfileApiService(private val httpClient: HttpClient) {
         config: BackendConfig,
         accessToken: String,
         householdId: Long,
-        email: String
+        email: String?
     ): InviteResponseDto = safeApiCall {
         httpClient.post(config.apiUrl("/households/$householdId/invites")) {
             bearerAuth(accessToken)

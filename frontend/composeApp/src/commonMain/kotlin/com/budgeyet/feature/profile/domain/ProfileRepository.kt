@@ -20,6 +20,10 @@ interface ProfileRepository {
     // Household member management (Manage Members CTA on Profile & Settings).
     // Creates a pending invite (not an immediate member add) — mirrors HouseholdService.create_invite.
     suspend fun inviteMember(email: String): Household
+    // Returns the household's shareable join code as a blank-email PendingInvite, reusing an
+    // existing one if the household already has one pending rather than minting a fresh token
+    // (and orphaning the one already handed out) on every InviteMemberScreen load.
+    suspend fun ensureJoinCode(): Household
     suspend fun revokeInvite(inviteId: Long): Household
     // Covers promote-to-Admin, promote-to-Owner (transfers ownership — see
     // FakeProfileRepository), and demote-to-Member.

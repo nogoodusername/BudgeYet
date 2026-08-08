@@ -148,13 +148,14 @@ fun InviteMemberScreen(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
-                                        text = uiState.joinCode,
+                                        text = uiState.joinCode ?: "Generating…",
                                         style = budgeYetType.headlineMd.copy(letterSpacing = 2.sp, fontWeight = FontWeight.Bold),
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                 }
                                 IconButton(
-                                    onClick = { clipboardManager.setText(AnnotatedString(uiState.joinCode)) },
+                                    enabled = uiState.joinCode != null,
+                                    onClick = { uiState.joinCode?.let { clipboardManager.setText(AnnotatedString(it)) } },
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(8.dp))
                                         .background(MaterialTheme.colorScheme.primary)

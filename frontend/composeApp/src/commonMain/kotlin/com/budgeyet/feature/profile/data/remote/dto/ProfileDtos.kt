@@ -31,9 +31,10 @@ data class InviteCreateRequestDto(val email: String? = null)
 // core/model/Household.PendingInvite needs — expires_at/accepted_at/revoked/household_id are
 // unused here (the invite-expiry copy on InviteMemberScreen reads
 // Household.joinCodeExpiresAt, a household-level placeholder, not a per-invite value — see
-// core/network/mapper/HouseholdMapper.kt).
+// core/network/mapper/HouseholdMapper.kt). token is the real, backend-issued invite/join code —
+// see InviteMemberUiState.joinCode, which reads it off the email-less invite.
 @Serializable
-data class InviteResponseDto(val id: Long, val email: String? = null)
+data class InviteResponseDto(val id: Long, val email: String? = null, val token: String)
 
 // Mirrors backend/app/schemas/household.py MemberRoleUpdate.
 @Serializable
