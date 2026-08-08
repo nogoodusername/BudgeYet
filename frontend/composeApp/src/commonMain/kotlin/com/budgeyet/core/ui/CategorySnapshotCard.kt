@@ -105,13 +105,14 @@ fun CategorySnapshotCard(
 }
 
 @Composable
-fun AddCategoryPlaceholderCard(modifier: Modifier = Modifier) {
+fun AddCategoryPlaceholderCard(onClick: () -> Unit, modifier: Modifier = Modifier) {
     val outlineVariant = MaterialTheme.colorScheme.outlineVariant
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
     Column(
         modifier = modifier
             .aspectRatio(1f)
             .dashedBorder(color = outlineVariant, strokeWidth = 1.dp, cornerRadius = 12.dp)
+            .clickable(onClick = onClick)
             .padding(14.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center

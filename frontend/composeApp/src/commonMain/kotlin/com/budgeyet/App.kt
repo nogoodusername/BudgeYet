@@ -253,7 +253,8 @@ private fun MainAppShell(
                     Screen.Dashboard -> DashboardRoute(
                         onNavigateToCategoryDetail = { navController.navigate(Screen.CategoryDetail(it)) },
                         onNavigateToHistory = { navController.switchTab(Screen.History) },
-                        onNavigateToSetUpBudget = { navController.navigate(Screen.BudgetSetup) }
+                        onNavigateToSetUpBudget = { navController.navigate(Screen.BudgetSetup) },
+                        onNavigateToAddCategory = { navController.navigate(Screen.AddCategory) }
                     )
                     Screen.BudgetSetup -> BudgetGoalRoute(
                         household = household,

@@ -58,6 +58,7 @@ fun DashboardScreen(
     onRetry: () -> Unit,
     onViewAllActivityClick: () -> Unit = {},
     onSetUpBudgetClick: () -> Unit = {},
+    onAddCategoryClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val data = uiState.data
@@ -66,7 +67,8 @@ fun DashboardScreen(
         uiState.isLoading && data == null -> DashboardLoading(modifier)
         uiState.errorMessage != null && data == null -> DashboardError(uiState.errorMessage, onRetry, modifier)
         data != null && budget == null -> DashboardEmptyBudgetState(onSetUpBudgetClick, modifier)
-        data != null && budget != null -> DashboardContent(data, budget, onCategoryClick, onViewAllActivityClick, modifier)
+        data != null && budget != null ->
+            DashboardContent(data, budget, onCategoryClick, onViewAllActivityClick, onAddCategoryClick, modifier)
     }
 }
 
@@ -154,6 +156,7 @@ private fun DashboardContent(
     budget: Budget,
     onCategoryClick: (Long) -> Unit,
     onViewAllActivityClick: () -> Unit,
+    onAddCategoryClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val currencySymbol = currencySymbolFor(data.household.currency)
@@ -197,7 +200,7 @@ private fun DashboardContent(
                             if (slot != null) {
                                 CategorySnapshotCard(category = slot, onClick = { onCategoryClick(slot.id) })
                             } else {
-                                AddCategoryPlaceholderCard()
+                                AddCategoryPlaceholderCard(onClick = onAddCategoryClick)
                             }
                         }
                     }
