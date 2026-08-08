@@ -16,9 +16,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -156,20 +153,20 @@ private fun IconSelectionCard(selectedIcon: String, onIconSelected: (String) -> 
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(text = "Select Icon", style = budgeYetType.labelMd, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(4),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                // Grid is a fixed 8-icon set (2 rows) — never scrolls on its own, so it can
-                // safely size itself inside the outer LazyColumn instead of nesting scroll.
-                modifier = Modifier.fillMaxWidth().height(160.dp)
-            ) {
-                items(categoryIconChoices) { iconKey ->
-                    IconGridItem(
-                        iconKey = iconKey,
-                        selected = iconKey == selectedIcon,
-                        onClick = { onIconSelected(iconKey) }
-                    )
+            // Fixed 8-icon set, laid out as plain rows of 4 rather than a LazyVerticalGrid —
+            // a hardcoded height estimate for the grid clipped icons whenever the actual cell
+            // width (screen-size dependent) came out taller than the guess. Rows of square
+            // (aspectRatio 1f) items size themselves correctly at any width instead.
+            categoryIconChoices.chunked(4).forEach { row ->
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    row.forEach { iconKey ->
+                        IconGridItem(
+                            iconKey = iconKey,
+                            selected = iconKey == selectedIcon,
+                            onClick = { onIconSelected(iconKey) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
         }
@@ -177,13 +174,13 @@ private fun IconSelectionCard(selectedIcon: String, onIconSelected: (String) -> 
 }
 
 @Composable
-private fun IconGridItem(iconKey: String, selected: Boolean, onClick: () -> Unit) {
+private fun IconGridItem(iconKey: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val borderColor = if (selected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.surfaceVariant
     val contentColor = if (selected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant
     val containerColor = if (selected) MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.background
 
     Box(
-        modifier = Modifier
+        modifier = modifier
             .aspectRatio(1f)
             .clip(RoundedCornerShape(12.dp))
             .border(1.dp, borderColor, RoundedCornerShape(12.dp))
