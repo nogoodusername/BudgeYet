@@ -32,6 +32,12 @@ class Settings(BaseSettings):
     # CORS - comma-separated list of allowed origins (KMP/CMP Web target, local dev tools)
     CORS_ORIGINS: str = "http://localhost:8080,http://127.0.0.1:8080,http://localhost:3000"
 
+    # Email delivery (Resend) - leave RESEND_API_KEY blank to keep the stub logger
+    # (local dev/tests never make a real network call)
+    RESEND_API_KEY: str = ""
+    EMAIL_FROM_ADDRESS: str = "noreply@notify.imhx.top"
+    EMAIL_FROM_NAME: str = "BudgeYet"
+
     @property
     def CORS_ORIGINS_LIST(self) -> list[str]:
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]

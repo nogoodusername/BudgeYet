@@ -66,14 +66,19 @@ router and frontend screens first.
 
 ### Known gaps (deliberately deferred, see PR discussion)
 
-- **Email delivery is a stub.** `app/core/email.py` logs PIN and invite messages instead of sending
-  them (no SMTP/SES integration yet). This only affects **forgot-PIN** (which still generates and
-  "emails" a fresh PIN server-side — `AuthService.forgot_pin`) and invites: those PINs/tokens are
-  **not** echoed back in any API response, so retrieving them requires reading server logs or
-  querying the DB directly (see how `backend/tests/helpers.py` does it for tests, by monkeypatching
-  the generators). **Signup is unaffected** — the user chooses and submits their own PIN
-  (`UserCreate.pin`), so there's nothing to email or dig out of logs for that flow. Real delivery
-  must land before forgot-PIN/invites are usable outside local dev.
+- **Email delivery goes through Resend, gated by `RESEND_API_KEY`.** `app/core/email.py` POSTs to
+  Resend's REST API (`https://api.resend.com/emails` via `httpx`, no SDK) when
+  `settings.RESEND_API_KEY` is set; when it's blank (the default — local dev and all tests run this
+  way), it falls back to logging PIN/invite messages instead of sending them, same as the original
+  stub. `EMAIL_FROM_ADDRESS`/`EMAIL_FROM_NAME` (`core/config.py`) default to
+  `noreply@notify.imhx.top` / `BudgeYet` — a Resend-verified sending subdomain on the project's
+  Cloudflare-hosted domain. A failed Resend call is logged, not raised — it must not break the
+  signup/forgot-PIN/invite request itself. This only affects **forgot-PIN** (which still generates
+  and emails a fresh PIN server-side — `AuthService.forgot_pin`) and invites: when running in stub
+  mode, those PINs/tokens are **not** echoed back in any API response, so retrieving them requires
+  reading server logs or querying the DB directly (see how `backend/tests/helpers.py` does it for
+  tests, by monkeypatching the generators). **Signup is unaffected** — the user chooses and submits
+  their own PIN (`UserCreate.pin`), so there's nothing to email or dig out of logs for that flow.
 - **Real-time activity feed is REST-only.** `GET /households/{id}/activity-feed` is polled, not pushed.
   The PRD's WebSocket/live-push behavior (B4) was explicitly deferred to a follow-up.
 - **Receipt photo upload is fully out of scope**, backend and frontend. `Transaction.receipt_url`
@@ -172,7 +177,8 @@ for the collision it fixes.
   `generate_pin()` is only used by `AuthService.forgot_pin` now — signup takes the user's own PIN
   (`UserCreate.pin`, validated `^\d{6}$` in `schemas/user.py`) and just hashes it, it doesn't generate
   one. Don't reintroduce server-generated PINs at signup without a product reason; see PRD Section 9.1.
-- `core/email.py` — stub email "sender" (logs only) — see "Known gaps" above before assuming it sends.
+- `core/email.py` — sends via Resend when `RESEND_API_KEY` is set, else falls back to logging only
+  — see "Known gaps" above for the gating logic.
 
 **Dependency management is [uv](https://docs.astral.sh/uv/), not pip/venv.** `pyproject.toml` +
 `uv.lock` (committed) are the source of truth; don't `pip install` anything directly or hand-edit
