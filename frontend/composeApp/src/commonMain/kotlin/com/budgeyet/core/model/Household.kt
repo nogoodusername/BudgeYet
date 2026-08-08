@@ -31,7 +31,11 @@ data class HouseholdMember(
 @Serializable
 data class PendingInvite(
     val id: Long,
-    val email: String
+    val email: String,
+    // The real backend-issued token for this invite. Email invites have their own token too
+    // (unused today — accepted via the emailed link in a future flow), but a blank-email
+    // invite's token IS the household's shareable join code — see InviteMemberUiState.joinCode.
+    val token: String
 )
 
 // Household hard cap is 3 members (including Admin) in v1 — enforced server-side, not here.

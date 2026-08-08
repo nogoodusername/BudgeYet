@@ -98,7 +98,7 @@ class HouseholdService:
             expires_at=datetime.utcnow() + timedelta(days=INVITE_EXPIRY_DAYS),
         )
         if payload.email:
-            send_invite_email(payload.email, household.name, invite.token)
+            await send_invite_email(payload.email, household.name, invite.token)
         return invite
 
     async def list_invites(self, household_id: int) -> Sequence[Invite]:
@@ -113,7 +113,9 @@ class HouseholdService:
         await self.invites.revoke(invite)
 
     async def join_household(self, user: User, token: str) -> HouseholdMember:
-        invite = await self.invites.get_by_token(token)
+        # Users may retype a join code in any case or with stray whitespace —
+        # get_by_token does a case-insensitive match, so just trim here.
+        invite = await self.invites.get_by_token(token.strip())
         if invite is None:
             raise NotFoundError("Invite not found")
         if invite.revoked or invite.accepted_at is not None:

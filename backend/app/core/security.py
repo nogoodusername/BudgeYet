@@ -1,4 +1,5 @@
 import secrets
+import string
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -50,8 +51,21 @@ def verify_pin(pin: str, pin_hash: str) -> bool:
     return bcrypt.checkpw(pin.encode("utf-8"), pin_hash.encode("utf-8"))
 
 
+_INVITE_TOKEN_ALPHABET = string.ascii_uppercase + string.digits
+_INVITE_TOKEN_GROUP_LENGTH = 3
+_INVITE_TOKEN_GROUP_COUNT = 3
+
+
 def generate_invite_token() -> str:
-    return secrets.token_urlsafe(32)
+    """Generate a household join code as XXX-XXX-XXX (uppercase alphanumeric) —
+    short enough for a user to read aloud or retype by hand, unlike the raw
+    urlsafe token this replaced.
+    """
+    groups = [
+        "".join(secrets.choice(_INVITE_TOKEN_ALPHABET) for _ in range(_INVITE_TOKEN_GROUP_LENGTH))
+        for _ in range(_INVITE_TOKEN_GROUP_COUNT)
+    ]
+    return "-".join(groups)
 
 
 def create_access_token(subject: int, expires_delta: timedelta | None = None) -> str:

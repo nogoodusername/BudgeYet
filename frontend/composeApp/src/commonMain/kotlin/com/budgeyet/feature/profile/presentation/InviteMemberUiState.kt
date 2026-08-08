@@ -11,6 +11,8 @@ data class InviteMemberUiState(
     val sendError: String? = null,
     val errorMessage: String? = null
 ) {
-    val joinCode: String get() = "BUDGE-YET-${(household?.id ?: 0L).toString().padStart(2, '0')}"
+    // The real backend-issued token for the household's blank-email invite (see
+    // ProfileRepository.ensureJoinCode) — null while that invite is still being fetched/created.
+    val joinCode: String? get() = household?.pendingInvites?.firstOrNull { it.email.isBlank() }?.token
     val joinCodeExpiryText: String? get() = household?.joinCodeExpiresAt?.toDisplayText()
 }

@@ -62,7 +62,20 @@ class FakeProfileRepository(scenario: DummyScenario) : ProfileRepository {
         check(household.members.size < Household.MAX_MEMBERS) { "Household is full" }
         val newInvite = PendingInvite(
             id = (household.pendingInvites.maxOfOrNull { it.id } ?: 0) + 1,
-            email = email
+            email = email,
+            token = "fake-invite-token-${household.pendingInvites.size + 1}"
+        )
+        household = household.copy(pendingInvites = household.pendingInvites + newInvite)
+        return household
+    }
+
+    override suspend fun ensureJoinCode(): Household {
+        delay(300)
+        if (household.pendingInvites.any { it.email.isBlank() }) return household
+        val newInvite = PendingInvite(
+            id = (household.pendingInvites.maxOfOrNull { it.id } ?: 0) + 1,
+            email = "",
+            token = "FAKE-JOIN-${household.id}"
         )
         household = household.copy(pendingInvites = household.pendingInvites + newInvite)
         return household

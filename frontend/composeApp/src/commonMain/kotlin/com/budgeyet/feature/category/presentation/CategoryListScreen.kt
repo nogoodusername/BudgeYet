@@ -77,8 +77,17 @@ fun CategoryListScreen(
             }
 
         uiState.categories.isEmpty() ->
-            Box(modifier = modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-                Text("No categories yet. Categories are set up when you create your household budget.")
+            Column(
+                modifier = modifier.fillMaxSize().padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "No categories yet. Add your first category to start budgeting.",
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                AddCategoryButton(onClick = onAddCategory)
             }
 
         else -> CategoryLimitsContent(

@@ -66,14 +66,19 @@ router and frontend screens first.
 
 ### Known gaps (deliberately deferred, see PR discussion)
 
-- **Email delivery is a stub.** `app/core/email.py` logs PIN and invite messages instead of sending
-  them (no SMTP/SES integration yet). This only affects **forgot-PIN** (which still generates and
-  "emails" a fresh PIN server-side — `AuthService.forgot_pin`) and invites: those PINs/tokens are
-  **not** echoed back in any API response, so retrieving them requires reading server logs or
-  querying the DB directly (see how `backend/tests/helpers.py` does it for tests, by monkeypatching
-  the generators). **Signup is unaffected** — the user chooses and submits their own PIN
-  (`UserCreate.pin`), so there's nothing to email or dig out of logs for that flow. Real delivery
-  must land before forgot-PIN/invites are usable outside local dev.
+- **Email delivery goes through Resend, gated by `RESEND_API_KEY`.** `app/core/email.py` POSTs to
+  Resend's REST API (`https://api.resend.com/emails` via `httpx`, no SDK) when
+  `settings.RESEND_API_KEY` is set; when it's blank (the default — local dev and all tests run this
+  way), it falls back to logging PIN/invite messages instead of sending them, same as the original
+  stub. `EMAIL_FROM_ADDRESS`/`EMAIL_FROM_NAME` (`core/config.py`) default to
+  `noreply@notify.imhx.top` / `BudgeYet` — a Resend-verified sending subdomain on the project's
+  Cloudflare-hosted domain. A failed Resend call is logged, not raised — it must not break the
+  signup/forgot-PIN/invite request itself. This only affects **forgot-PIN** (which still generates
+  and emails a fresh PIN server-side — `AuthService.forgot_pin`) and invites: when running in stub
+  mode, those PINs/tokens are **not** echoed back in any API response, so retrieving them requires
+  reading server logs or querying the DB directly (see how `backend/tests/helpers.py` does it for
+  tests, by monkeypatching the generators). **Signup is unaffected** — the user chooses and submits
+  their own PIN (`UserCreate.pin`), so there's nothing to email or dig out of logs for that flow.
 - **Real-time activity feed is REST-only.** `GET /households/{id}/activity-feed` is polled, not pushed.
   The PRD's WebSocket/live-push behavior (B4) was explicitly deferred to a follow-up.
 - **Receipt photo upload is fully out of scope**, backend and frontend. `Transaction.receipt_url`
@@ -172,7 +177,8 @@ for the collision it fixes.
   `generate_pin()` is only used by `AuthService.forgot_pin` now — signup takes the user's own PIN
   (`UserCreate.pin`, validated `^\d{6}$` in `schemas/user.py`) and just hashes it, it doesn't generate
   one. Don't reintroduce server-generated PINs at signup without a product reason; see PRD Section 9.1.
-- `core/email.py` — stub email "sender" (logs only) — see "Known gaps" above before assuming it sends.
+- `core/email.py` — sends via Resend when `RESEND_API_KEY` is set, else falls back to logging only
+  — see "Known gaps" above for the gating logic.
 
 **Dependency management is [uv](https://docs.astral.sh/uv/), not pip/venv.** `pyproject.toml` +
 `uv.lock` (committed) are the source of truth; don't `pip install` anything directly or hand-edit
@@ -287,7 +293,10 @@ All three phases of the v1 frontend are complete. The app covers the full PRD su
 ### Screen map
 
 - **Onboarding & auth (PRD A):** Welcome → Auth (Sign In/Sign Up as tabs) → Backend Configuration (gear icon, with live `GET /api/v1/ping` reachability check) → Forgot PIN → PIN Sent → Household Choice → Create Household → Budget Goal → Configure Categories, or Join Household (skips Budget Goal/Configure Categories — attaches to an existing household). `ReachabilityIndicator` composable renders all five states (IDLE, INVALID, CHECKING, REACHABLE, UNREACHABLE); Save disabled until confirmed reachable. The Budget Goal screen no longer has a "Budget Period" field (free-text, then briefly a month/year picker via the now-deleted `core/ui/MonthYearPickerDialog.kt`) — it was removed outright rather than fixed, since the backend budget cycle is derived, not user-set.
-- **Core daily-use loop (PRD B/C/D):** Dashboard (budget overview, category snapshots, activity feed preview), Category Limits (admin-gated add/edit/delete with reassign-before-delete confirmation dialog), Category Detail, Transaction History (grouped/search/filtered with pagination), Transaction Detail (role-gated edit/delete), Add Transaction (expense/income with payer picker). Persistent bottom nav + FAB with long-press shortcuts (Add Expense / Add Income). Dashboard's "set up budget" prompt now navigates to a `Screen.BudgetSetup` route (`App.kt`) instead of jumping to Categories — it reuses the same `BudgetGoalRoute`/`BudgetGoalController`/`BudgetGoalScreen` as onboarding, gated by an `isOnboarding: Boolean` param: post-onboarding it shows a "Save Budget" CTA (no "Skip for now") and returns to Dashboard on save/back instead of advancing to Configure Categories.
+- **Core daily-use loop (PRD B/C/D):** Dashboard (budget overview, category snapshots, activity feed preview), Category Limits (admin-gated add/edit/delete with reassign-before-delete confirmation dialog), Category Detail, Transaction History (grouped/search/filtered with pagination), Transaction Detail (role-gated edit/delete), Add Transaction (expense/income with payer picker). Persistent bottom nav + FAB with long-press shortcuts (Add Expense / Add Income). Dashboard's "set up budget" prompt navigates to a `Screen.BudgetSetup` route (`App.kt`) — it reuses the same `BudgetGoalRoute`/`BudgetGoalController`/`BudgetGoalScreen` as onboarding, gated by an `isOnboarding: Boolean` param: post-onboarding it shows a "Save Budget" CTA (no "Skip for now"). Saving switches to the **Categories** tab, not Dashboard — a freshly-saved budget has no categories yet, and Categories' empty state (`CategoryListScreen.kt`) renders an `AddCategoryButton` CTA (`onAddCategory` → `Screen.AddCategory`) instead of a dead-end "no categories" message, so onboarding-skip households always have a path into category setup. The Dashboard's own category-snapshot grid has a matching `AddCategoryPlaceholderCard` (`core/ui/CategorySnapshotCard.kt`) wired to the same `Screen.AddCategory` target — historically it rendered with no `onClick`/`clickable` at all (dead UI), so any new placeholder-style card needs an explicit callback wired end-to-end (composable → Screen → Route → `App.kt`), not assumed from the visual design.
+- **Category icon picker:** `categoryIconChoices` (`core/ui/IconMapper.kt`) holds the full set of selectable icon keys (22 as of this writing); only the first `categoryIconGridPreviewCount` (10) render inline on the Add Category form (`AddCategoryScreen.kt`'s `IconSelectionCard`, plain rows of 5 — not a `LazyVerticalGrid`, see next point) so the form's height stays fixed as the icon set grows. The rest are reachable via a "See all icons" button opening `IconPickerSheet.kt`, a scrollable full-set grid in a bottom sheet.
+- **Grid-of-squares sizing gotcha:** Any fixed/non-scrolling icon-style grid (`IconSelectionCard`'s inline preview) should be laid out as plain `Row`s of `chunked(n)` items with `aspectRatio(1f)` + `Modifier.weight(1f)`, not a `LazyVerticalGrid` with a hardcoded `.height(...)`. A guessed pixel height clips the square cells whenever the real screen-width-dependent cell size comes out taller than the guess. `LazyVerticalGrid` is fine when the grid itself scrolls (e.g. `IconPickerSheet`'s full-set grid), since there's no fixed-height container to overflow.
+- **Dialog-as-bottom-sheet gotcha:** `TransactionFilterSheet.kt` and `IconPickerSheet.kt` both build a bottom-anchored sheet from a plain `Dialog(properties = DialogProperties(usePlatformDefaultWidth = false))` rather than Material3's `ModalBottomSheet` (kept for iOS portability, per `TransactionFilterSheet.kt`'s doc comment). The platform dialog window defaults to `WRAP_CONTENT` height + center gravity — giving the *outer* content a fractional height (e.g. `fillMaxHeight(0.75f)`) shrinks the whole window to that fraction and centers it on screen (a floating card) instead of docking it to the bottom. Fix/pattern: make the outermost `Box` `fillMaxSize()` (forces the window to size to the full screen) and put the height fraction on the `Surface` nested inside it, so `Alignment.BottomCenter` has real slack to anchor at the bottom. Apply this pattern to any new Dialog-based sheet.
 - **Collaboration & profile (PRD E):** Household member list with roles, promote/demote/remove (role-gated: Members can't see admin actions, Admins can't promote to Owner, only the current Owner can), invite-by-email (revocable pending invites rendered as `PendingInviteCard`), editable profile (name/nickname, read-only email), household currency, display mode preference. Push notifications toggle removed from the UI (no backend field to persist to — `ProfileRepository.updatePushNotifications` method remains for later wiring).
 
 ### Real networking

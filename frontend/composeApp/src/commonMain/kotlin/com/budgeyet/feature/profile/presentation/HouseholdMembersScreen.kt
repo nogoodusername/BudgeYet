@@ -152,7 +152,9 @@ fun HouseholdMembersScreen(
                     }
                 }
 
-                items(household.pendingInvites, key = { it.id }) { invite ->
+                // The blank-email invite is the household's shareable join code (see
+                // InviteMemberUiState.joinCode) — it has no invitee to show a card for here.
+                items(household.pendingInvites.filter { it.email.isNotBlank() }, key = { it.id }) { invite ->
                     PendingInviteCard(
                         invite = invite,
                         canRevoke = canManageMembers,

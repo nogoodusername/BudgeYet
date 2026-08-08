@@ -35,6 +35,8 @@ fun AddCategoryRoute(
         onNameChange = controller::onNameChange,
         onMonthlyLimitChange = controller::onMonthlyLimitChange,
         onIconSelected = controller::onIconSelected,
+        onSeeAllIcons = controller::onSeeAllIcons,
+        onDismissIconPicker = controller::onDismissIconPicker,
         onSave = controller::onSave,
         modifier = modifier
     )

@@ -253,12 +253,15 @@ private fun MainAppShell(
                     Screen.Dashboard -> DashboardRoute(
                         onNavigateToCategoryDetail = { navController.navigate(Screen.CategoryDetail(it)) },
                         onNavigateToHistory = { navController.switchTab(Screen.History) },
-                        onNavigateToSetUpBudget = { navController.navigate(Screen.BudgetSetup) }
+                        onNavigateToSetUpBudget = { navController.navigate(Screen.BudgetSetup) },
+                        onNavigateToAddCategory = { navController.navigate(Screen.AddCategory) }
                     )
                     Screen.BudgetSetup -> BudgetGoalRoute(
                         household = household,
                         isOnboarding = false,
-                        onSaved = { _, _ -> navController.switchTab(Screen.Dashboard) },
+                        // Route straight to Categories (not Dashboard) — a fresh budget has no
+                        // categories yet, and Categories' empty state is where users can add one.
+                        onSaved = { _, _ -> navController.switchTab(Screen.Categories) },
                         onSkipped = { navController.back() }
                     )
                     Screen.Categories -> CategoryRoute(

@@ -83,4 +83,4 @@ class AuthService:
         pin = generate_pin()
         await self.users.update(user, pin_hash=hash_pin(pin))
         await self.users.reset_login_attempts(user)
-        send_pin_email(user.email, pin)
+        await send_pin_email(user.email, pin)

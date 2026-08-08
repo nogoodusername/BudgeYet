@@ -40,7 +40,11 @@ class AddCategoryController(
     fun onMonthlyLimitChange(rawValue: String) =
         _uiState.update { it.copy(monthlyLimitText = sanitizeAmountInput(rawValue), saveError = null) }
 
-    fun onIconSelected(icon: String) = _uiState.update { it.copy(selectedIcon = icon) }
+    fun onIconSelected(icon: String) = _uiState.update { it.copy(selectedIcon = icon, isIconPickerOpen = false) }
+
+    fun onSeeAllIcons() = _uiState.update { it.copy(isIconPickerOpen = true) }
+
+    fun onDismissIconPicker() = _uiState.update { it.copy(isIconPickerOpen = false) }
 
     fun onSave() {
         val state = _uiState.value

@@ -48,6 +48,9 @@ class OfflineFirstProfileRepository(
     override suspend fun inviteMember(email: String): Household =
         delegate.inviteMember(email).also { cacheStore.cacheHousehold(it) }
 
+    override suspend fun ensureJoinCode(): Household =
+        delegate.ensureJoinCode().also { cacheStore.cacheHousehold(it) }
+
     override suspend fun revokeInvite(inviteId: Long): Household =
         delegate.revokeInvite(inviteId).also { cacheStore.cacheHousehold(it) }
 

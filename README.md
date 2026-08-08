@@ -1,6 +1,6 @@
-# budge-yet — Collaborative Household Budget App
+# BudgetYet? — Your Household Budget App
 
-`budge-yet` is a collaborative, cross-platform household budget management application designed for real-time visibility, fast transaction logging, and shared household financial transparency.
+`BudgetYet` is a collaborative, cross-platform household budget management application designed for real-time visibility, fast transaction logging, and shared household financial transparency.
 
 ---
 

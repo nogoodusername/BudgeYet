@@ -14,6 +14,9 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in backend/.env (run scripts/setup_env.py postgres first) or export it before running compose}
       - POSTGRES_DB=${POSTGRES_DB:-budge_yet}
       - SECRET_KEY=${SECRET_KEY:?Set SECRET_KEY in backend/.env (run scripts/setup_env.py first) or export it before running compose}
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - EMAIL_FROM_ADDRESS=${EMAIL_FROM_ADDRESS:-noreply@notify.imhx.top}
+      - EMAIL_FROM_NAME=${EMAIL_FROM_NAME:-BudgeYet}
     depends_on:
       postgres:
         condition: service_healthy

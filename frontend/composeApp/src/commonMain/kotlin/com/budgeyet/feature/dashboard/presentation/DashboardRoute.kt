@@ -14,6 +14,7 @@ fun DashboardRoute(
     onNavigateToCategoryDetail: (Long) -> Unit,
     onNavigateToHistory: () -> Unit = {},
     onNavigateToSetUpBudget: () -> Unit = {},
+    onNavigateToAddCategory: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val container = LocalAppContainer.current
@@ -36,6 +37,7 @@ fun DashboardRoute(
         onRetry = controller::retry,
         onViewAllActivityClick = onNavigateToHistory,
         onSetUpBudgetClick = onNavigateToSetUpBudget,
+        onAddCategoryClick = onNavigateToAddCategory,
         modifier = modifier
     )
 }
