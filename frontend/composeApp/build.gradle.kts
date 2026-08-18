@@ -137,12 +137,12 @@ kotlin.sourceSets.getByName("commonMain").kotlin.srcDir(layout.buildDirectory.di
 
 android {
     namespace = "com.budgeyet"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
             applicationId = "com.imhx.budgeyet"
             minSdk = 24
-            targetSdk = 35
+            targetSdk = 36
             versionCode = (versionProps["VERSION_CODE"] as String).toInt()
             versionName = versionProps["VERSION_NAME"] as String
     }
