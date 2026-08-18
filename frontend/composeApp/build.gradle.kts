@@ -14,6 +14,34 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
+val versionProps = Properties()
+val versionPropsFile = rootProject.file("version.properties")
+if (versionPropsFile.exists()) {
+    versionProps.load(FileInputStream(versionPropsFile))
+} else {
+    versionProps["VERSION_NAME"] = "0.0.0"
+    versionProps["VERSION_CODE"] = "0"
+}
+
+val generateAppVersion by tasks.registering {
+    val outputDir = layout.buildDirectory.dir("generated/version")
+    val versionName = versionProps["VERSION_NAME"] as String
+    val versionCode = (versionProps["VERSION_CODE"] as String).toInt()
+    outputs.dir(outputDir)
+    doLast {
+        val src = outputDir.get().file("AppVersion.kt").asFile
+        src.parentFile.mkdirs()
+        src.writeText(
+            """
+object AppVersion {
+    const val VERSION_NAME = "$versionName"
+    const val VERSION_CODE = $versionCode
+}
+""".trimIndent()
+        )
+    }
+}
+
 kotlin {
     applyDefaultHierarchyTemplate()
 
@@ -53,7 +81,7 @@ kotlin {
     }
 
     sourceSets {
-        commonMain.dependencies {
+commonMain.dependencies {
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
@@ -101,6 +129,12 @@ kotlin {
 
 }
 
+tasks.matching { it.name.startsWith("compile") && it.name.contains("Kotlin") }.configureEach {
+    dependsOn(tasks.named("generateAppVersion"))
+}
+
+kotlin.sourceSets.getByName("commonMain").kotlin.srcDir(layout.buildDirectory.dir("generated/version"))
+
 android {
     namespace = "com.budgeyet"
     compileSdk = 35
@@ -109,8 +143,8 @@ android {
             applicationId = "com.imhx.budgeyet"
             minSdk = 24
             targetSdk = 35
-            versionCode = 2
-            versionName = "1.0.1"
+            versionCode = (versionProps["VERSION_CODE"] as String).toInt()
+            versionName = versionProps["VERSION_NAME"] as String
     }
 
     compileOptions {

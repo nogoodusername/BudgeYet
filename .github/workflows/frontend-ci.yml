@@ -13,6 +13,42 @@ on:
       - '.github/workflows/frontend-ci.yml'
 
 jobs:
+  version-drift-check:
+    name: Check Platform Version Sync
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Check iOS Config.xcconfig matches version.properties
+        run: |
+          PROPERTIES="frontend/version.properties"
+          XCCONFIG="frontend/iosApp/Config.xcconfig"
+          if [[ ! -f "$PROPERTIES" ]]; then
+            echo "ERROR: $PROPERTIES not found" >&2
+            exit 1
+          fi
+          if [[ ! -f "$XCCONFIG" ]]; then
+            echo "ERROR: $XCCONFIG not found — run scripts/sync_version.sh" >&2
+            exit 1
+          fi
+
+          VERSION_NAME=$(grep '^VERSION_NAME=' "$PROPERTIES" | cut -d= -f2)
+          VERSION_CODE=$(grep '^VERSION_CODE=' "$PROPERTIES" | cut -d= -f2)
+
+          MARKETING_VERSION=$(grep '^MARKETING_VERSION' "$XCCONFIG" | sed 's/.*= *//')
+          CURRENT_PROJECT_VERSION=$(grep '^CURRENT_PROJECT_VERSION' "$XCCONFIG" | sed 's/.*= *//')
+
+          if [[ "$MARKETING_VERSION" != "$VERSION_NAME" ]]; then
+            echo "DRIFT: iOS MARKETING_VERSION ($MARKETING_VERSION) != VERSION_NAME ($VERSION_NAME)" >&2
+            exit 1
+          fi
+          if [[ "$CURRENT_PROJECT_VERSION" != "$VERSION_CODE" ]]; then
+            echo "DRIFT: iOS CURRENT_PROJECT_VERSION ($CURRENT_PROJECT_VERSION) != VERSION_CODE ($VERSION_CODE)" >&2
+            exit 1
+          fi
+          echo "iOS version in sync: MARKETING_VERSION=$MARKETING_VERSION, CURRENT_PROJECT_VERSION=$CURRENT_PROJECT_VERSION"
+
   build-android:
     name: Build Android Target
     runs-on: ubuntu-latest

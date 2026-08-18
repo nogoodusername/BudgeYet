@@ -348,6 +348,18 @@ Every feature repository in `AppContainer` is now an `OfflineFirst*Repository` w
 - State holders are plain Kotlin classes exposing `StateFlow<UiState>`/`SharedFlow<Event>` with a manually-scoped `CoroutineScope`, not `androidx.lifecycle.ViewModel` (same version-risk reasoning).
 - Persistence is a hand-rolled `core/persistence/SettingsStorage` (`expect`/`actual`: `SharedPreferences` on Android, `NSUserDefaults` on iOS), deliberately not DataStore/Room, same version-risk reasoning.
 
+### Versioning
+
+Release version (`MAJOR.MINOR.PATCH`) + monotonic build code live in `frontend/version.properties` — single source of truth. Every platform reads from it differently:
+
+| Platform | Mechanism |
+|----------|-----------|
+| Android  | `composeApp/build.gradle.kts` loads `version.properties` via Java `Properties` into `versionCode`/`versionName` |
+| iOS      | `iosApp/Config.xcconfig` is regenerated from `version.properties` by `scripts/sync_version.sh`; Xcode resolves `MARKETING_VERSION`/`CURRENT_PROJECT_VERSION` from it |
+| Web/JS   | Gradle task `generateAppVersion` writes `AppVersion.kt` to `build/generated/version/` with `VERSION_NAME`/`VERSION_CODE` |
+
+Use `scripts/bump_version.sh <major\|minor\|patch> [summary]` to bump all three consistently and prepend a CHANGELOG entry. The `version-drift-check` job in `frontend-ci.yml` fails the build if `Config.xcconfig` doesn't match `version.properties`. See `docs/RELEASING.md` for the full release flow.
+
 ### Dummy data scenarios
 
 `fixtures/DummyScenario.kt` — code-level switch only (change the constant in `App.kt` and rebuild; no in-app dev switcher by design): `NoBudgetSetup`, `EmptyBudgetNoTransactions`, `HealthyMidMonth`, `NearLimitAmber`, `OverBudgetCoral`, `SoloBudgeter`, `FullHouseholdThreeMembers`, `LongTransactionHistory`, `SimulatedLoadingAndError`. Fake repos add a short `delay()` before returning so Loading states are real, and `SimulatedLoadingAndError` forces a throw once so Error/retry UI is exercised too — these aren't just Success-state fixtures. Nothing currently reads `DummyScenario` except the unused `Fake*Repository` classes and `App.kt`/`AppContainer`'s now-inert `scenario` parameter.
