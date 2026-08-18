@@ -276,11 +276,18 @@ For detailed platform-specific build & run instructions (Android emulator, physi
 **Commands:**
 ```bash
 cd frontend
-./gradlew :composeApp:assembleDebug                          # Android
+./gradlew :composeApp:assembleDebug                          # Android debug APK
+./gradlew :composeApp:bundleRelease                          # Android release AAB (Play Store upload — use this, not the APK)
+./gradlew :composeApp:assembleRelease                        # Android release APK (sideloading/QA only, not for Play Store)
 ./gradlew :composeApp:jsBrowserDevelopmentRun                 # Web (serves at localhost:8080, hot-reload)
 ./gradlew :composeApp:jsBrowserProductionWebpack              # Web production bundle (output: build/dist/js/productionExecutable/)
 ./gradlew :composeApp:embedAndSignAppleFrameworkForXcode      # iOS framework (then open iosApp/iosApp.xcodeproj in Xcode)
 ```
+When asked to build a release for Play Console, produce the **AAB**
+(`composeApp/build/outputs/bundle/release/composeApp-release.aab`), not an APK —
+Google Play only accepts `.aab` uploads. The APK is only for manual sideloading.
+Both are release-signed via `keystore.properties` + `release.jks` (see the signing
+config in `composeApp/build.gradle.kts`).
 Toolchain: Kotlin 1.9.23, Compose Multiplatform 1.6.1, Ktor 2.3.9, AGP 8.2.2, JDK 17. Versions are pinned
 centrally in `gradle/libs.versions.toml` — add new dependencies there, referenced via the version catalog
 (`libs.xxx`), not as inline coordinate strings in `build.gradle.kts`.
