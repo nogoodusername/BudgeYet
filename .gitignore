@@ -42,7 +42,9 @@ backend/data/
 # Android / Kotlin / Gradle
 *.apk
 *.aar
+*.jks
 *.keystore
+keystore.properties
 local.properties
 .navigation/
 captures/
