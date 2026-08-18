@@ -288,6 +288,14 @@ When asked to build a release for Play Console, produce the **AAB**
 Google Play only accepts `.aab` uploads. The APK is only for manual sideloading.
 Both are release-signed via `keystore.properties` + `release.jks` (see the signing
 config in `composeApp/build.gradle.kts`).
+
+Release builds are **R8-minified** (`isMinifyEnabled = true` + resource shrinking,
+`proguard-rules.pro` keeps kotlinx.serialization/slf4j). The deobfuscation mapping
+lands at `composeApp/build/outputs/mapping/release/mapping.txt` — **upload it to
+Play Console alongside the AAB** (Play → your release → "Deobfuscation file") so
+crash reports are symbolicated. The mapping file must be saved per-build (it changes
+with every minified build); delete it or rebuild before upload and the file won't
+match the release.
 Toolchain: Kotlin 1.9.23, Compose Multiplatform 1.6.1, Ktor 2.3.9, AGP 8.2.2, JDK 17. Versions are pinned
 centrally in `gradle/libs.versions.toml` — add new dependencies there, referenced via the version catalog
 (`libs.xxx`), not as inline coordinate strings in `build.gradle.kts`.
