@@ -271,6 +271,8 @@ drill into `references/`. It's mirrored from the MIT-licensed
 [felipechaux/kmp-compose-multiplatform-skill](https://github.com/felipechaux/kmp-compose-multiplatform-skill);
 where it conflicts with this file's frontend conventions, this file wins.
 
+For detailed platform-specific build & run instructions (Android emulator, physical iOS device via Xcode, SideStore sideloading), see [`docs/RUNNING_ANDROID_IOS.md`](docs/RUNNING_ANDROID_IOS.md).
+
 **Commands:**
 ```bash
 cd frontend
