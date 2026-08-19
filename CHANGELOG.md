@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-08-19
+### Changed
+- Enable R8 minification; rename dashboard title to Dashboard
+- Upgrade Android Gradle Plugin to 8.11.2 and Gradle to 8.13 (full compileSdk 36 support)
+
 ## [1.1.0] - 2026-08-18
 ### Changed
 - Target Android 16 (API 36); add unified cross-platform versioning and changelog
