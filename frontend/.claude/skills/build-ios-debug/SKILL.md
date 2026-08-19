@@ -60,7 +60,7 @@ To stream app logs: `xcrun simctl spawn booted log stream --predicate 'process =
 ## Conventions / gotchas
 
 - Use the **simulator** SDK/destination only for local dev. For a physical iPhone via Xcode, open the project and use automatic signing; simulators need no signing.
-- **Unsigned physical-device builds (SideStore)** are a different flow — see the **build-release-artifacts** skill (`CODE_SIGNING_ALLOWED=NO` + `generic/platform=iOS` + zip to `.ipa`).
+- **Unsigned physical-device builds (SideStore)** are a different flow — see the **build-ios-release** skill (`CODE_SIGNING_ALLOWED=NO` + `generic/platform=iOS` + zip to `.ipa`).
 - If the build fails at the Gradle phase, the JDK it picked up may be broken — `xcodebuild` inherits `JAVA_HOME`/`PATH`; export `JAVA_HOME=$(/usr/libexec/java_home -v 17)` (or the Studio JBR) before building.
 - First simulator build is slow (Kotlin/Native linking). Subsequent builds are incremental.
 - Bundle id is `com.budgeyet.iosApp` (not `com.imhx.budgeyet` — that's Android).

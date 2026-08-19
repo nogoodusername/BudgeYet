@@ -59,7 +59,7 @@ Only stage the three files — nothing else (build artifacts are gitignored via 
 
 ## 5. Post-bump (if the user wants artifacts)
 
-Point to the **build-release-artifacts** skill. The AAB/mapping/ipa builds read `version.properties` directly, so a rebuild picks up the new version automatically.
+Point to the **build-android-release** (AAB + mapping) or **build-ios-release** (unsigned `.ipa` for SideStore) skills. Both read `version.properties` directly, so a rebuild picks up the new version automatically.
 
 ## Conventions / gotchas
 

@@ -63,6 +63,6 @@ adb shell dumpsys activity activities | grep -i budgeyet   # confirms foreground
 ## Conventions / gotchas
 
 - **Always export `JAVA_HOME` to the Studio JBR** for any Android/KMP gradle task on this machine — the Homebrew default (`openjdk@17`) can't build the Kotlin/Android targets reliably.
-- The debug APK is separate from the release AAB. Use `bundleRelease` (see **build-release-artifacts**) for Play uploads, never `assembleDebug`/debug APK.
+- The debug APK is separate from the release AAB. Use `bundleRelease` (see **build-android-release**) for Play uploads, never `assembleDebug`/debug APK.
 - If `installDebug` fails with "device offline", boot the AVD and run `adb wait-for-device` before retrying.
 - ApplicationId `com.imhx.budgeyet` ≠ namespace `com.budgeyet` — use the full applicationId in `adb shell` commands.
