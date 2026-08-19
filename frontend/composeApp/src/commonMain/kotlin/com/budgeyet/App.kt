@@ -303,7 +303,7 @@ private fun MainAppShell(
 }
 
 private fun Screen.title(): String = when (this) {
-    Screen.Dashboard -> "budge-yet Dashboard"
+    Screen.Dashboard -> "Dashboard"
     Screen.Categories -> "Category Limits"
     is Screen.CategoryDetail -> "Category Detail"
     Screen.AddCategory -> "Add Category"
