@@ -9,6 +9,8 @@
 build/
 **/build/
 .bin/
+release-artifacts/
+**/release-artifacts/
 
 # Environment and secrets
 .env
