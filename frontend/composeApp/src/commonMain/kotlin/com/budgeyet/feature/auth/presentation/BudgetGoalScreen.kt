@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
@@ -32,9 +31,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.budgeyet.core.ui.dismissKeyboardOptions
 import com.budgeyet.core.ui.fieldColors
 import com.budgeyet.theme.LocalBudgeYetTypography
 
@@ -55,6 +54,9 @@ fun BudgetGoalScreen(
     modifier: Modifier = Modifier
 ) {
     val budgeYetType = LocalBudgeYetTypography.current
+
+    // Numeric keypad with an IME "Done" that hides the keyboard (see core/ui/KeyboardDismiss.kt).
+    val (goalOptions, goalActions) = dismissKeyboardOptions()
 
     // verticalScroll + imePadding (rather than the weight(1f) spacer this used to pin the
     // button to the bottom with) so the button can scroll up above the keyboard on iOS,
@@ -117,7 +119,8 @@ fun BudgetGoalScreen(
                     placeholder = { Text(text = "0.00", style = budgeYetType.bodyLg) },
                     leadingIcon = { Text(text = currencySymbol, style = budgeYetType.bodyLg, color = MaterialTheme.colorScheme.onSurfaceVariant) },
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    keyboardOptions = goalOptions,
+                    keyboardActions = goalActions,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(8.dp),
                     colors = fieldColors()

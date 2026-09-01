@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -33,12 +32,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.budgeyet.core.ui.TextFieldCard
 import com.budgeyet.core.ui.categoryIcon
 import com.budgeyet.core.ui.categoryIconChoices
 import com.budgeyet.core.ui.categoryIconGridPreviewCount
+import com.budgeyet.core.ui.dismissKeyboardOptions
 import com.budgeyet.core.ui.fieldColors
 import com.budgeyet.core.util.currencySymbolFor
 import com.budgeyet.core.util.formatAmount
@@ -135,6 +134,10 @@ fun AddCategoryScreen(
 @Composable
 private fun MonthlyLimitFieldCard(value: String, currencySymbol: String, onValueChange: (String) -> Unit) {
     val budgeYetType = LocalBudgeYetTypography.current
+
+    // Numeric keypad with an IME "Done" that hides the keyboard (see core/ui/KeyboardDismiss.kt).
+    val (limitOptions, limitActions) = dismissKeyboardOptions()
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -150,7 +153,8 @@ private fun MonthlyLimitFieldCard(value: String, currencySymbol: String, onValue
                 placeholder = { Text(text = "0.00", style = budgeYetType.bodyMd) },
                 leadingIcon = { Text(text = currencySymbol, style = budgeYetType.headlineSm, color = MaterialTheme.colorScheme.onSurfaceVariant) },
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                keyboardOptions = limitOptions,
+                keyboardActions = limitActions,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(8.dp),
                 colors = fieldColors()

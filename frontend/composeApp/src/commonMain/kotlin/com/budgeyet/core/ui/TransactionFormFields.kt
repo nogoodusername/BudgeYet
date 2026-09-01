@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.CreditCard
@@ -48,7 +47,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -127,6 +125,10 @@ fun AmountEntryCard(
     label: String = "Enter Amount"
 ) {
     val budgeYetType = LocalBudgeYetTypography.current
+
+    // Numeric keypad with an IME "Done" that hides the keyboard (see core/ui/KeyboardDismiss.kt).
+    val (amountOptions, amountActions) = dismissKeyboardOptions()
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -155,7 +157,8 @@ fun AmountEntryCard(
                         textAlign = TextAlign.Center
                     ),
                     cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    keyboardOptions = amountOptions,
+                    keyboardActions = amountActions,
                     modifier = Modifier.width(160.dp)
                 )
             }

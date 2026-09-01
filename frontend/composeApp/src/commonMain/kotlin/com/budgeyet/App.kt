@@ -50,6 +50,7 @@ import com.budgeyet.core.navigation.Screen
 import com.budgeyet.core.offline.SyncEvent
 import com.budgeyet.core.ui.BottomNavTab
 import com.budgeyet.core.ui.BudgeYetBottomNavBar
+import com.budgeyet.core.ui.dismissKeyboardOnTap
 import com.budgeyet.feature.auth.presentation.BudgetGoalRoute
 import com.budgeyet.feature.auth.presentation.OnboardingRoute
 import com.budgeyet.feature.category.presentation.AddCategoryRoute
@@ -116,10 +117,15 @@ fun App() {
                 isRestoringSession = false
             }
 
-            if (isRestoringSession) {
-                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {}
-            } else {
-                val currentSession = session
+            // Global tap-outside-to-dismiss: any tap on the background (anything a text field
+            // doesn't consume) clears focus and hides the keyboard. Numeric keypads on iOS have
+            // no built-in dismiss button, so without this a user editing a limit/amount field is
+            // stuck with the keyboard covering the CTA (see core/ui/KeyboardDismiss.kt).
+            Box(modifier = Modifier.fillMaxSize().dismissKeyboardOnTap()) {
+                if (isRestoringSession) {
+                    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {}
+                } else {
+                    val currentSession = session
 
                 if (currentSession == null) {
                     OnboardingRoute(
@@ -170,6 +176,7 @@ fun App() {
                         onDisplayModeChanged = onDisplayModeChanged
                     )
                 }
+            }
             }
         }
     }

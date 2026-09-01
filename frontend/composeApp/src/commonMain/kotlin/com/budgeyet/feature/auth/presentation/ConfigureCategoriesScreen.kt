@@ -25,7 +25,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Check
@@ -46,9 +45,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.budgeyet.core.ui.categoryIcon
+import com.budgeyet.core.ui.dismissKeyboardOptions
 import com.budgeyet.core.ui.fieldColors
 import com.budgeyet.theme.LocalBudgeYetTypography
 
@@ -182,6 +181,10 @@ private fun CategoryConfigCard(
 ) {
     val budgeYetType = LocalBudgeYetTypography.current
 
+    // Give the numeric limit field an IME "Done" action wired to hide the keyboard — numeric
+    // keypads have no dismiss button of their own on iOS (see core/ui/KeyboardDismiss.kt).
+    val (limitOptions, limitActions) = dismissKeyboardOptions()
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -212,6 +215,8 @@ private fun CategoryConfigCard(
                                 onValueChange = onNameChange,
                                 placeholder = { Text(text = "Category name", style = budgeYetType.bodyMd) },
                                 singleLine = true,
+                                keyboardOptions = limitOptions,
+                                keyboardActions = limitActions,
                                 modifier = Modifier.width(180.dp),
                                 shape = RoundedCornerShape(8.dp),
                                 colors = fieldColors()
@@ -239,7 +244,8 @@ private fun CategoryConfigCard(
                         placeholder = { Text(text = "0.00", style = budgeYetType.bodyMd) },
                         leadingIcon = { Text(text = currencySymbol, style = budgeYetType.bodyMd, color = MaterialTheme.colorScheme.onSurfaceVariant) },
                         singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        keyboardOptions = limitOptions,
+                        keyboardActions = limitActions,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(8.dp),
                         colors = fieldColors()

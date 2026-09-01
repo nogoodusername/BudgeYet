@@ -3,6 +3,7 @@
 ## [Unreleased]
 ### Fixed
 - Sign the user out automatically when the access token is rejected (expired/invalid) instead of stranding them on an error screen with only a Retry button — the app now returns to onboarding so they can sign in again
+- Fix on-screen keyboard overlapping text fields and CTAs on iOS (remove `.ignoresSafeArea(.keyboard)`) and Android (`windowSoftInputMode=adjustResize`); add tap-outside-to-dismiss and an IME "Done" action on numeric/money fields so the keyboard can always be collapsed
 
 ## [1.1.1] - 2026-08-19
 ### Changed

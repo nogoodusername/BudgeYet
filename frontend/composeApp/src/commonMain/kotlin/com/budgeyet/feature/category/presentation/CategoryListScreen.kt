@@ -20,7 +20,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.PieChart
@@ -39,13 +38,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.budgeyet.core.model.Category
 import com.budgeyet.core.ui.categoryIcon
 import com.budgeyet.core.ui.colorFor
 import com.budgeyet.core.ui.dashedBorder
+import com.budgeyet.core.ui.dismissKeyboardOptions
 import com.budgeyet.core.util.currencySymbolFor
 import com.budgeyet.core.util.formatAmount
 import com.budgeyet.theme.LocalBudgeYetTypography
@@ -262,6 +261,9 @@ private fun CategoryLimitRow(
     val budgeYetType = LocalBudgeYetTypography.current
     val statusColor = colorFor(category.status)
 
+    // Numeric keypad with an IME "Done" that hides the keyboard (see core/ui/KeyboardDismiss.kt).
+    val (limitOptions, limitActions) = dismissKeyboardOptions()
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -303,7 +305,8 @@ private fun CategoryLimitRow(
                 textStyle = budgeYetType.bodyLg.copy(textAlign = TextAlign.End, color = MaterialTheme.colorScheme.onSurface),
                 leadingIcon = { Text(text = currencySymbol, style = budgeYetType.bodyMd, color = MaterialTheme.colorScheme.onSurfaceVariant) },
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                keyboardOptions = limitOptions,
+                keyboardActions = limitActions,
                 shape = RoundedCornerShape(8.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.secondary,
