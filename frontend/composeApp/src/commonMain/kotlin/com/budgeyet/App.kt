@@ -140,6 +140,17 @@ fun App() {
                         if (isOnline) container.syncManager.processQueue()
                     }
 
+                    // Server-rejected access token (HTTP 401 — invalid/expired, no refresh token
+                    // to renew it with, see core/network/AuthTokenStorage.kt): sign out. Without
+                    // this the user is stranded on the failing screen's error state with only a
+                    // Retry button ("Invalid or expired access token" with nowhere to go).
+                    LaunchedEffect(container.sessionExpiryNotifier) {
+                        container.sessionExpiryNotifier.events.collect {
+                            updateSession(null)
+                            scope.launch { container.authRepository.clearPersistedSession() }
+                        }
+                    }
+
                     // Pick up a queue left behind by a previous session (e.g. the app was killed
                     // while offline) so the badge shows immediately instead of only after a sync.
                     LaunchedEffect(container.syncManager) {

@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- Sign the user out automatically when the access token is rejected (expired/invalid) instead of stranding them on an error screen with only a Retry button — the app now returns to onboarding so they can sign in again
 
 ## [1.1.1] - 2026-08-19
 ### Changed
