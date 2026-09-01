@@ -27,6 +27,7 @@ import com.budgeyet.core.cache.createLocalFileStorage
 import com.budgeyet.core.network.AuthTokenStorage
 import com.budgeyet.core.network.BackendConfigStorage
 import com.budgeyet.core.network.HouseholdRequestContextProvider
+import com.budgeyet.core.network.SessionExpiryNotifier
 import com.budgeyet.core.network.createHttpClient
 import com.budgeyet.core.offline.OfflineQueue
 import com.budgeyet.core.offline.SyncManager
@@ -52,8 +53,12 @@ import com.budgeyet.core.util.createConnectivityObserver
 // App.kt observing connectivityObserver). Everything else surfaces network errors inline.
 class AppContainer(scenario: DummyScenario = DummyScenario.HealthyMidMonth) {
     // The shared network client (core/network/HttpClientFactory.kt) backs every repository below
-    // plus the Backend Configuration "Server Reachable" ping.
-    private val httpClient = createHttpClient()
+    // plus the Backend Configuration "Server Reachable" ping. sessionExpiryNotifier is handed to
+    // it so any 401 (dead/expired access token — there's no refresh token) is broadcast to App.kt,
+    // which drops the user to onboarding instead of stranding them on a dead error screen.
+    val sessionExpiryNotifier = SessionExpiryNotifier()
+
+    private val httpClient = createHttpClient(sessionExpiryNotifier)
 
     // Backs AuthSession + BackendConfig persistence — the app's smallest local storage (prefs).
     private val settingsStorage: SettingsStorage = createSettingsStorage()
