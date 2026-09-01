@@ -28,7 +28,7 @@ fun createHttpClient(sessionExpiryNotifier: SessionExpiryNotifier? = null): Http
         install(ResponseObserver) {
             onResponse { response ->
                 if (response.status == HttpStatusCode.Unauthorized) {
-                    sessionExpiryNotifier.notify()
+                    sessionExpiryNotifier.onSessionExpired()
                 }
             }
         }

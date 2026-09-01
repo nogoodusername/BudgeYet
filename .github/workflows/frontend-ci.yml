@@ -52,6 +52,11 @@ jobs:
   build-android:
     name: Build Android Target
     runs-on: ubuntu-latest
+    # SENTRY_AUTH_TOKEN is consumed by the Sentry Gradle plugin when a release build uploads the
+    # R8 mapping.txt (see docs/RELEASING.md). Provided even on the validation job so a future
+    # bundleRelease step works without further changes.
+    env:
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
     steps:
       - name: Checkout Repository
@@ -95,6 +100,8 @@ jobs:
   build-ios-framework:
     name: Build iOS KMP Framework Target
     runs-on: macos-latest
+    env:
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
     steps:
       - name: Checkout Repository

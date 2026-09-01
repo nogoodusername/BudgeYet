@@ -84,3 +84,48 @@ Before releasing:
 The `version-drift-check` job in `.github/workflows/frontend-ci.yml` reads `frontend/version.properties` and verifies that `frontend/iosApp/Config.xcconfig` has matching `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION`. If they drift (e.g. someone bumps Android's version but forgets iOS), CI fails with a clear message.
 
 Android can't drift — `build.gradle.kts` reads `version.properties` directly.
+
+## Crash & performance monitoring (Sentry)
+
+budge-yet uses [Sentry](https://sentry.io) for crash reporting and performance tracing across all
+three platforms. The SDK is initialized once in [`App.kt`](../frontend/composeApp/src/commonMain/kotlin/com/budgeyet/App.kt)
+from `AppVersion.VERSION_NAME` (the release) and a hardcoded DSN (`core/monitoring/SentryConfig.kt`).
+A single Sentry project receives events from all targets; each event is tagged with its `platform`
+(`android` / `ios` / `javascript`) so they can be filtered per-platform in the Sentry UI.
+
+### Symbol/upload setup (one time)
+
+1. Create `frontend/composeApp/sentry.properties` from the committed
+   `frontend/composeApp/sentry.properties.example`, filling in:
+   - `defaults.org=imhx` (fixed)
+   - `defaults.project=<your Sentry project slug>` — the project slug under Settings → Projects.
+   - `auth.token` — a Sentry auth token with `project:releases` + `org:read` (the CI secret
+     `SENTRY_AUTH_TOKEN` can substitute for this env var instead).
+2. **Android** — nothing else needed: the Sentry Kotlin Multiplatform Gradle plugin auto-applies the
+   Sentry Android Gradle Plugin to the Android target, which uploads the R8 `mapping.txt` automatically
+   during the release build:
+   ```bash
+   cd frontend && ./gradlew :composeApp:bundleRelease   # mapping.txt uploads to Sentry
+   ```
+   The upload needs `composeApp/sentry.properties` (or `SENTRY_AUTH_TOKEN` in the env) to be present
+   at build time.
+3. **iOS** — dSYM upload is **not** wired into the Gradle build. After producing the release archive,
+   upload symbols with `sentry-cli` (install via `npm i -g @sentry/cli` or Homebrew):
+   ```bash
+   export SENTRY_AUTH_TOKEN=<token>
+   sentry-cli debug-files upload --org imhx --project <slug> \
+       frontend/iosApp/build                 # adjust to the dSYM output dir
+   ```
+   Alternatively add a "Run Script" build phase to `iosApp.xcodeproj` that invokes `sentry-cli
+   debug-files upload` with `SENTRY_DSN` set in the scheme.
+4. **Web** — `@sentry/browser` reports source-mapped errors automatically; upload the webpack source
+   map alongside the bundle if you want readable stack traces:
+   ```bash
+   sentry-cli sourcemaps upload --org imhx --project <slug> \
+       frontend/composeApp/build/dist/js/productionExecutable
+   ```
+
+### Force-testing a crash
+
+To confirm ingestion, temporarily call `getMonitoring().captureException(RuntimeException("test crash"))`
+from a button (e.g. a debug-only Settings entry) and watch the Issue appear in Sentry within a minute.

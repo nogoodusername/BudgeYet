@@ -41,6 +41,8 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import com.budgeyet.core.di.AppContainer
 import com.budgeyet.core.di.LocalAppContainer
+import com.budgeyet.core.monitoring.SENTRY_DSN
+import com.budgeyet.core.monitoring.getMonitoring
 import com.budgeyet.core.model.AuthSession
 import com.budgeyet.core.model.DisplayMode
 import com.budgeyet.core.model.Household
@@ -91,6 +93,7 @@ fun App() {
         session = newSession
         container.currentHouseholdHolder.householdId = newSession?.household?.id
         container.currentHouseholdHolder.userId = newSession?.user?.id
+        getMonitoring().setUser(newSession?.user?.id?.toString(), null)
     }
 
     val darkTheme = when (session?.user?.displayMode) {
@@ -111,6 +114,17 @@ fun App() {
 
     BudgeYetTheme(darkTheme = darkTheme) {
         CompositionLocalProvider(LocalAppContainer provides container) {
+            // Initialize crash/performance monitoring once. AppVersion.VERSION_NAME is generated
+            // from frontend/version.properties (see generateAppVersion task) and is used as the
+            // Sentry release so uploaded Android mapping files match the reported events.
+            LaunchedEffect(Unit) {
+                getMonitoring().init(
+                    dsn = SENTRY_DSN,
+                    environment = "production",
+                    release = AppVersion.VERSION_NAME
+                )
+            }
+
             LaunchedEffect(container) {
                 updateSession(container.authRepository.getPersistedSession())
                 isRestoringSession = false

@@ -10,6 +10,7 @@
 		A10000012B00000000000001 /* iOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000022B00000000000001 /* iOSApp.swift */; };
 		A10000032B00000000000001 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000042B00000000000001 /* ContentView.swift */; };
 		A10000152B00000000000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A10000142B00000000000001 /* Assets.xcassets */; };
+		A20000012B00000000000001 /* Sentry.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = A20000042B00000000000001 /* Sentry.xcframework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -18,6 +19,7 @@
 		A10000052B00000000000001 /* iosApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iosApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A10000142B00000000000001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A10000172B00000000000001 /* Config.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = ../Config.xcconfig; sourceTree = "<group>"; };
+		A20000042B00000000000001 /* Sentry.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = Sentry.xcframework; path = Frameworks/Sentry.xcframework; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -25,6 +27,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A20000012B00000000000001 /* Sentry.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -193,6 +196,7 @@
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(SRCROOT)/../composeApp/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)",
+					"$(SRCROOT)/Frameworks/Sentry.xcframework",
 				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "BudgeYet";
@@ -234,6 +238,7 @@
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(SRCROOT)/../composeApp/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)",
+					"$(SRCROOT)/Frameworks/Sentry.xcframework",
 				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "BudgeYet";

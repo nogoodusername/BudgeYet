@@ -1,0 +1,10 @@
+# Sentry build-time upload credentials (gitignored — contains the auth token).
+# Copy this file to composeApp/sentry.properties and fill in the values, or set the
+# SENTRY_AUTH_TOKEN environment variable instead. The Sentry Gradle plugin uploads the
+# R8 mapping.txt during ./gradlew :composeApp:bundleRelease using these defaults.
+#
+# org slug is fixed for this project; "defaults.project" must be the Sentry *project* slug
+# (e.g. "budgeyet") — find it under Settings > Projects in sentry.io.
+defaults.org=imhx
+defaults.project=budgeyet
+auth.token=<SENTRY_AUTH_TOKEN>

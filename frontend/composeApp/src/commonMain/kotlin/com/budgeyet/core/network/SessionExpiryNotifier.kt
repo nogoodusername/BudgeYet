@@ -25,7 +25,7 @@ class SessionExpiryNotifier {
     )
     val events: SharedFlow<Unit> = _events.asSharedFlow()
 
-    fun notify() {
+    fun onSessionExpired() {
         _events.tryEmit(Unit)
     }
 }

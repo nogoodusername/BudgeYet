@@ -37,7 +37,7 @@ class SessionExpiryHttpTest {
             install(ResponseObserver) {
                 onResponse { response ->
                     if (response.status == HttpStatusCode.Unauthorized) {
-                        notifier.notify()
+                        notifier.onSessionExpired()
                     }
                 }
             }
@@ -64,7 +64,7 @@ class SessionExpiryHttpTest {
             install(ResponseObserver) {
                 onResponse { response ->
                     if (response.status == HttpStatusCode.Unauthorized) {
-                        notifier.notify()
+                        notifier.onSessionExpired()
                     }
                 }
             }

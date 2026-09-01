@@ -22,9 +22,9 @@ class SessionExpiryNotifierTest {
     @Test
     fun eventsAreNotReplayedToLateCollectors() = runTest {
         val notifier = SessionExpiryNotifier()
-        notifier.notify()
+        notifier.onSessionExpired()
 
-        // A late collector must not see the earlier notify(): with no replay buffer, first()
+        // A late collector must not see the earlier onSessionExpired(): with no replay buffer, first()
         // suspends forever, so withTimeoutOrNull returns null instead.
         val seen = withTimeoutOrNull(100) { notifier.events.first() }
         assertNull(seen)
@@ -36,11 +36,11 @@ class SessionExpiryNotifierTest {
         val received = CompletableDeferred<Unit>()
 
         // Collect on the test coroutine's child so the collector is guaranteed to be subscribed
-        // before notify() runs (backgroundScope defers dispatch, so the event could be emitted
+        // before onSessionExpired() runs (backgroundScope defers dispatch, so the event could be emitted
         // before the collector attaches and get dropped — the exact failure we saw).
         val job = launch { notifier.events.collect { received.complete(Unit) } }
         runCurrent() // Actually start the collector (runTest uses a virtual-time dispatcher).
-        notifier.notify()
+        notifier.onSessionExpired()
 
         assertEquals(Unit, received.await())
         job.cancel()

@@ -2,10 +2,12 @@ import java.io.FileInputStream
 import java.util.Properties
 
 plugins {
-    alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidApplication)
+    alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.jetbrainsCompose)
     alias(libs.plugins.kotlinSerialization)
+    alias(libs.plugins.sentryKmp)
+    alias(libs.plugins.kotlinCocoapods)
 }
 
 val keystoreProperties = Properties()
@@ -81,7 +83,17 @@ kotlin {
     }
 
     sourceSets {
-commonMain.dependencies {
+        // Shared by the Android and iOS targets only. The Sentry KMP SDK has no JS variant, so it
+        // must not live in commonMain (the JS target couldn't resolve it) — SentryMonitoring and
+        // its dependency live here, inherited by androidMain and iosMain.
+        val androidIosMain by creating {
+            dependsOn(commonMain.get())
+            dependencies {
+                implementation(libs.sentry.kmp)
+            }
+        }
+
+        commonMain.dependencies {
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
@@ -99,6 +111,7 @@ commonMain.dependencies {
         }
 
         val androidMain by getting {
+            dependsOn(androidIosMain)
             dependencies {
                 implementation(libs.androidx.core.ktx)
                 implementation(libs.androidx.activity.compose)
@@ -107,6 +120,7 @@ commonMain.dependencies {
         }
 
         val iosMain by getting {
+            dependsOn(androidIosMain)
             dependencies {
                 implementation(libs.ktor.client.darwin)
             }
@@ -115,6 +129,7 @@ commonMain.dependencies {
         val jsMain by getting {
             dependencies {
                 implementation(libs.ktor.client.js)
+                implementation(npm("@sentry/browser", "8.36.0"))
             }
         }
 
@@ -127,7 +142,31 @@ commonMain.dependencies {
         }
     }
 
+    // CocoaPods integration so the iOS framework links Sentry's native Cocoa SDK. The Sentry KMP
+    // Gradle plugin injects pod("Sentry") into this config automatically. Building the iOS framework
+    // (embedAndSignAppleFrameworkForXcode) will trigger `pod install`.
+    cocoapods {
+        version = "1.0.0"
+        summary = "budge-yet shared KMP module"
+        homepage = "https://github.com/imhx/budge-yet"
+        ios.deploymentTarget = "17.0"
+    }
+}
 
+// Sentry KMP Gradle plugin. The JS target is not supported by the Sentry KMP SDK, so auto-install
+// into commonMain would fail — the SDK dependency is added manually to the androidIosMain source set
+// (libs.sentry.kmp) and the JS target gets @sentry/browser instead. CocoaPods auto-install is
+// disabled because the iOS app links Sentry's native Cocoa SDK via Swift Package Manager in the
+// Xcode project (see iosApp/iosApp.xcodeproj), not via a Podfile workspace.
+sentryKmp {
+    autoInstall {
+        commonMain {
+            enabled = false
+        }
+        cocoapods {
+            enabled = false
+        }
+    }
 }
 
 tasks.matching { it.name.startsWith("compile") && it.name.contains("Kotlin") }.configureEach {
