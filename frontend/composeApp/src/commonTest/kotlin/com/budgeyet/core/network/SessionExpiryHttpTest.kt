@@ -3,7 +3,7 @@ package com.budgeyet.core.network
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
-import io.ktor.client.plugins.observer.ResponseObserver
+import io.ktor.client.plugins.HttpResponseValidator
 import io.ktor.client.request.get
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
@@ -32,11 +32,16 @@ class SessionExpiryHttpTest {
                 headers = headersOf(HttpHeaders.ContentType, "application/json")
             )
         }
+        // Mirrors the real client config: expectSuccess + a response-exception handler that fires
+        // the notifier on 401. With expectSuccess=true the 401 surfaces as a ClientRequestException
+        // through the handler (the same path real engines take), not a delivered 200-ish response.
         val client = HttpClient(engine) {
             expectSuccess = true
-            install(ResponseObserver) {
-                onResponse { response ->
-                    if (response.status == HttpStatusCode.Unauthorized) {
+            HttpResponseValidator {
+                handleResponseExceptionWithRequest { cause, _ ->
+                    if (cause is io.ktor.client.plugins.ClientRequestException &&
+                        cause.response.status == HttpStatusCode.Unauthorized
+                    ) {
                         notifier.notify()
                     }
                 }
@@ -61,9 +66,11 @@ class SessionExpiryHttpTest {
         }
         val client = HttpClient(engine) {
             expectSuccess = true
-            install(ResponseObserver) {
-                onResponse { response ->
-                    if (response.status == HttpStatusCode.Unauthorized) {
+            HttpResponseValidator {
+                handleResponseExceptionWithRequest { cause, _ ->
+                    if (cause is io.ktor.client.plugins.ClientRequestException &&
+                        cause.response.status == HttpStatusCode.Unauthorized
+                    ) {
                         notifier.notify()
                     }
                 }
@@ -72,7 +79,7 @@ class SessionExpiryHttpTest {
 
         client.get("http://localhost/thing")
 
-        // No 401 seen — a late subscriber must find nothing buffered (no-replay + nothing emitted).
+        // No 401 seen — nothing buffered (no-replay + nothing emitted).
         val fired = withTimeoutOrNull(100) { notifier.events.first() }
         assertEquals(null, fired)
     }
