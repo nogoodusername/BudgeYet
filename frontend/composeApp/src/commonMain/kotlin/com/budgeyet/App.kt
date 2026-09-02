@@ -293,6 +293,7 @@ private fun MainAppShell(
                     )
                     is Screen.CategoryDetail -> CategoryDetailRoute(
                         categoryId = screen.categoryId,
+                        onTransactionClick = { navController.navigate(Screen.TransactionDetail(it)) },
                         onDeleted = { navController.switchTab(Screen.Categories) }
                     )
                     Screen.AddCategory -> AddCategoryRoute(onSaved = { navController.back() })
