@@ -195,6 +195,14 @@ random_password() {
 }
 
 if [ "$SKIP_ENV_SETUP" != "1" ]; then
+  # Resend API key for outbound email (forgot-PIN, invites). Blank => stub mode
+  # (tokens only logged, never emailed). setup_env.py picks this up from the env.
+  if [ -z "${RESEND_API_KEY:-}" ] && [ "$NON_INTERACTIVE" != "1" ]; then
+    read -r -p "Resend API key for sending emails (leave blank for stub/log-only mode): " reply_resend
+    RESEND_API_KEY="${reply_resend:-}"
+  fi
+  export RESEND_API_KEY
+
   if [ "$DB_CHOICE" = "postgres" ]; then
     POSTGRES_USER="${POSTGRES_USER_IN:-postgres}"
     POSTGRES_DB="${POSTGRES_DB_IN:-budge_yet}"
