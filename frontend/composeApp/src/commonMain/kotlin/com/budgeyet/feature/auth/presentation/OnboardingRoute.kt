@@ -29,6 +29,8 @@ import com.budgeyet.core.navigation.AuthTab
 import com.budgeyet.core.navigation.BackHandler
 import com.budgeyet.core.navigation.OnboardingNavController
 import com.budgeyet.core.navigation.OnboardingScreen
+import com.budgeyet.core.ui.dismissKeyboardOnTap
+import com.budgeyet.core.ui.keyboardAwarePadding
 import com.budgeyet.theme.LocalBudgeYetTypography
 
 /**
@@ -65,7 +67,17 @@ fun OnboardingRoute(
     // Surface/Scaffold under it — without an explicit fill the canvas stays whatever the
     // platform default is (white on iOS) regardless of theme, so dark-theme text (chosen
     // for a dark background) went near-invisible here specifically.
-    Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    // keyboardAwarePadding() shrinks this column by the on-screen keyboard's height while it's
+    // open, so each screen's own verticalScroll / LazyColumn can bring its lower fields and
+    // buttons into view; dismissKeyboardOnTap() closes the keyboard on an empty-space tap
+    // (iOS has no hardware Back). Applied once here rather than per screen.
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .dismissKeyboardOnTap()
+            .keyboardAwarePadding()
+    ) {
         if (current.showsSharedTopBar()) {
             OnboardingTopBar(title = current.topBarTitle(), canGoBack = nav.canGoBack, onBack = { nav.back() })
         }
