@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -33,6 +32,15 @@ import androidx.compose.ui.unit.dp
 import com.budgeyet.theme.LocalBudgeYetTypography
 
 /**
+ * Bottom padding that clears the platform's bottom system bar: the navigation-bar inset on
+ * Android (gesture pill or 3-button bar), the home-indicator safe area on iOS. Kept per-platform
+ * because Compose Multiplatform 1.6.x doesn't wire `WindowInsets.navigationBars` on iOS, and on
+ * Android `safeDrawing` would also fold in the IME height (wrong for a persistent bottom bar).
+ */
+@Composable
+expect fun Modifier.bottomSystemBarPadding(): Modifier
+
+/**
  * Consistent bottom navigation bar (Stitch screen f77403d7db614bcba0e872081e09dfee):
  * 4 destinations plus an inline "Add" action, all styled the same — no floating/overlapping FAB.
  */
@@ -47,9 +55,7 @@ fun BudgeYetBottomNavBar(
     onProfile: () -> Unit,
 ) {
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(64.dp),
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 0.dp,
@@ -57,7 +63,13 @@ fun BudgeYetBottomNavBar(
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Row(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 4.dp),
+            // Keep the bar's content clear of the Android gesture/3-button navigation bar (and the
+            // iOS home indicator). The Surface background/border still extends under the system bar.
+            modifier = Modifier
+                .fillMaxWidth()
+                .bottomSystemBarPadding()
+                .height(64.dp)
+                .padding(horizontal = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             BottomNavItem(
