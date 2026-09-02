@@ -1,0 +1,59 @@
+services:
+  backend:
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: budgeyet_backend
+    expose: ["8000"]
+    environment:
+      - DATABASE_TYPE=${DATABASE_TYPE:-postgres}
+      - POSTGRES_SERVER=${POSTGRES_SERVER:?Set POSTGRES_SERVER in .env}
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in backend/.env (run scripts/setup_env.py postgres first) or export it before running compose}
+      - POSTGRES_DB=${POSTGRES_DB:-fam_ex}
+      - POSTGRES_SSL=${POSTGRES_SSL:-false}
+      - SECRET_KEY=${SECRET_KEY:?Set SECRET_KEY in backend/.env (run scripts/setup_env.py first) or export it before running compose}
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - EMAIL_FROM_ADDRESS=${EMAIL_FROM_ADDRESS:-noreply@notify.imhx.top}
+      - EMAIL_FROM_NAME=${EMAIL_FROM_NAME:-BudgeYet}
+    restart: unless-stopped
+
+  login-cleanup:
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: budgeyet_login_cleanup
+    environment:
+      - DATABASE_TYPE=${DATABASE_TYPE:-postgres}
+      - POSTGRES_SERVER=${POSTGRES_SERVER:?Set POSTGRES_SERVER in .env}
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in backend/.env (run scripts/setup_env.py postgres first) or export it before running compose}
+      - POSTGRES_DB=${POSTGRES_DB:-fam_ex}
+      - POSTGRES_SSL=${POSTGRES_SSL:-false}
+    # No cron daemon in the image, so this loops the purge script once a day
+    # itself — good enough for a job that just needs to run roughly daily.
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - "while true; do python scripts/cleanup_login_failures.py; sleep 86400; done"
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: budgeyet_nginx
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - /etc/famex/certs:/etc/nginx/certs:ro
+    depends_on:
+      - backend
+    restart: unless-stopped
