@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
@@ -19,6 +20,12 @@ from app.api.v1.router import api_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    if not settings.RESEND_API_KEY:
+        logging.getLogger("budge_yet.email").warning(
+            "RESEND_API_KEY is not set — running in STUB email mode. Forgot-PIN and "
+            "invite emails will NOT be sent, only logged. Set RESEND_API_KEY in backend/.env "
+            "and recreate the container (docker compose up -d --force-recreate)."
+        )
     yield
     # Shutdown
     await async_engine.dispose()

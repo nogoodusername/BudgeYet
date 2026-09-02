@@ -102,6 +102,13 @@ def write_env_file(config: dict):
         "ACCESS_TOKEN_EXPIRE_MINUTES=10080",
         f"CORS_ORIGINS={config['CORS_ORIGINS']}",
         "",
+        "# Email delivery (Resend). Leave RESEND_API_KEY blank to keep the stub logger",
+        "# (PIN/invite tokens are only logged, not emailed). Set it in production so",
+        "# forgot-PIN and invite emails are actually sent. No quotes around the value.",
+        f"RESEND_API_KEY={os.getenv('RESEND_API_KEY', '')}",
+        f"EMAIL_FROM_ADDRESS={os.getenv('EMAIL_FROM_ADDRESS', 'noreply@notify.imhx.top')}",
+        f"EMAIL_FROM_NAME={os.getenv('EMAIL_FROM_NAME', 'BudgeYet')}",
+        "",
         f"DATABASE_TYPE={config['DATABASE_TYPE']}",
     ]
     
