@@ -9,6 +9,11 @@ services:
     container_name: budgeyet_backend
     expose: ["8000"]
     environment:
+      # Compose only forwards vars listed here — anything set only in .env is
+      # silently ignored and the app falls back to its code default.
+      - PROJECT_NAME=${PROJECT_NAME:-budge-yet Backend}
+      - DEBUG=${DEBUG:-False}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-10080}
       - DATABASE_TYPE=${DATABASE_TYPE:-postgres}
       - POSTGRES_SERVER=${POSTGRES_SERVER:?Set POSTGRES_SERVER in .env}
       - POSTGRES_PORT=${POSTGRES_PORT:-5432}
@@ -17,6 +22,9 @@ services:
       - POSTGRES_DB=${POSTGRES_DB:-fam_ex}
       - POSTGRES_SSL=${POSTGRES_SSL:-false}
       - SECRET_KEY=${SECRET_KEY:?Set SECRET_KEY in backend/.env (run scripts/setup_env.py first) or export it before running compose}
+      # Without this line the container never sees CORS_ORIGINS from .env and falls
+      # back to the localhost-only default, breaking the Cloudflare Pages web target.
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080,http://localhost:3000}
       - RESEND_API_KEY=${RESEND_API_KEY:-}
       - EMAIL_FROM_ADDRESS=${EMAIL_FROM_ADDRESS:-noreply@notify.imhx.top}
       - EMAIL_FROM_NAME=${EMAIL_FROM_NAME:-BudgeYet}
