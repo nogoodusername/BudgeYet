@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusManager
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -24,13 +25,15 @@ import androidx.compose.ui.text.input.ImeAction
 //     dismiss button on iOS, which is why the category-limit fields get "stuck".
 
 /** Clears text-field focus and hides the keyboard when the user taps anywhere on the
- *  modified node that isn't consumed by a child (text fields consume their taps, so tapping
- *  a field still focuses it; tapping the background dismisses the keyboard). Apply to a
- *  screen's root or its scrollable content. */
+ *  modified node that isn't consumed by a child. Observed in the FINAL pointer pass, so taps
+ *  that a child consumed (a text field receiving focus, a button, a scroll container's drag)
+ *  are skipped — tapping a field still focuses it; tapping the background or a non-interactive
+ *  part of a scrollable list dismisses the keyboard. Apply to a screen's root or its scrollable
+ *  content. */
 fun Modifier.dismissKeyboardOnTap(focusManager: FocusManager, keyboardController: SoftwareKeyboardController?): Modifier =
     this.pointerInput(Unit) {
         awaitEachGesture {
-            awaitFirstDown()
+            awaitFirstDown(pass = PointerEventPass.Final)
             focusManager.clearFocus()
             keyboardController?.hide()
         }

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -114,8 +115,10 @@ private fun CategoryLimitsContent(
     val currencySymbol = currencySymbolFor(uiState.currency)
     val budgeYetType = LocalBudgeYetTypography.current
 
+    // imePadding shrinks the list by the keyboard height so the Save CTA (last item) stays
+    // reachable — without it the keyboard covers the bottom of the list on both iOS and Android.
     LazyColumn(
-        modifier = modifier.fillMaxSize().padding(horizontal = 16.dp),
+        modifier = modifier.fillMaxSize().padding(horizontal = 16.dp).imePadding(),
         verticalArrangement = Arrangement.spacedBy(20.dp),
         contentPadding = PaddingValues(vertical = 16.dp)
     ) {
