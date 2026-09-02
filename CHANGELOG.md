@@ -3,6 +3,7 @@
 ## [Unreleased]
 ### Fixed
 - Sign the user out automatically when the access token is rejected (expired/invalid) instead of stranding them on an error screen with only a Retry button — the app now returns to onboarding so they can sign in again
+- Keyboard no longer covers form fields and buttons with no way to dismiss it, most visibly on Category Limits — tapping any empty area now closes the keyboard, and scrollable screens make room for it (iOS especially, which has no hardware Back button)
 
 ## [1.1.1] - 2026-08-19
 ### Changed
