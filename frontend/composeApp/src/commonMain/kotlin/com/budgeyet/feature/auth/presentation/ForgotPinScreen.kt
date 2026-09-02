@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -40,7 +39,7 @@ fun ForgotPinScreen(
 ) {
     val budgeYetType = LocalBudgeYetTypography.current
 
-    Column(modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(24.dp)) {
+    Column(modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp)) {
         Spacer(modifier = Modifier.height(48.dp))
 
         Text(text = "Forgot PIN?", style = budgeYetType.headlineLg, color = MaterialTheme.colorScheme.onSurface)

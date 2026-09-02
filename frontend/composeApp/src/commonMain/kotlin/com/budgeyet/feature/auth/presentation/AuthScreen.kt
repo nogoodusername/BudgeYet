@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -86,11 +85,11 @@ fun AuthScreen(
         }
 
         Column(
-            // imePadding() after verticalScroll extends the scrollable range by the keyboard's
-            // height, so fields/buttons near the bottom of the form (Confirm PIN, Create
-            // Account) can be scrolled up above the keyboard instead of staying pinned behind
-            // it — iOS has no windowSoftInputMode equivalent to resize the view automatically.
-            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(horizontal = 16.dp),
+            // Scrollable so fields/buttons near the bottom of the form (Confirm PIN, Create
+            // Account) can be scrolled up above the keyboard. The keyboard-height bottom inset
+            // that makes that reachable is applied once by OnboardingRoute (keyboardAwarePadding),
+            // which shrinks this Column's height while the keyboard is open.
+            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             AuthTabSwitcher(selected = uiState.tab, onTabChange = onTabChange)

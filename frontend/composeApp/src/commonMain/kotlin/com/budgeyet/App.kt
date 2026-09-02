@@ -50,6 +50,8 @@ import com.budgeyet.core.navigation.Screen
 import com.budgeyet.core.offline.SyncEvent
 import com.budgeyet.core.ui.BottomNavTab
 import com.budgeyet.core.ui.BudgeYetBottomNavBar
+import com.budgeyet.core.ui.dismissKeyboardOnTap
+import com.budgeyet.core.ui.keyboardAwarePadding
 import com.budgeyet.feature.auth.presentation.BudgetGoalRoute
 import com.budgeyet.feature.auth.presentation.OnboardingRoute
 import com.budgeyet.feature.category.presentation.AddCategoryRoute
@@ -259,7 +261,17 @@ private fun MainAppShell(
                 )
             }
         ) { paddingValues ->
-            Box(modifier = Modifier.padding(paddingValues)) {
+            // keyboardAwarePadding() extends the content area upward by the keyboard height so a
+            // scrollable screen (e.g. Category Limits) can bring fields/buttons above the keyboard
+            // instead of leaving them covered; dismissKeyboardOnTap() gives iOS (no hardware Back)
+            // a way to close the keyboard by tapping empty space.
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .dismissKeyboardOnTap()
+                    .keyboardAwarePadding()
+            ) {
                 when (val screen = current) {
                     Screen.Dashboard -> DashboardRoute(
                         onNavigateToCategoryDetail = { navController.navigate(Screen.CategoryDetail(it)) },

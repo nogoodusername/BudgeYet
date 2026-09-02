@@ -42,7 +42,7 @@ class SessionExpiryHttpTest {
                     if (cause is io.ktor.client.plugins.ClientRequestException &&
                         cause.response.status == HttpStatusCode.Unauthorized
                     ) {
-                        notifier.notify()
+                        notifier.notifyExpired()
                     }
                 }
             }
@@ -71,7 +71,7 @@ class SessionExpiryHttpTest {
                     if (cause is io.ktor.client.plugins.ClientRequestException &&
                         cause.response.status == HttpStatusCode.Unauthorized
                     ) {
-                        notifier.notify()
+                        notifier.notifyExpired()
                     }
                 }
             }
