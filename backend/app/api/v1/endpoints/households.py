@@ -76,6 +76,18 @@ async def leave_household(
     await household_controller.leave_household(db, membership)
 
 
+@router.delete(
+    "/{household_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None
+)
+async def delete_household(
+    membership: HouseholdMember = Depends(get_household_membership),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete the household. Owner only, and only when they are the sole remaining
+    member — this is how a solo Owner frees themselves to join another household."""
+    await household_controller.delete_household(db, membership)
+
+
 @router.post(
     "/{household_id}/invites", response_model=InviteResponse, status_code=status.HTTP_201_CREATED
 )

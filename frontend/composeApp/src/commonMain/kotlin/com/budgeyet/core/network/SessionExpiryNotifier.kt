@@ -25,7 +25,10 @@ class SessionExpiryNotifier {
     )
     val events: SharedFlow<Unit> = _events.asSharedFlow()
 
-    fun notify() {
+    // Named notifyExpired(), not notify(): a no-arg fun notify() has JVM signature notify()V,
+    // which collides with the final java.lang.Object.notify() — a hard "accidental override"
+    // compile error on the Android target (iOS/JS have no such clash, so it slipped through).
+    fun notifyExpired() {
         _events.tryEmit(Unit)
     }
 }

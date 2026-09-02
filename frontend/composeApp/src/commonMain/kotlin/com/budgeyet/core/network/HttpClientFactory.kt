@@ -31,7 +31,7 @@ fun createHttpClient(sessionExpiryNotifier: SessionExpiryNotifier? = null): Http
         HttpResponseValidator {
             handleResponseExceptionWithRequest { cause, _ ->
                 if (cause is ClientRequestException && cause.response.status == HttpStatusCode.Unauthorized) {
-                    sessionExpiryNotifier.notify()
+                    sessionExpiryNotifier.notifyExpired()
                 }
             }
         }

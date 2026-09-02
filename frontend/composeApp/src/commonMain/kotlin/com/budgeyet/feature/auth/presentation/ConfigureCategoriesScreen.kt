@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -71,11 +70,11 @@ fun ConfigureCategoriesScreen(
 ) {
     val budgeYetType = LocalBudgeYetTypography.current
 
-    // imePadding on the root shrinks the space available to the weighted LazyColumn below
-    // when the keyboard opens, pushing the fixed "Finish Setup" footer button above it — the
-    // list already scrolls its own items, so it doesn't need verticalScroll like the other
-    // onboarding screens.
-    Column(modifier = modifier.fillMaxSize().imePadding()) {
+    // OnboardingRoute applies the keyboard-height bottom inset (keyboardAwarePadding), which
+    // shrinks the space available to the weighted LazyColumn below when the keyboard opens,
+    // keeping the fixed "Finish Setup" footer button above it — the list already scrolls its
+    // own items, so it doesn't need verticalScroll like the other onboarding screens.
+    Column(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(text = "STEP 2 OF 3", style = budgeYetType.labelMd, color = MaterialTheme.colorScheme.onSurfaceVariant)

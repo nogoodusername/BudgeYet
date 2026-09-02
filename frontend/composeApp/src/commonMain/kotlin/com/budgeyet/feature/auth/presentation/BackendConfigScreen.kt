@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -61,9 +60,10 @@ fun BackendConfigScreen(
 ) {
     val budgeYetType = LocalBudgeYetTypography.current
 
-    // verticalScroll + imePadding (rather than the weight(1f) spacer this used to pin the
-    // button to the bottom with) so the button can scroll up above the keyboard on iOS.
-    Column(modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(16.dp)) {
+    // verticalScroll (rather than the weight(1f) spacer this used to pin the button to the
+    // bottom with) so the button can scroll up above the keyboard; the host route supplies the
+    // keyboard-height bottom inset (keyboardAwarePadding) that makes the extra range real.
+    Column(modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),

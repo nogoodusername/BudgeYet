@@ -71,6 +71,10 @@ async def leave_household(db: AsyncSession, membership: HouseholdMember) -> None
     await HouseholdService(db).leave_household(membership)
 
 
+async def delete_household(db: AsyncSession, membership: HouseholdMember) -> None:
+    await HouseholdService(db).delete_household(membership)
+
+
 async def update_member_role(
     db: AsyncSession,
     household_id: int,
