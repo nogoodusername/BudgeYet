@@ -11,7 +11,12 @@ import com.budgeyet.core.di.LocalAppContainer
 import com.budgeyet.core.ui.DeleteCategoryDialog
 
 @Composable
-fun CategoryDetailRoute(categoryId: Long, onDeleted: () -> Unit, modifier: Modifier = Modifier) {
+fun CategoryDetailRoute(
+    categoryId: Long,
+    onTransactionClick: (Long) -> Unit,
+    onDeleted: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     val container = LocalAppContainer.current
     val scope = rememberCoroutineScope()
     val controller = remember(container, categoryId) {
@@ -36,6 +41,7 @@ fun CategoryDetailRoute(categoryId: Long, onDeleted: () -> Unit, modifier: Modif
 
     CategoryDetailScreen(
         uiState = uiState,
+        onTransactionClick = onTransactionClick,
         onDeleteCategoryClick = controller::onRequestDelete,
         modifier = modifier
     )
