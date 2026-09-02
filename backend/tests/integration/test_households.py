@@ -239,6 +239,62 @@ async def test_sole_owner_cannot_leave(client, monkeypatch):
     assert resp.status_code == 409
 
 
+async def test_sole_owner_can_delete_household_and_join_another(client, monkeypatch):
+    owner_token, _ = await signup_and_login(client, monkeypatch, "solo@example.com")
+    household = await create_household(client, owner_token)
+
+    delete_resp = await client.delete(
+        f"/households/{household['id']}", headers=auth_headers(owner_token)
+    )
+    assert delete_resp.status_code == 204
+
+    get_resp = await client.get(
+        f"/households/{household['id']}", headers=auth_headers(owner_token)
+    )
+    assert get_resp.status_code == 404
+
+    other_owner_token, _ = await signup_and_login(client, monkeypatch, "host@example.com")
+    other_household = await create_household(client, other_owner_token, "Host House")
+    _, token_str = await create_invite(client, other_owner_token, other_household["id"])
+
+    join_resp = await client.post(
+        "/households/join", json={"token": token_str}, headers=auth_headers(owner_token)
+    )
+    assert join_resp.status_code == 201
+
+
+async def test_owner_cannot_delete_household_with_other_members(client, monkeypatch):
+    owner_token, _ = await signup_and_login(client, monkeypatch, "owner@example.com")
+    household = await create_household(client, owner_token)
+    _, token_str = await create_invite(client, owner_token, household["id"])
+
+    member_token, _ = await signup_and_login(client, monkeypatch, "member@example.com")
+    await client.post(
+        "/households/join", json={"token": token_str}, headers=auth_headers(member_token)
+    )
+
+    resp = await client.delete(
+        f"/households/{household['id']}", headers=auth_headers(owner_token)
+    )
+    assert resp.status_code == 409
+
+
+async def test_non_owner_cannot_delete_household(client, monkeypatch):
+    owner_token, _ = await signup_and_login(client, monkeypatch, "owner@example.com")
+    household = await create_household(client, owner_token)
+    _, token_str = await create_invite(client, owner_token, household["id"])
+
+    member_token, _ = await signup_and_login(client, monkeypatch, "member@example.com")
+    await client.post(
+        "/households/join", json={"token": token_str}, headers=auth_headers(member_token)
+    )
+
+    resp = await client.delete(
+        f"/households/{household['id']}", headers=auth_headers(member_token)
+    )
+    assert resp.status_code == 403
+
+
 async def test_owner_cannot_be_demoted_directly(client, monkeypatch):
     owner_token, _ = await signup_and_login(client, monkeypatch, "owner@example.com")
     household = await create_household(client, owner_token)

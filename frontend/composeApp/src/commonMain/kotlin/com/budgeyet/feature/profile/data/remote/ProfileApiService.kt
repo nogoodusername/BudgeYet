@@ -105,6 +105,21 @@ class ProfileApiService(private val httpClient: HttpClient) {
         }
     }
 
+    // Owner-only on the backend, and only when they're the sole member — a 403 (not Owner) or
+    // 409 (other members still present) surfaces through safeApiCall as an AppException the
+    // caller shows inline.
+    suspend fun deleteHousehold(
+        config: BackendConfig,
+        accessToken: String,
+        householdId: Long
+    ) {
+        safeApiCall {
+            httpClient.delete(config.apiUrl("/households/$householdId")) {
+                bearerAuth(accessToken)
+            }
+        }
+    }
+
     suspend fun updateMemberRole(
         config: BackendConfig,
         accessToken: String,

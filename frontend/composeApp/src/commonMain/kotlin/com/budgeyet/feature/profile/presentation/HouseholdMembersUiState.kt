@@ -19,6 +19,8 @@ data class HouseholdMembersUiState(
     val errorMessage: String? = null,
     val pendingRoleChange: RoleChangeRequest? = null,
     val pendingRemoveMember: HouseholdMember? = null,
+    // True while the "Delete Household" confirmation dialog is open (sole-Owner escape hatch).
+    val pendingDeleteHousehold: Boolean = false,
     val isProcessing: Boolean = false,
     val actionError: String? = null,
     // Which pending invite a Revoke tap is in flight for, so only that row shows busy.

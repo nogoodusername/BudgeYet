@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
@@ -92,6 +93,9 @@ fun HouseholdMembersScreen(
     onConfirmRemove: () -> Unit,
     onRevokeInvite: (PendingInvite) -> Unit,
     onNavigateToInvite: () -> Unit,
+    onRequestDeleteHousehold: () -> Unit,
+    onCancelDeleteHousehold: () -> Unit,
+    onConfirmDeleteHousehold: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val budgeYetType = LocalBudgeYetTypography.current
@@ -112,6 +116,11 @@ fun HouseholdMembersScreen(
             // them from plain Members instead of letting them 403 after the fact. The members
             // list itself stays readable for everyone.
             val canManageMembers = uiState.currentUserRole?.isAdminOrOwner == true
+            // A solo Owner can't transfer ownership (no one to transfer to) or leave (a
+            // household must always keep an Owner) — deleting the household is their only way
+            // out, e.g. to join a different one. Offered only in that exact situation.
+            val canDeleteHousehold =
+                uiState.currentUserRole == MemberRole.OWNER && household.members.size == 1
 
             LazyColumn(
                 modifier = modifier.fillMaxSize().padding(horizontal = 16.dp),
@@ -221,6 +230,12 @@ fun HouseholdMembersScreen(
                         }
                     }
                 }
+
+                if (canDeleteHousehold) {
+                    item {
+                        DeleteHouseholdSection(onDelete = onRequestDeleteHousehold)
+                    }
+                }
             }
 
             uiState.pendingRoleChange?.let { request ->
@@ -260,8 +275,83 @@ fun HouseholdMembersScreen(
                     onDismiss = onCancelRemove
                 )
             }
+
+            if (uiState.pendingDeleteHousehold) {
+                DeleteHouseholdDialog(
+                    householdName = household.name,
+                    isProcessing = uiState.isProcessing,
+                    errorMessage = uiState.actionError,
+                    onConfirm = onConfirmDeleteHousehold,
+                    onDismiss = onCancelDeleteHousehold
+                )
+            }
         }
     }
+}
+
+@Composable
+private fun DeleteHouseholdSection(onDelete: () -> Unit) {
+    val budgeYetType = LocalBudgeYetTypography.current
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(text = "Danger Zone", style = budgeYetType.headlineSm, color = MaterialTheme.colorScheme.error)
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.4f)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = "You're the only member of this household. Delete it to free your account " +
+                        "so you can create or join a different one. This permanently removes its " +
+                        "budget, categories, and transaction history.",
+                    style = budgeYetType.bodyMd,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Button(
+                    onClick = onDelete,
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
+                    )
+                ) {
+                    Icon(Icons.Default.DeleteForever, contentDescription = null, modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = "Delete Household", style = budgeYetType.headlineSm)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DeleteHouseholdDialog(
+    householdName: String,
+    isProcessing: Boolean,
+    errorMessage: String?,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    ConfirmationDialogShell(
+        icon = Icons.Default.DeleteForever,
+        iconTint = MaterialTheme.colorScheme.error,
+        iconBackground = MaterialTheme.colorScheme.error.copy(alpha = 0.12f),
+        headline = "Delete Household?",
+        body = "The $householdName household and all of its budget, categories, and transaction " +
+            "history will be permanently deleted. This can't be undone. You'll then be able to " +
+            "create or join another household.",
+        confirmLabel = "Delete Household",
+        confirmLabelBusy = "Deleting…",
+        isProcessing = isProcessing,
+        errorMessage = errorMessage,
+        confirmContainerColor = MaterialTheme.colorScheme.error,
+        confirmContentColor = MaterialTheme.colorScheme.onError,
+        onConfirm = onConfirm,
+        onDismiss = onDismiss
+    )
 }
 
 @Composable

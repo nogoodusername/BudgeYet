@@ -5,11 +5,20 @@ import com.budgeyet.core.model.MemberRole
 import com.budgeyet.core.model.PendingInvite
 import com.budgeyet.feature.profile.domain.ProfileRepository
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+sealed class HouseholdMembersEvent {
+    // The signed-in Owner deleted their (sole-member) household — App.kt drops the household
+    // from the session so the user lands on the Create / Join Household chooser.
+    data object HouseholdDeleted : HouseholdMembersEvent()
+}
 
 class HouseholdMembersController(
     private val repository: ProfileRepository,
@@ -18,6 +27,9 @@ class HouseholdMembersController(
 ) {
     private val _uiState = MutableStateFlow(HouseholdMembersUiState())
     val uiState: StateFlow<HouseholdMembersUiState> = _uiState.asStateFlow()
+
+    private val _events = MutableSharedFlow<HouseholdMembersEvent>(replay = 0, extraBufferCapacity = 1)
+    val events: SharedFlow<HouseholdMembersEvent> = _events.asSharedFlow()
 
     fun load() {
         scope.launch {
@@ -85,6 +97,24 @@ class HouseholdMembersController(
                 }
             } catch (t: Throwable) {
                 _uiState.update { it.copy(isProcessing = false, actionError = t.message ?: "Couldn't remove member") }
+            }
+        }
+    }
+
+    fun onRequestDeleteHousehold() = _uiState.update { it.copy(pendingDeleteHousehold = true, actionError = null) }
+
+    fun onCancelDeleteHousehold() = _uiState.update { it.copy(pendingDeleteHousehold = false) }
+
+    fun onConfirmDeleteHousehold() {
+        if (!_uiState.value.pendingDeleteHousehold) return
+        scope.launch {
+            _uiState.update { it.copy(isProcessing = true, actionError = null) }
+            try {
+                repository.deleteHousehold()
+                _uiState.update { it.copy(isProcessing = false, pendingDeleteHousehold = false) }
+                _events.emit(HouseholdMembersEvent.HouseholdDeleted)
+            } catch (t: Throwable) {
+                _uiState.update { it.copy(isProcessing = false, actionError = t.message ?: "Couldn't delete household") }
             }
         }
     }

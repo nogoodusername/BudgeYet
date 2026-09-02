@@ -3,6 +3,7 @@
 ## [Unreleased]
 ### Added
 - Tapping a transaction on the Category Detail page now opens the Transaction Detail screen
+- A household's sole Owner can now delete it from Household Members ("Danger Zone") — the escape hatch for an Owner who wants to join a different household but can't transfer ownership or leave. After deleting, the app shows the Create / Join Household chooser without requiring a re-login.
 
 ### Fixed
 - Sign the user out automatically when the access token is rejected (expired/invalid) instead of stranding them on an error screen with only a Retry button — the app now returns to onboarding so they can sign in again
