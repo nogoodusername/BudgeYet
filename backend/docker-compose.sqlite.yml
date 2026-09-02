@@ -6,13 +6,15 @@ services:
     container_name: budge_yet_backend_sqlite
     ports:
       - "8000:8000"
+    # Load backend/.env straight into the container so RESEND_API_KEY etc. reach
+    # the app verbatim, regardless of the directory Compose is invoked from.
+    env_file:
+      - .env
     environment:
       - DATABASE_TYPE=sqlite
       - SQLITE_DB_FILE=/app/data/budge_yet.db
       - SECRET_KEY=${SECRET_KEY:?Set SECRET_KEY in backend/.env (run scripts/setup_env.py first) or export it before running compose}
-      - RESEND_API_KEY=${RESEND_API_KEY:-}
-      - EMAIL_FROM_ADDRESS=${EMAIL_FROM_ADDRESS:-noreply@notify.imhx.top}
-      - EMAIL_FROM_NAME=${EMAIL_FROM_NAME:-BudgeYet}
+      # RESEND_API_KEY / EMAIL_FROM_ADDRESS / EMAIL_FROM_NAME come from env_file (.env) above.
     volumes:
       - sqlite_data:/app/data
     restart: unless-stopped

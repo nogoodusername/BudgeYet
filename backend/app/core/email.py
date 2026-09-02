@@ -18,23 +18,29 @@ RESEND_API_URL = "https://api.resend.com/emails"
 
 
 async def _send(*, to: str, subject: str, html: str) -> None:
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            RESEND_API_URL,
-            headers={"Authorization": f"Bearer {settings.RESEND_API_KEY}"},
-            json={
-                "from": f"{settings.EMAIL_FROM_NAME} <{settings.EMAIL_FROM_ADDRESS}>",
-                "to": [to],
-                "subject": subject,
-                "html": html,
-            },
-        )
-    if response.is_error:
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(
+                RESEND_API_URL,
+                headers={"Authorization": f"Bearer {settings.RESEND_API_KEY}"},
+                json={
+                    "from": f"{settings.EMAIL_FROM_NAME} <{settings.EMAIL_FROM_ADDRESS}>",
+                    "to": [to],
+                    "subject": subject,
+                    "html": html,
+                },
+            )
+    except httpx.HTTPError as exc:
         # A failed send must not break the signup/forgot-PIN/invite request itself —
         # same "no-op on failure" spirit as AuthService.forgot_pin's unknown-email case.
+        logger.error("Resend send errored to=%s error=%r", to, exc)
+        return
+    if response.is_error:
         logger.error(
             "Resend send failed to=%s status=%s body=%s", to, response.status_code, response.text
         )
+    else:
+        logger.info("Resend send ok to=%s subject=%r", to, subject)
 
 
 async def send_pin_email(email: str, pin: str) -> None:
