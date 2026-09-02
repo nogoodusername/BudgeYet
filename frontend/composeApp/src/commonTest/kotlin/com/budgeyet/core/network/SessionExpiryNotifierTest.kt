@@ -22,7 +22,7 @@ class SessionExpiryNotifierTest {
     @Test
     fun eventsAreNotReplayedToLateCollectors() = runTest {
         val notifier = SessionExpiryNotifier()
-        notifier.notify()
+        notifier.notifyExpired()
 
         // A late collector must not see the earlier notify(): with no replay buffer, first()
         // suspends forever, so withTimeoutOrNull returns null instead.
@@ -40,7 +40,7 @@ class SessionExpiryNotifierTest {
         // before the collector attaches and get dropped — the exact failure we saw).
         val job = launch { notifier.events.collect { received.complete(Unit) } }
         runCurrent() // Actually start the collector (runTest uses a virtual-time dispatcher).
-        notifier.notify()
+        notifier.notifyExpired()
 
         assertEquals(Unit, received.await())
         job.cancel()
