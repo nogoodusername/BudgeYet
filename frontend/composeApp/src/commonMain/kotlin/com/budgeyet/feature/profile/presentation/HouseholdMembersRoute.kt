@@ -12,6 +12,7 @@ import com.budgeyet.core.di.LocalAppContainer
 @Composable
 fun HouseholdMembersRoute(
     onNavigateToInvite: () -> Unit,
+    onHouseholdDeleted: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val container = LocalAppContainer.current
@@ -23,6 +24,14 @@ fun HouseholdMembersRoute(
 
     LaunchedEffect(controller) { controller.load() }
 
+    LaunchedEffect(controller) {
+        controller.events.collect { event ->
+            when (event) {
+                HouseholdMembersEvent.HouseholdDeleted -> onHouseholdDeleted()
+            }
+        }
+    }
+
     HouseholdMembersScreen(
         uiState = uiState,
         onRequestRoleChange = controller::onRequestRoleChange,
@@ -33,6 +42,9 @@ fun HouseholdMembersRoute(
         onConfirmRemove = controller::onConfirmRemove,
         onRevokeInvite = controller::onRevokeInvite,
         onNavigateToInvite = onNavigateToInvite,
+        onRequestDeleteHousehold = controller::onRequestDeleteHousehold,
+        onCancelDeleteHousehold = controller::onCancelDeleteHousehold,
+        onConfirmDeleteHousehold = controller::onConfirmDeleteHousehold,
         modifier = modifier
     )
 }

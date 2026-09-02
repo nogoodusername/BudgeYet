@@ -53,6 +53,7 @@ import com.budgeyet.core.ui.BudgeYetBottomNavBar
 import com.budgeyet.core.ui.dismissKeyboardOnTap
 import com.budgeyet.core.ui.keyboardAwarePadding
 import com.budgeyet.feature.auth.presentation.BudgetGoalRoute
+import com.budgeyet.feature.auth.presentation.HouseholdSetupRoute
 import com.budgeyet.feature.auth.presentation.OnboardingRoute
 import com.budgeyet.feature.category.presentation.AddCategoryRoute
 import com.budgeyet.feature.category.presentation.CategoryDetailRoute
@@ -159,18 +160,39 @@ fun App() {
                         container.syncManager.refreshPendingCount()
                     }
 
-                    MainAppShell(
-                        // Safe: onOnboardingComplete/getPersistedSession only ever hand back a
-                        // session once a household exists (see AuthSession's doc comment) — this
-                        // branch only renders after that's guaranteed.
-                        household = requireNotNull(currentSession.household),
-                        onSignOut = {
-                            updateSession(null)
-                            scope.launch { container.authRepository.clearPersistedSession() }
-                        },
-                        pendingSyncCount = pendingSyncCount,
-                        onDisplayModeChanged = onDisplayModeChanged
-                    )
+                    val onSignOut: () -> Unit = {
+                        updateSession(null)
+                        scope.launch { container.authRepository.clearPersistedSession() }
+                    }
+                    val activeHousehold = currentSession.household
+
+                    if (activeHousehold == null) {
+                        // Signed in with no household — either a fresh login that hasn't picked
+                        // one yet (see AuthSession's doc comment) or a solo Owner who just
+                        // deleted theirs. Let them create or join one without re-authenticating;
+                        // the access token is still valid.
+                        HouseholdSetupRoute(
+                            email = currentSession.user.email,
+                            onHouseholdReady = { household ->
+                                val updated = currentSession.copy(household = household)
+                                updateSession(updated)
+                                scope.launch { container.authRepository.persistSession(updated) }
+                            },
+                            onSignOut = onSignOut
+                        )
+                    } else {
+                        MainAppShell(
+                            household = activeHousehold,
+                            onSignOut = onSignOut,
+                            pendingSyncCount = pendingSyncCount,
+                            onDisplayModeChanged = onDisplayModeChanged,
+                            onHouseholdDeleted = {
+                                val updated = currentSession.copy(household = null)
+                                updateSession(updated)
+                                scope.launch { container.authRepository.persistSession(updated) }
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -183,7 +205,8 @@ private fun MainAppShell(
     household: Household,
     onSignOut: () -> Unit,
     pendingSyncCount: Int,
-    onDisplayModeChanged: (DisplayMode) -> Unit = {}
+    onDisplayModeChanged: (DisplayMode) -> Unit = {},
+    onHouseholdDeleted: () -> Unit = {}
 ) {
     val container = LocalAppContainer.current
     val navController = remember { AppNavController() }
@@ -317,7 +340,8 @@ private fun MainAppShell(
                         onDisplayModeChanged = onDisplayModeChanged
                     )
                     Screen.HouseholdMembers -> HouseholdMembersRoute(
-                        onNavigateToInvite = { navController.navigate(Screen.InviteMember) }
+                        onNavigateToInvite = { navController.navigate(Screen.InviteMember) },
+                        onHouseholdDeleted = onHouseholdDeleted
                     )
                     Screen.InviteMember -> InviteMemberRoute(onInvited = { navController.back() })
                 }
