@@ -2,6 +2,7 @@ package com.budgeyet.feature.category.presentation
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -57,6 +58,7 @@ import com.budgeyet.theme.LocalBudgeYetTypography
 @Composable
 fun CategoryDetailScreen(
     uiState: CategoryDetailUiState,
+    onTransactionClick: (Long) -> Unit = {},
     onDeleteCategoryClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -73,6 +75,7 @@ fun CategoryDetailScreen(
             category = uiState.category,
             transactions = uiState.transactions,
             currency = uiState.currency,
+            onTransactionClick = onTransactionClick,
             onDeleteCategoryClick = onDeleteCategoryClick,
             modifier = modifier
         )
@@ -84,6 +87,7 @@ private fun CategoryDetailContent(
     category: Category,
     transactions: List<Transaction>,
     currency: String,
+    onTransactionClick: (Long) -> Unit,
     onDeleteCategoryClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -145,7 +149,12 @@ private fun CategoryDetailContent(
                     }
                 }
                 items(groupTransactions, key = { it.id }) { transaction ->
-                    CategoryTransactionCard(transaction = transaction, category = category, currencySymbol = currencySymbol)
+                    CategoryTransactionCard(
+                        transaction = transaction,
+                        category = category,
+                        currencySymbol = currencySymbol,
+                        onClick = { onTransactionClick(transaction.id) }
+                    )
                 }
             }
         }
@@ -303,11 +312,16 @@ private fun StatusBadge(status: SpendStatus) {
 }
 
 @Composable
-private fun CategoryTransactionCard(transaction: Transaction, category: Category, currencySymbol: String) {
+private fun CategoryTransactionCard(
+    transaction: Transaction,
+    category: Category,
+    currencySymbol: String,
+    onClick: () -> Unit
+) {
     val budgeYetType = LocalBudgeYetTypography.current
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
