@@ -29,4 +29,9 @@ interface ProfileRepository {
     // FakeProfileRepository), and demote-to-Member.
     suspend fun updateMemberRole(memberId: Long, role: MemberRole): Household
     suspend fun removeMember(memberId: Long): Household
+    // Deletes the whole household — backend allows this only for the Owner when they are the
+    // sole remaining member. The escape hatch for a solo Owner who wants to join another
+    // household (they can't transfer ownership or leave). Cascades drop the household's
+    // budget/categories/transactions/invites server-side.
+    suspend fun deleteHousehold()
 }

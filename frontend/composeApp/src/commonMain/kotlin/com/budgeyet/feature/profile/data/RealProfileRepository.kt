@@ -92,6 +92,11 @@ class RealProfileRepository(
         return fetchHousehold()
     }
 
+    override suspend fun deleteHousehold() {
+        val (config, token, householdId) = contextProvider.get()
+        api.deleteHousehold(config, token, householdId)
+    }
+
     // Pending invites live on a separate admin-only endpoint (GET .../invites) — HouseholdResponse
     // never includes them (see core/network/mapper/HouseholdMapper.kt). This screen doesn't
     // currently gate member-management actions by role at all (a pre-existing frontend gap, see

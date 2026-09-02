@@ -108,4 +108,9 @@ class FakeProfileRepository(scenario: DummyScenario) : ProfileRepository {
         household = household.copy(members = household.members.filterNot { it.id == memberId })
         return household
     }
+
+    override suspend fun deleteHousehold() {
+        delay(400)
+        check(household.members.size == 1) { "Remove all other members before deleting the household" }
+    }
 }

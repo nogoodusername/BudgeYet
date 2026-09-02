@@ -142,6 +142,23 @@ class HouseholdService:
         await self.members.delete(member)
         await self.households.release_member_slot(household_id)
 
+    async def delete_household(self, membership: HouseholdMember) -> None:
+        """Delete the whole household — Owner only, and only when they are its sole
+        member. This is the escape hatch for a solo Owner who wants to join another
+        household: they can't transfer ownership (no one to transfer to) and can't
+        leave (a household must always have an Owner), so deleting is the only way
+        out. Cascades drop the household's budget/categories/transactions/invites.
+        """
+        if membership.role != MemberRole.OWNER:
+            raise PermissionDeniedError("Only the household's Owner can delete it")
+
+        household = await self.get_household_or_404(membership.household_id)
+        if household.member_count > 1:
+            raise ConflictError(
+                "Remove all other members before deleting the household"
+            )
+        await self.households.delete(household)
+
     async def leave_household(self, membership: HouseholdMember) -> None:
         if membership.role == MemberRole.OWNER:
             raise ConflictError(

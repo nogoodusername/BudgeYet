@@ -59,4 +59,12 @@ class OfflineFirstProfileRepository(
 
     override suspend fun removeMember(memberId: Long): Household =
         delegate.removeMember(memberId).also { cacheStore.cacheHousehold(it) }
+
+    // Deleting the household invalidates every household-scoped cache (its members, budget,
+    // categories, transactions, dashboard) — wipe the lot so a subsequent join to a different
+    // household never renders the deleted one's data offline.
+    override suspend fun deleteHousehold() {
+        delegate.deleteHousehold()
+        cacheStore.clear()
+    }
 }
