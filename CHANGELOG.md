@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [1.2.0] - 2026-09-02
 ### Added
 - Tapping a transaction on the Category Detail page now opens the Transaction Detail screen
 - A household's sole Owner can now delete it from Household Members ("Danger Zone") — the escape hatch for an Owner who wants to join a different household but can't transfer ownership or leave. After deleting, the app shows the Create / Join Household chooser without requiring a re-login.
