@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- Transaction History no longer collapses to a blank block when the search field is focused on iOS — the software keyboard was being compensated for twice (once by the persistent bottom nav bar's safe-area inset, once by the content's keyboard padding)
 
 ## [1.2.0] - 2026-09-02
 ### Added
