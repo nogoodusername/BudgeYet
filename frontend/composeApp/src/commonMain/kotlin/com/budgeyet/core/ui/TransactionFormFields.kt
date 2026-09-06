@@ -156,7 +156,21 @@ fun AmountEntryCard(
                     ),
                     cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.width(160.dp)
+                    modifier = Modifier.width(160.dp),
+                    decorationBox = { innerTextField ->
+                        Box(contentAlignment = Alignment.Center) {
+                            if (amountText.isEmpty()) {
+                                Text(
+                                    text = "0.00",
+                                    style = budgeYetType.displayAmount.copy(
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = TextAlign.Center
+                                    )
+                                )
+                            }
+                            innerTextField()
+                        }
+                    }
                 )
             }
         }

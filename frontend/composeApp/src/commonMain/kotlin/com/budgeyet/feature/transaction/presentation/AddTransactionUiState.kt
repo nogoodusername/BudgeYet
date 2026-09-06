@@ -11,7 +11,7 @@ import kotlinx.datetime.LocalDate
 data class AddTransactionUiState(
     val isLoading: Boolean = false,
     val type: TransactionType = TransactionType.EXPENSE,
-    val amountText: String = "0.00",
+    val amountText: String = "",
     val merchant: String = "",
     val categories: List<Category> = emptyList(),
     val selectedCategoryId: Long? = null,
