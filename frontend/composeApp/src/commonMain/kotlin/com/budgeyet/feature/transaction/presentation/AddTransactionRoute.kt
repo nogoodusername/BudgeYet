@@ -24,6 +24,7 @@ fun AddTransactionRoute(
             categoryRepository = container.categoryRepository,
             profileRepository = container.profileRepository,
             transactionRepository = container.transactionRepository,
+            cacheStore = container.localCacheStore,
             scope = scope
         )
     }

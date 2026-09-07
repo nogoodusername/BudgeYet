@@ -1,5 +1,6 @@
 package com.budgeyet.feature.transaction.presentation
 
+import com.budgeyet.core.cache.LocalCacheStore
 import com.budgeyet.core.model.PaymentMode
 import com.budgeyet.core.model.Transaction
 import com.budgeyet.core.model.TransactionType
@@ -25,6 +26,7 @@ class AddTransactionController(
     private val categoryRepository: CategoryRepository,
     private val profileRepository: ProfileRepository,
     private val transactionRepository: TransactionRepository,
+    private val cacheStore: LocalCacheStore,
     private val scope: CoroutineScope
 ) {
     private val _uiState = MutableStateFlow(AddTransactionUiState())
@@ -37,6 +39,27 @@ class AddTransactionController(
 
     fun load() {
         scope.launch {
+            // Cache-first paint so the form renders immediately instead of blanking while the
+            // category/household fetch is in flight (this is a pushed screen, so it's always a
+            // cold controller).
+            if (_uiState.value.categories.isEmpty()) {
+                val cachedCategories = cacheStore.getCachedCategories()
+                val cachedHousehold = cacheStore.getCachedHousehold()
+                if (cachedCategories != null && cachedHousehold != null) {
+                    val cachedUserId = cacheStore.getCachedUser()?.id
+                    val defaultPayerId = cachedHousehold.members.find { it.user.id == cachedUserId }?.id
+                        ?: cachedHousehold.members.firstOrNull()?.id
+                    _uiState.update { state ->
+                        state.copy(
+                            categories = cachedCategories,
+                            selectedCategoryId = state.selectedCategoryId ?: cachedCategories.firstOrNull()?.id,
+                            householdMembers = cachedHousehold.members,
+                            paidByMemberId = state.paidByMemberId ?: defaultPayerId,
+                            currency = cachedHousehold.currency
+                        )
+                    }
+                }
+            }
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             try {
                 val categories = categoryRepository.getCategories()

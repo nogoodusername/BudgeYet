@@ -66,7 +66,10 @@ class AppContainer(scenario: DummyScenario = DummyScenario.HealthyMidMonth) {
     // File-backed storage for the offline cache + write queue (core/cache + core/offline) —
     // larger JSON blobs (transaction/category lists, the queue) that don't belong in prefs.
     private val localFileStorage: LocalFileStorage = createLocalFileStorage()
-    private val localCacheStore = LocalCacheStore(localFileStorage)
+    // Also read directly by the tab controllers for cache-first paint — they populate their
+    // UI state from the last-known snapshot before the network call so revisiting a tab (or a
+    // cold start with a warm cache) renders content immediately instead of a blank spinner.
+    val localCacheStore = LocalCacheStore(localFileStorage)
     private val offlineQueue = OfflineQueue(localFileStorage)
 
     // Access-token storage for the networking layer (core/network/AuthTokenStorage.kt) — read

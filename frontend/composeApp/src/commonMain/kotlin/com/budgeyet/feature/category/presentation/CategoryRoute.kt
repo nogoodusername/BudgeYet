@@ -13,12 +13,13 @@ import com.budgeyet.core.di.LocalAppContainer
 fun CategoryRoute(
     onNavigateToCategoryDetail: (Long) -> Unit = {},
     onNavigateToAddCategory: () -> Unit = {},
+    hoistedController: CategoryListController? = null,
     modifier: Modifier = Modifier
 ) {
     val container = LocalAppContainer.current
     val scope = rememberCoroutineScope()
-    val controller = remember(container) {
-        CategoryListController(container.categoryRepository, container.profileRepository, scope)
+    val controller = hoistedController ?: remember(container) {
+        CategoryListController(container.categoryRepository, container.profileRepository, container.localCacheStore, scope)
     }
     val uiState by controller.uiState.collectAsState()
 

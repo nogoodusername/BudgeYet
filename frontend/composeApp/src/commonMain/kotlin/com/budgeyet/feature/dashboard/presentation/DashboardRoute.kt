@@ -15,11 +15,15 @@ fun DashboardRoute(
     onNavigateToHistory: () -> Unit = {},
     onNavigateToSetUpBudget: () -> Unit = {},
     onNavigateToAddCategory: () -> Unit = {},
+    // Hoisted from MainAppShell so state survives tab switches; falls back to a locally-owned
+    // instance when used standalone (previews/tests).
+    hoistedController: DashboardController? = null,
     modifier: Modifier = Modifier
 ) {
     val container = LocalAppContainer.current
     val scope = rememberCoroutineScope()
-    val controller = remember(container) { DashboardController(container.dashboardRepository, scope) }
+    val controller = hoistedController
+        ?: remember(container) { DashboardController(container.dashboardRepository, container.localCacheStore, scope) }
     val uiState by controller.uiState.collectAsState()
 
     LaunchedEffect(controller) { controller.load() }
