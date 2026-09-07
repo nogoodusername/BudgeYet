@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [1.2.1] - 2026-09-07
 ### Fixed
 - Add Transaction no longer prefills the amount field with "0.00" — tapping "Enter Amount" now starts empty (with 0.00 shown as a placeholder) instead of forcing the user to delete the zeros
 - Transaction History no longer collapses to a blank block when the search field is focused on iOS — the software keyboard was being compensated for twice (once by the persistent bottom nav bar's safe-area inset, once by the content's keyboard padding)
