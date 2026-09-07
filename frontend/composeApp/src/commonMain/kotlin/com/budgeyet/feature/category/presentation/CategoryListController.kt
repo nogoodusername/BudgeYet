@@ -1,5 +1,7 @@
 package com.budgeyet.feature.category.presentation
 
+import com.budgeyet.core.cache.LocalCacheStore
+import com.budgeyet.core.model.Category
 import com.budgeyet.feature.category.domain.CategoryRepository
 import com.budgeyet.feature.profile.domain.ProfileRepository
 import kotlinx.coroutines.CoroutineScope
@@ -13,31 +15,50 @@ import kotlin.math.roundToInt
 class CategoryListController(
     private val repository: CategoryRepository,
     private val profileRepository: ProfileRepository,
+    private val cacheStore: LocalCacheStore,
     private val scope: CoroutineScope
 ) {
     private val _uiState = MutableStateFlow(CategoryListUiState())
     val uiState: StateFlow<CategoryListUiState> = _uiState.asStateFlow()
 
-    fun load() {
+    // See DashboardController — load-once guard so a tab switch doesn't refetch.
+    private var hasLoaded = false
+
+    fun load(forceRefresh: Boolean = false) {
+        if (hasLoaded && !forceRefresh) return
+        hasLoaded = true
         scope.launch {
+            // Cache-first paint so revisiting Category Limits renders instantly.
+            if (_uiState.value.categories.isEmpty()) {
+                val cachedCategories = cacheStore.getCachedCategories()
+                if (cachedCategories != null) {
+                    val cachedCurrency = cacheStore.getCachedHousehold()?.currency
+                    _uiState.update {
+                        applyCategories(it, cachedCategories).let { s ->
+                            if (cachedCurrency != null) s.copy(currency = cachedCurrency) else s
+                        }
+                    }
+                }
+            }
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             try {
                 val categories = repository.getCategories()
                 val household = profileRepository.getHousehold()
                 _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        categories = categories,
-                        limitDrafts = categories.associate { c -> c.id to formatDraft(c.monthlyLimit) },
-                        totalMonthlyBudget = categories.sumOf { c -> c.monthlyLimit },
-                        currency = household.currency
-                    )
+                    applyCategories(it, categories).copy(isLoading = false, currency = household.currency)
                 }
             } catch (t: Throwable) {
                 _uiState.update { it.copy(isLoading = false, errorMessage = t.message ?: "Something went wrong") }
             }
         }
     }
+
+    private fun applyCategories(state: CategoryListUiState, categories: List<Category>): CategoryListUiState =
+        state.copy(
+            categories = categories,
+            limitDrafts = categories.associate { c -> c.id to formatDraft(c.monthlyLimit) },
+            totalMonthlyBudget = categories.sumOf { c -> c.monthlyLimit }
+        )
 
     fun onLimitChange(categoryId: Long, rawValue: String) {
         _uiState.update { it.copy(limitDrafts = it.limitDrafts + (categoryId to rawValue)) }

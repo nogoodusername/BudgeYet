@@ -13,12 +13,19 @@ import com.budgeyet.core.di.LocalAppContainer
 fun HistoryRoute(
     onTransactionClick: (Long) -> Unit,
     onNavigateToAddTransaction: () -> Unit = {},
+    hoistedController: HistoryController? = null,
     modifier: Modifier = Modifier
 ) {
     val container = LocalAppContainer.current
     val scope = rememberCoroutineScope()
-    val controller = remember(container) {
-        HistoryController(container.transactionRepository, container.profileRepository, container.categoryRepository, scope)
+    val controller = hoistedController ?: remember(container) {
+        HistoryController(
+            container.transactionRepository,
+            container.profileRepository,
+            container.categoryRepository,
+            container.localCacheStore,
+            scope
+        )
     }
     val uiState by controller.uiState.collectAsState()
 

@@ -4,6 +4,7 @@
 ### Fixed
 - Add Transaction no longer prefills the amount field with "0.00" — tapping "Enter Amount" now starts empty (with 0.00 shown as a placeholder) instead of forcing the user to delete the zeros
 - Transaction History no longer collapses to a blank block when the search field is focused on iOS — the software keyboard was being compensated for twice (once by the persistent bottom nav bar's safe-area inset, once by the content's keyboard padding)
+- Switching between bottom-nav tabs no longer flashes a full-screen loading spinner — the Dashboard, Category Limits, Transaction History and Profile controllers are now kept alive across tab switches (created once at the app shell) with a load-once guard, so revisiting a tab is instant. On the first visit each screen also paints from the last cached snapshot immediately, reserving the spinner for a genuine cold start with no cache. Log Expense likewise renders its form from cached categories/household instead of blanking.
 
 ## [1.2.0] - 2026-09-02
 ### Added

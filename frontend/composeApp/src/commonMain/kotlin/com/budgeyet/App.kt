@@ -57,13 +57,17 @@ import com.budgeyet.feature.auth.presentation.HouseholdSetupRoute
 import com.budgeyet.feature.auth.presentation.OnboardingRoute
 import com.budgeyet.feature.category.presentation.AddCategoryRoute
 import com.budgeyet.feature.category.presentation.CategoryDetailRoute
+import com.budgeyet.feature.category.presentation.CategoryListController
 import com.budgeyet.feature.category.presentation.CategoryRoute
+import com.budgeyet.feature.dashboard.presentation.DashboardController
 import com.budgeyet.feature.dashboard.presentation.DashboardRoute
 import com.budgeyet.feature.profile.presentation.HouseholdMembersRoute
 import com.budgeyet.feature.profile.presentation.InviteMemberRoute
+import com.budgeyet.feature.profile.presentation.ProfileController
 import com.budgeyet.feature.profile.presentation.ProfileRoute
 import com.budgeyet.feature.transaction.presentation.AddTransactionRoute
 import com.budgeyet.feature.transaction.presentation.EditTransactionRoute
+import com.budgeyet.feature.transaction.presentation.HistoryController
 import com.budgeyet.feature.transaction.presentation.HistoryRoute
 import com.budgeyet.feature.transaction.presentation.TransactionDetailRoute
 import com.budgeyet.fixtures.DummyScenario
@@ -213,6 +217,32 @@ private fun MainAppShell(
     val current = navController.current
     val snackbarHostState = remember { SnackbarHostState() }
 
+    // Tab controllers are hoisted to the shell (created once, on a shell-scoped coroutine scope)
+    // so switching tabs — which clears the nav back stack and destroys the tab composable — no
+    // longer discards the loaded screen state and refetches. Combined with each controller's
+    // load-once guard and cache-first paint, revisiting a tab is instant instead of flashing a
+    // full-screen spinner. Pushed screens (details, forms) keep their per-Route controllers.
+    val shellScope = rememberCoroutineScope()
+    val dashboardController = remember(container) {
+        DashboardController(container.dashboardRepository, container.localCacheStore, shellScope)
+    }
+    val categoryListController = remember(container) {
+        CategoryListController(
+            container.categoryRepository, container.profileRepository, container.localCacheStore, shellScope
+        )
+    }
+    val historyController = remember(container) {
+        HistoryController(
+            container.transactionRepository, container.profileRepository, container.categoryRepository,
+            container.localCacheStore, shellScope
+        )
+    }
+    val profileController = remember(container) {
+        ProfileController(
+            container.profileRepository, shellScope, container.currentHouseholdHolder.userId, container.localCacheStore
+        )
+    }
+
     // Same rationale as OnboardingRoute's BackHandler — without it, system back skips our
     // back stack and exits the app from any pushed screen (detail views, add/edit forms)
     // instead of returning to the previous one. Disabled at a root tab (canGoBack == false)
@@ -300,7 +330,8 @@ private fun MainAppShell(
                         onNavigateToCategoryDetail = { navController.navigate(Screen.CategoryDetail(it)) },
                         onNavigateToHistory = { navController.switchTab(Screen.History) },
                         onNavigateToSetUpBudget = { navController.navigate(Screen.BudgetSetup) },
-                        onNavigateToAddCategory = { navController.navigate(Screen.AddCategory) }
+                        onNavigateToAddCategory = { navController.navigate(Screen.AddCategory) },
+                        hoistedController = dashboardController
                     )
                     Screen.BudgetSetup -> BudgetGoalRoute(
                         household = household,
@@ -312,7 +343,8 @@ private fun MainAppShell(
                     )
                     Screen.Categories -> CategoryRoute(
                         onNavigateToCategoryDetail = { navController.navigate(Screen.CategoryDetail(it)) },
-                        onNavigateToAddCategory = { navController.navigate(Screen.AddCategory) }
+                        onNavigateToAddCategory = { navController.navigate(Screen.AddCategory) },
+                        hoistedController = categoryListController
                     )
                     is Screen.CategoryDetail -> CategoryDetailRoute(
                         categoryId = screen.categoryId,
@@ -322,7 +354,8 @@ private fun MainAppShell(
                     Screen.AddCategory -> AddCategoryRoute(onSaved = { navController.back() })
                     Screen.History -> HistoryRoute(
                         onTransactionClick = { navController.navigate(Screen.TransactionDetail(it)) },
-                        onNavigateToAddTransaction = { navController.navigate(Screen.AddTransaction) }
+                        onNavigateToAddTransaction = { navController.navigate(Screen.AddTransaction) },
+                        hoistedController = historyController
                     )
                     is Screen.TransactionDetail -> TransactionDetailRoute(
                         transactionId = screen.transactionId,
@@ -338,7 +371,8 @@ private fun MainAppShell(
                     Screen.Profile -> ProfileRoute(
                         onNavigateToManageMembers = { navController.navigate(Screen.HouseholdMembers) },
                         onSignOut = onSignOut,
-                        onDisplayModeChanged = onDisplayModeChanged
+                        onDisplayModeChanged = onDisplayModeChanged,
+                        hoistedController = profileController
                     )
                     Screen.HouseholdMembers -> HouseholdMembersRoute(
                         onNavigateToInvite = { navController.navigate(Screen.InviteMember) },
