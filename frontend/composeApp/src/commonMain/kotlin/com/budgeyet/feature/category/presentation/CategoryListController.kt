@@ -16,7 +16,10 @@ class CategoryListController(
     private val repository: CategoryRepository,
     private val profileRepository: ProfileRepository,
     private val cacheStore: LocalCacheStore,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
+    // Invoked after limits are saved in-place, so the shell can refresh other hoisted
+    // controllers (Dashboard budget rings) whose data this mutation also affects.
+    private val onDataChanged: () -> Unit = {}
 ) {
     private val _uiState = MutableStateFlow(CategoryListUiState())
     val uiState: StateFlow<CategoryListUiState> = _uiState.asStateFlow()
@@ -53,6 +56,10 @@ class CategoryListController(
         }
     }
 
+    // Called from MainAppShell after a category is added/deleted or a transaction changes (spent
+    // totals). The load-once guard means re-entering composition no longer refetches.
+    fun refresh() = load(forceRefresh = true)
+
     private fun applyCategories(state: CategoryListUiState, categories: List<Category>): CategoryListUiState =
         state.copy(
             categories = categories,
@@ -87,6 +94,7 @@ class CategoryListController(
                         totalMonthlyBudget = categories.sumOf { c -> c.monthlyLimit }
                     )
                 }
+                onDataChanged()
             } catch (t: Throwable) {
                 _uiState.update { it.copy(isSaving = false, saveError = t.message ?: "Couldn't save changes") }
             }

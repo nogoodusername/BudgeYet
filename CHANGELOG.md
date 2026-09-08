@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- Adding, editing or deleting a transaction (and adding/deleting a category, saving category limits or setting up a budget) now immediately refreshes the Dashboard and Transaction History instead of showing stale pre-change data. The tab-switch loader fix in 1.2.1 keeps those screens alive with a load-once guard, which also stopped them refetching on navigation back from a mutation — the app shell now explicitly invalidates the affected tabs after a mutation.
 
 ## [1.2.1] - 2026-09-07
 ### Fixed

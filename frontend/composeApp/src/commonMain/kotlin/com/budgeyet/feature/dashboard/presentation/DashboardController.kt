@@ -59,6 +59,11 @@ class DashboardController(
 
     fun retry() = load(forceRefresh = true)
 
+    // Called from MainAppShell after a mutation elsewhere (transaction added/edited/deleted,
+    // category or budget changed). The load-once guard means the Route re-entering composition
+    // no longer refetches, so stale data has to be invalidated explicitly.
+    fun refresh() = load(forceRefresh = true)
+
     fun onCategoryClick(categoryId: Long) {
         scope.launch { _events.emit(DashboardEvent.NavigateToCategoryDetail(categoryId)) }
     }
