@@ -52,6 +52,28 @@ async def test_future_dated_transaction_rejected(client, monkeypatch):
     assert resp.status_code == 422
 
 
+async def test_transaction_dated_one_day_ahead_is_accepted(client, monkeypatch):
+    # A client ahead of UTC (e.g. IST, +5:30) sends "today" as what is already tomorrow here
+    # for part of the day. That must still save — only genuine future dates are rejected.
+    admin_token, _, household, category = await _setup_household_with_two_members(
+        client, monkeypatch
+    )
+    from datetime import datetime, timedelta
+
+    tomorrow = (datetime.utcnow().date() + timedelta(days=1)).isoformat()
+    resp = await client.post(
+        f"/households/{household['id']}/transactions",
+        json={
+            "amount": 20,
+            "merchant": "Store",
+            "category_id": category["id"],
+            "transaction_date": f"{tomorrow}T00:00:00",
+        },
+        headers=auth_headers(admin_token),
+    )
+    assert resp.status_code == 201
+
+
 async def test_member_can_only_edit_own_transaction(client, monkeypatch):
     admin_token, member_token, household, category = await _setup_household_with_two_members(
         client, monkeypatch
