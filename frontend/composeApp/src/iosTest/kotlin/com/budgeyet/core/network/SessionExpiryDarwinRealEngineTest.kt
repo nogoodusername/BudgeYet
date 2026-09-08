@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeout
+import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -20,6 +21,7 @@ import kotlin.test.assertEquals
 class SessionExpiryDarwinRealEngineTest {
 
     @Test
+    @Ignore // Integration test: requires the local FastAPI backend on localhost:8000. Run manually, not in CI.
     fun real401FiresTheNotifierOnTheDarwinEngine() = runTest {
         val notifier = SessionExpiryNotifier()
         val fired = CompletableDeferred<Unit>()

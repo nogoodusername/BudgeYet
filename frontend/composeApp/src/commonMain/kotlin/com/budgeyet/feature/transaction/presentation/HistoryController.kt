@@ -1,5 +1,6 @@
 package com.budgeyet.feature.transaction.presentation
 
+import com.budgeyet.core.cache.LocalCacheStore
 import com.budgeyet.core.model.PaymentMode
 import com.budgeyet.feature.category.domain.CategoryRepository
 import com.budgeyet.feature.profile.domain.ProfileRepository
@@ -16,13 +17,34 @@ class HistoryController(
     private val transactionRepository: TransactionRepository,
     private val profileRepository: ProfileRepository,
     private val categoryRepository: CategoryRepository,
+    private val cacheStore: LocalCacheStore,
     private val scope: CoroutineScope
 ) {
     private val _uiState = MutableStateFlow(HistoryUiState())
     val uiState: StateFlow<HistoryUiState> = _uiState.asStateFlow()
 
-    fun load() {
+    // See DashboardController — load-once guard so a tab switch doesn't refetch.
+    private var hasLoaded = false
+
+    fun load(forceRefresh: Boolean = false) {
+        if (hasLoaded && !forceRefresh) return
+        hasLoaded = true
         scope.launch {
+            // Cache-first paint so revisiting Transaction History renders instantly.
+            if (_uiState.value.transactions.isEmpty()) {
+                val cachedTransactions = cacheStore.getCachedTransactions()
+                if (cachedTransactions != null) {
+                    val cachedHousehold = cacheStore.getCachedHousehold()
+                    _uiState.update {
+                        it.copy(
+                            transactions = cachedTransactions,
+                            householdMembers = cachedHousehold?.members ?: it.householdMembers,
+                            categories = cacheStore.getCachedCategories() ?: it.categories,
+                            currency = cachedHousehold?.currency ?: it.currency
+                        )
+                    }
+                }
+            }
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             try {
                 val transactions = transactionRepository.getTransactions()
@@ -42,6 +64,11 @@ class HistoryController(
             }
         }
     }
+
+    // Called from MainAppShell after a transaction is added/edited/deleted (or a category the
+    // list renders is changed). The load-once guard means re-entering composition no longer
+    // refetches, so stale data has to be invalidated explicitly.
+    fun refresh() = load(forceRefresh = true)
 
     fun onSearchChange(query: String) = _uiState.update { it.copy(searchQuery = query) }
 

@@ -363,6 +363,7 @@ Every feature repository in `AppContainer` is now an `OfflineFirst*Repository` w
 - Navigation is a hand-rolled `core/navigation/AppNavController` (sealed `Screen` + back-stack list), not `androidx.navigation.compose` — avoids version risk against the pinned Kotlin 1.9.23/Compose Multiplatform 1.6.1 toolchain. Keep using it rather than introducing a nav library mid-build.
 - DI is a manual `core/di/AppContainer` (composition root + `CompositionLocal`), not Koin — repos are interface-first (`XRepository` + `FakeXRepository`) so swapping in Koin + real Ktor implementations later only touches the container, not screens.
 - State holders are plain Kotlin classes exposing `StateFlow<UiState>`/`SharedFlow<Event>` with a manually-scoped `CoroutineScope`, not `androidx.lifecycle.ViewModel` (same version-risk reasoning).
+- The four bottom-nav tab controllers (Dashboard, Category Limits, History, Profile) are **hoisted into `MainAppShell`** (`App.kt`), created once on a shell-scoped `CoroutineScope` and passed into their Routes as `hoistedController` (Routes keep a local fallback for previews). Each has a `load(forceRefresh)` **load-once guard** so `switchTab()` (which clears the back stack and destroys the tab composable) no longer refetches and flashes a spinner. Consequence: navigating back from a pushed mutation screen (add/edit/delete transaction, add/delete category, budget setup) also no longer refetches — `MainAppShell` must call the affected controllers' `refresh()` explicitly (see `refreshTabsAfterMutation` and `CategoryListController`'s `onDataChanged`). Any new mutation screen needs the same wiring.
 - Persistence is a hand-rolled `core/persistence/SettingsStorage` (`expect`/`actual`: `SharedPreferences` on Android, `NSUserDefaults` on iOS), deliberately not DataStore/Room, same version-risk reasoning.
 
 ### Versioning
@@ -394,6 +395,14 @@ assumptions:
 - One budget per household, one currency per household (not per-transaction).
 - Category limits **reset every cycle with no rollover** — but historical transactions/snapshots for prior
   cycles must remain intact and queryable by date range.
+- The budget **goal amount does carry forward**: `POST /households/{id}/budgets/rollover`
+  (`budget_controller.rollover_budget` → `BudgetService.rollover_current_cycle_budget`) is an
+  idempotent get-or-create that copies the household's most recent budget's `monthly_goal_amount`
+  into the current cycle (name via `cycle_utils.month_label`), or no-ops if a budget already
+  exists / the household never had one. Any member may call it (not admin-gated, unlike
+  `POST .../budgets`). The frontend calls it from `RealDashboardRepository.getDashboard()` when
+  the dashboard has no budget for the current cycle, so a new month's budget appears the next
+  time any member opens the app. No balance/spend/limit rollover — only the goal amount (PRD §9.3).
 - Household hard cap: **3 members** (including the Owner) in v1.
 - Future-dated transactions are **disallowed**.
 - Auth is email + 6-digit PIN, not password-based. The PIN is **user-chosen at signup**

@@ -16,6 +16,14 @@ async def create_budget(
     return BudgetResponse.model_validate(budget)
 
 
+async def rollover_budget(
+    db: AsyncSession, household_id: int
+) -> Optional[BudgetResponse]:
+    household = await HouseholdService(db).get_household_or_404(household_id)
+    budget = await BudgetService(db).rollover_current_cycle_budget(household)
+    return BudgetResponse.model_validate(budget) if budget is not None else None
+
+
 async def list_budgets(db: AsyncSession, household_id: int) -> Sequence[BudgetResponse]:
     budgets = await BudgetService(db).list_budgets(household_id)
     return [BudgetResponse.model_validate(b) for b in budgets]

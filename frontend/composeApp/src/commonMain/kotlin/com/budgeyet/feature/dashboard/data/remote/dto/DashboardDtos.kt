@@ -21,6 +21,13 @@ data class DashboardBudgetDto(
     val year: Int
 )
 
+// Response of POST /households/{id}/budgets/rollover (backend/app/api/v1/endpoints/budgets.py).
+// The endpoint returns the current cycle's budget (mirrors BudgetResponse) or a JSON `null` when
+// the household has never had a budget. Only `id` is read — the client re-fetches the dashboard
+// for the authoritative budget + spend stats.
+@Serializable
+data class CarriedBudgetDto(val id: Long)
+
 // Mirrors backend/app/schemas/dashboard.py DashboardResponse.
 @Serializable
 data class DashboardResponseDto(

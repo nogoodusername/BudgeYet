@@ -27,6 +27,24 @@ async def create_budget(
     return await budget_controller.create_budget(db, household_id, payload)
 
 
+@router.post("/rollover", response_model=Optional[BudgetResponse])
+async def rollover_budget(
+    household_id: int,
+    _membership: HouseholdMember = Depends(get_household_membership),
+    db: AsyncSession = Depends(get_db),
+):
+    """Carry the household's latest budget into the current cycle if it has none
+    yet (goal amount + regenerated name only). Idempotent — returns the current
+    cycle's budget, or null if the household has never had one.
+
+    Any member may trigger this: there's no request body and no choice to make,
+    it only copies the household's own most recent budget forward, and gating it
+    on admin would strand members on the "Set Up Budget" screen until an admin
+    next opens the app.
+    """
+    return await budget_controller.rollover_budget(db, household_id)
+
+
 @router.get("", response_model=List[BudgetResponse])
 async def list_budgets(
     household_id: int,

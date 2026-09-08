@@ -1,6 +1,17 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- The household budget no longer has to be recreated by hand every month — when a new cycle has no budget yet, the app carries the most recent budget's goal amount forward automatically (named "[Month] [Year] Budget") the next time any member opens the dashboard. Category limits still reset each cycle and no unused balance or spend rolls over.
+
+### Fixed
+- Adding, editing or deleting a transaction (and adding/deleting a category, saving category limits or setting up a budget) now immediately refreshes the Dashboard and Transaction History instead of showing stale pre-change data. The tab-switch loader fix in 1.2.1 keeps those screens alive with a load-once guard, which also stopped them refetching on navigation back from a mutation — the app shell now explicitly invalidates the affected tabs after a mutation.
+
+## [1.2.1] - 2026-09-07
+### Fixed
+- Add Transaction no longer prefills the amount field with "0.00" — tapping "Enter Amount" now starts empty (with 0.00 shown as a placeholder) instead of forcing the user to delete the zeros
+- Transaction History no longer collapses to a blank block when the search field is focused on iOS — the software keyboard was being compensated for twice (once by the persistent bottom nav bar's safe-area inset, once by the content's keyboard padding)
+- Switching between bottom-nav tabs no longer flashes a full-screen loading spinner — the Dashboard, Category Limits, Transaction History and Profile controllers are now kept alive across tab switches (created once at the app shell) with a load-once guard, so revisiting a tab is instant. On the first visit each screen also paints from the last cached snapshot immediately, reserving the spinner for a genuine cold start with no cache. Log Expense likewise renders its form from cached categories/household instead of blanking.
 
 ## [1.2.0] - 2026-09-02
 ### Added

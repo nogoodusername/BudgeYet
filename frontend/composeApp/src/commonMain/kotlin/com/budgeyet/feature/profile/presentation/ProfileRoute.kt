@@ -16,12 +16,18 @@ fun ProfileRoute(
     onNavigateToManageMembers: () -> Unit = {},
     onSignOut: () -> Unit = {},
     onDisplayModeChanged: (DisplayMode) -> Unit = {},
+    hoistedController: ProfileController? = null,
     modifier: Modifier = Modifier
 ) {
     val container = LocalAppContainer.current
     val scope = rememberCoroutineScope()
-    val controller = remember(container) {
-        ProfileController(container.profileRepository, scope, container.currentHouseholdHolder.userId)
+    val controller = hoistedController ?: remember(container) {
+        ProfileController(
+            container.profileRepository,
+            scope,
+            container.currentHouseholdHolder.userId,
+            container.localCacheStore
+        )
     }
     val uiState by controller.uiState.collectAsState()
 

@@ -1,5 +1,6 @@
 package com.budgeyet.feature.profile.presentation
 
+import com.budgeyet.core.cache.LocalCacheStore
 import com.budgeyet.core.model.DisplayMode
 import com.budgeyet.feature.profile.domain.ProfileRepository
 import kotlinx.coroutines.CoroutineScope
@@ -12,13 +13,35 @@ import kotlinx.coroutines.launch
 class ProfileController(
     private val repository: ProfileRepository,
     private val scope: CoroutineScope,
-    private val currentUserId: Long?
+    private val currentUserId: Long?,
+    private val cacheStore: LocalCacheStore
 ) {
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
 
-    fun load() {
+    // See DashboardController — load-once guard so a tab switch doesn't refetch.
+    private var hasLoaded = false
+
+    fun load(forceRefresh: Boolean = false) {
+        if (hasLoaded && !forceRefresh) return
+        hasLoaded = true
         scope.launch {
+            // Cache-first paint so revisiting Profile & Settings renders instantly.
+            if (_uiState.value.user == null) {
+                val cachedUser = cacheStore.getCachedUser()
+                val cachedHousehold = cacheStore.getCachedHousehold()
+                if (cachedUser != null && cachedHousehold != null) {
+                    _uiState.update {
+                        it.copy(
+                            user = cachedUser,
+                            household = cachedHousehold,
+                            currentUserRole = cachedHousehold.currentMemberRole(currentUserId),
+                            fullNameDraft = it.fullNameDraft.ifEmpty { cachedUser.fullName },
+                            nicknameDraft = it.nicknameDraft.ifEmpty { cachedUser.nickname }
+                        )
+                    }
+                }
+            }
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             try {
                 val user = repository.getCurrentUser()
