@@ -1,13 +1,13 @@
 # Production deployment (single VPS, Docker Compose + nginx)
 
-This branch (`prod`) tracks the server-only files that are **not** on `main`:
+The server is deployed from the `backend/production` branch (kept in sync with `main`). The
+prod-only pieces of the stack:
 
 | File | Purpose |
 |------|---------|
 | `backend/docker-compose.prod.yml` | Postgres-backed stack: `backend`, `login-cleanup`, `nginx` (TLS terminator). No DB container — Postgres is external (see `POSTGRES_SERVER`). |
 | `backend/nginx.conf` | Reverse proxy for `budgeyet-api.imhx.top`, HTTP→HTTPS redirect, Cloudflare origin cert. |
-
-Keep this branch rebased on / merged from `main` so the app code stays current.
+| `backend/scripts/deploy.sh` | One-command redeploy: pull, build, migrate, recreate, health-gate, rollback-on-failure. |
 
 ## Host layout
 
@@ -40,15 +40,31 @@ CORS_ORIGINS=<cloudflare pages domain>,http://localhost:8080,http://127.0.0.1:80
 ## Deploy / redeploy
 
 ```bash
-cd ~/budgeyet && git pull
-cd backend
-docker compose -f docker-compose.prod.yml up -d --build --force-recreate
-docker compose -f docker-compose.prod.yml exec backend alembic upgrade head
+~/budgeyet/backend/scripts/deploy.sh
 ```
+
+`deploy.sh` fetches the checked-out branch, rebuilds the image, runs `alembic upgrade heads`
+against the external DB **before** restarting, recreates the stack with `--force-recreate`,
+then polls `/health` and rolls the *code* back if the DB never reports healthy. A migration
+that already applied is **not** auto-reverted — snapshot the DB (or use the managed provider's
+point-in-time restore) before deploying a destructive schema change.
+
+- `FORCE=1 ~/budgeyet/backend/scripts/deploy.sh` — redeploy with no new commits.
+- `DEPLOY_BRANCH=<branch> ~/budgeyet/backend/scripts/deploy.sh` — deploy a different branch.
 
 `--force-recreate` is required after any `.env` change — `docker compose restart` reuses the
 old environment and silently keeps stale values (this is how email delivery broke once:
 `RESEND_API_KEY` was set in `.env` but never reached the running container).
+
+Manual equivalent, if you need to run the steps by hand:
+
+```bash
+cd ~/budgeyet && git pull
+cd backend
+docker compose -f docker-compose.prod.yml build
+docker compose -f docker-compose.prod.yml run --rm backend alembic upgrade heads
+docker compose -f docker-compose.prod.yml up -d --force-recreate
+```
 
 ## Verify email
 
