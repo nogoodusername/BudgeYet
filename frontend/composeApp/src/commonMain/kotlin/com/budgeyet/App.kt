@@ -228,7 +228,9 @@ private fun MainAppShell(
     }
     val categoryListController = remember(container) {
         CategoryListController(
-            container.categoryRepository, container.profileRepository, container.localCacheStore, shellScope
+            container.categoryRepository, container.profileRepository, container.localCacheStore, shellScope,
+            // Saving limits in-place also moves the Dashboard's budget rings.
+            onDataChanged = { dashboardController.refresh() }
         )
     }
     val historyController = remember(container) {
@@ -241,6 +243,17 @@ private fun MainAppShell(
         ProfileController(
             container.profileRepository, shellScope, container.currentHouseholdHolder.userId, container.localCacheStore
         )
+    }
+
+    // After a mutation on a pushed screen (add/edit/delete transaction, add/delete category,
+    // budget setup) the hoisted tab controllers are still alive with hasLoaded = true, so
+    // navigating back no longer refetches (see commit 9653167). Tell them to invalidate.
+    // A transaction change moves Dashboard totals and category spent totals; a category change
+    // moves Dashboard rings and the transactions' rendered category names — so refresh all three.
+    val refreshTabsAfterMutation = {
+        dashboardController.refresh()
+        categoryListController.refresh()
+        historyController.refresh()
     }
 
     // Same rationale as OnboardingRoute's BackHandler — without it, system back skips our
@@ -338,7 +351,10 @@ private fun MainAppShell(
                         isOnboarding = false,
                         // Route straight to Categories (not Dashboard) — a fresh budget has no
                         // categories yet, and Categories' empty state is where users can add one.
-                        onSaved = { _, _ -> navController.switchTab(Screen.Categories) },
+                        onSaved = { _, _ ->
+                            refreshTabsAfterMutation()
+                            navController.switchTab(Screen.Categories)
+                        },
                         onSkipped = { navController.back() }
                     )
                     Screen.Categories -> CategoryRoute(
@@ -349,9 +365,15 @@ private fun MainAppShell(
                     is Screen.CategoryDetail -> CategoryDetailRoute(
                         categoryId = screen.categoryId,
                         onTransactionClick = { navController.navigate(Screen.TransactionDetail(it)) },
-                        onDeleted = { navController.switchTab(Screen.Categories) }
+                        onDeleted = {
+                            refreshTabsAfterMutation()
+                            navController.switchTab(Screen.Categories)
+                        }
                     )
-                    Screen.AddCategory -> AddCategoryRoute(onSaved = { navController.back() })
+                    Screen.AddCategory -> AddCategoryRoute(onSaved = {
+                        refreshTabsAfterMutation()
+                        navController.back()
+                    })
                     Screen.History -> HistoryRoute(
                         onTransactionClick = { navController.navigate(Screen.TransactionDetail(it)) },
                         onNavigateToAddTransaction = { navController.navigate(Screen.AddTransaction) },
@@ -360,14 +382,26 @@ private fun MainAppShell(
                     is Screen.TransactionDetail -> TransactionDetailRoute(
                         transactionId = screen.transactionId,
                         onEdit = { navController.navigate(Screen.EditTransaction(it)) },
-                        onDeleted = { navController.switchTab(Screen.History) }
+                        onDeleted = {
+                            refreshTabsAfterMutation()
+                            navController.switchTab(Screen.History)
+                        }
                     )
                     is Screen.EditTransaction -> EditTransactionRoute(
                         transactionId = screen.transactionId,
-                        onSaved = { navController.back() },
-                        onDeleted = { navController.switchTab(Screen.History) }
+                        onSaved = {
+                            refreshTabsAfterMutation()
+                            navController.back()
+                        },
+                        onDeleted = {
+                            refreshTabsAfterMutation()
+                            navController.switchTab(Screen.History)
+                        }
                     )
-                    Screen.AddTransaction -> AddTransactionRoute(onSaved = { navController.back() })
+                    Screen.AddTransaction -> AddTransactionRoute(onSaved = {
+                        refreshTabsAfterMutation()
+                        navController.back()
+                    })
                     Screen.Profile -> ProfileRoute(
                         onNavigateToManageMembers = { navController.navigate(Screen.HouseholdMembers) },
                         onSignOut = onSignOut,

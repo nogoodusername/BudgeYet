@@ -65,6 +65,11 @@ class HistoryController(
         }
     }
 
+    // Called from MainAppShell after a transaction is added/edited/deleted (or a category the
+    // list renders is changed). The load-once guard means re-entering composition no longer
+    // refetches, so stale data has to be invalidated explicitly.
+    fun refresh() = load(forceRefresh = true)
+
     fun onSearchChange(query: String) = _uiState.update { it.copy(searchQuery = query) }
 
     fun onOpenFilterSheet() = _uiState.update { it.copy(showFilterSheet = true) }
