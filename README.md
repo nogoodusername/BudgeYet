@@ -8,8 +8,8 @@
     no "who paid for what."
   </p>
   <p>
-    <a href="https://github.com/nogoodusername/budge-yet/actions/workflows/backend-ci.yml"><img src="https://github.com/nogoodusername/budge-yet/actions/workflows/backend-ci.yml/badge.svg" alt="Backend CI" /></a>
-    <a href="https://github.com/nogoodusername/budge-yet/actions/workflows/frontend-ci.yml"><img src="https://github.com/nogoodusername/budge-yet/actions/workflows/frontend-ci.yml/badge.svg" alt="Frontend CI" /></a>
+    <a href="https://github.com/nogoodusername/BudgeYet/actions/workflows/backend-ci.yml"><img src="https://github.com/nogoodusername/BudgeYet/actions/workflows/backend-ci.yml/badge.svg" alt="Backend CI" /></a>
+    <a href="https://github.com/nogoodusername/BudgeYet/actions/workflows/frontend-ci.yml"><img src="https://github.com/nogoodusername/BudgeYet/actions/workflows/frontend-ci.yml/badge.svg" alt="Frontend CI" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-0d9488.svg" alt="License: MIT" /></a>
   </p>
   <p><b>Android &middot; iOS &middot; Web</b> &mdash; one Kotlin/Compose Multiplatform codebase,<br />backed by a self&#8209;hostable FastAPI service.</p>
@@ -89,7 +89,7 @@ household. It's built around three ideas:
 On any fresh Linux/macOS server with `git`, `docker` (with Compose), and `python3`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/nogoodusername/budge-yet/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/nogoodusername/BudgeYet/main/scripts/install.sh | bash
 ```
 
 The installer clones the repo, walks you through **SQLite** (file‑based, simplest)

@@ -17,7 +17,7 @@ On a fresh Linux/macOS server with `git`, `docker` (with Compose), and `python3`
 already present:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/nogoodusername/budge-yet/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/nogoodusername/BudgeYet/main/scripts/install.sh | bash
 ```
 
 It clones the repo, prompts for a database, generates `backend/.env`, runs
@@ -44,10 +44,10 @@ unless you pass `--reconfigure`.
 Skip every prompt:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/nogoodusername/budge-yet/main/scripts/install.sh | bash -s -- \
+curl -fsSL https://raw.githubusercontent.com/nogoodusername/BudgeYet/main/scripts/install.sh | bash -s -- \
   --yes --db sqlite
 
-curl -fsSL https://raw.githubusercontent.com/nogoodusername/budge-yet/main/scripts/install.sh | bash -s -- \
+curl -fsSL https://raw.githubusercontent.com/nogoodusername/BudgeYet/main/scripts/install.sh | bash -s -- \
   --yes --db postgres --postgres-password 'a-real-password'
 ```
 
