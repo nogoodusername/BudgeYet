@@ -44,6 +44,15 @@ def get_current_cycle_bounds(
     return CycleBounds(start=start, end=end, label_month=label_month, label_year=label_year)
 
 
+def month_label(month: int, year: int) -> str:
+    """Default budget name for a cycle, e.g. "September 2026 Budget".
+
+    Mirrors the frontend's `"${currentMonthYearLabel()} Budget"` default
+    (see frontend `core/util/DateFormat.kt` / `BudgetGoalController`).
+    """
+    return f"{calendar.month_name[month]} {year} Budget"
+
+
 def budget_status(percent_used: float) -> str:
     if percent_used >= BUDGET_OVER_THRESHOLD:
         return "over_budget"

@@ -63,7 +63,7 @@ A collaborative, cross-platform mobile app that lets households manage shared fi
 ### Out of scope (future phases — see Section 10)
 - Push notifications for member activity and budget thresholds
 - Receipt OCR (auto-extracting amount/merchant from a photo)
-- Savings goals, budget rollover, or multi-month trend analytics
+- Savings goals, unused-balance rollover, or multi-month trend analytics (the budget *goal amount* does carry into each new cycle — see B5 and Section 9.3)
 - Exportable reports (CSV/PDF)
 - Multiple concurrent budgets or multiple households per user
 
@@ -149,7 +149,7 @@ The household creator is the default Owner. **Owner is a single-holder role** �
 - Tap an entry → opens that transaction's detail view.
 
 **B5. Empty states**
-- No budget created: card prompting "Set up your first budget" → routes to A3.
+- No budget created: card prompting "Set up your first budget" → routes to A3. This appears only for a household that has *never* set a budget — once a household has budget history, the next cycle's budget is auto-created from the most recent one (goal amount carried forward, name defaulted to "[Month] [Year] Budget") the next time any member opens the app, so the card is not shown again on each new cycle.
 - Budget exists, no transactions yet: prompt "Log your first transaction" → routes to D1.
 
 ### C. Budget & Category Management
@@ -259,7 +259,7 @@ The following were open questions in the initial draft and have since been confi
 1. **Auth method:** Email + 6-digit PIN. The user chooses their own PIN at signup (Create PIN + confirm) — it is not generated or emailed to them; the same PIN is re-entered for subsequent logins.
    - **Forgot PIN:** Requesting a reset by email issues and emails a brand-new, server-generated PIN, invalidating the old one. No separate reset token — the email channel itself is the recovery mechanism. Response is generic (doesn't reveal whether the email is registered).
 2. **Role granularity:** Owner + Admin + Member model. The household creator becomes its Owner. Owner is a single-holder role — transferred, not duplicated: only the current Owner can promote an existing Admin to Owner, which automatically demotes the outgoing Owner to Admin. The Owner cannot be removed, demoted, or leave the household without transferring ownership first. Multiple Admins per household are supported; a Member can be promoted to Admin (and demoted) by an existing Owner or Admin.
-3. **Budget cycle rollover:** No rollover — each new cycle resets category limits to the configured amount. Prior months' transaction and spend data remain intact and accessible.
+3. **Budget cycle rollover:** No *balance* rollover — each new cycle resets category limits to the configured amount and no unused balance or spend carries over. Prior months' transaction and spend data remain intact and accessible. The household's budget **goal amount** is the one thing carried forward: when a new cycle has no budget yet, it is auto-created from the household's most recent budget (goal amount copied, name defaulted to "[Month] [Year] Budget") the next time any member opens the app, so an admin doesn't have to re-enter it every month. An admin can still edit or override it.
 4. **Future-dated transactions:** Not required; disallowed in v1.
 5. **Household size:** Hard cap of 3 members per household (including the Owner) in v1. Raising the cap is flagged as a future monetization opportunity (see Section 10).
 6. **Currency scope:** One currency per household, set at setup — not per-transaction.
@@ -278,7 +278,7 @@ The following were open questions in the initial draft and have since been confi
 **Phase 2 (candidates):**
 - Push notifications (member activity, budget threshold alerts)
 - Receipt OCR for auto-filled transaction details
-- Savings goals and budget rollover
+- Savings goals and unused-balance rollover
 - Exportable reports (CSV/PDF)
 - Multi-currency support
 - Spending trend charts across months
