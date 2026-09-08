@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Sequence, Tuple
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,7 +26,14 @@ class TransactionService:
         return transaction
 
     def _assert_future_date_allowed(self, transaction_date: datetime) -> None:
-        if transaction_date.date() > datetime.utcnow().date():
+        # `transaction_date` arrives with date precision from clients in arbitrary timezones
+        # (the mobile app sends the picked day at local midnight, no offset). For a user ahead
+        # of UTC, "today" on their device is already "tomorrow" here for part of the day, so a
+        # strict `> utcnow().date()` check rejected perfectly normal same-day entries. Allow one
+        # day of skew — enough to cover every real timezone offset (max +14h) — while still
+        # rejecting genuinely future-dated transactions.
+        max_allowed = datetime.utcnow().date() + timedelta(days=1)
+        if transaction_date.date() > max_allowed:
             raise ValidationAppError("Future-dated transactions are not allowed")
 
     async def _assert_paid_by_is_member(self, household_id: int, paid_by_id: int) -> None:
