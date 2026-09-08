@@ -1,39 +1,51 @@
-# budge-yet Frontend (Compose Multiplatform)
+# BudgeYet Frontend (Compose Multiplatform)
 
-Cross-platform client application for **budge-yet**, built using **Kotlin Multiplatform (KMP)** and **Compose Multiplatform (CMP)** for Android, iOS, and Web.
+Cross‑platform client for **BudgeYet**, built with **Kotlin Multiplatform (KMP)**
+and **Compose Multiplatform (CMP)** for Android, iOS, and Web.
+
+See also: [Getting Started](../docs/getting-started.md) ·
+[Running on Mobile](../docs/running-on-mobile.md) ·
+[Architecture](../docs/architecture.md) · [AGENTS.md](../AGENTS.md)
 
 ---
 
-## 📱 Multiplatform Target Support
+## Targets
 
-| Target Platform | Source Set | Build Command |
+| Platform | Source set | Build command |
 |---|---|---|
 | **Android** | `androidMain` | `./gradlew :composeApp:assembleDebug` |
-| **iOS** (Device/Simulator) | `iosMain` + `iosApp/` | `./gradlew :composeApp:embedAndSignAppleFrameworkForXcode` |
-| **Web** (Wasm/JS) | `wasmJsMain` | `./gradlew :composeApp:wasmJsBrowserDevelopmentRun` |
+| **iOS** | `iosMain` + `iosApp/` | `./gradlew :composeApp:embedAndSignAppleFrameworkForXcode`, then run `iosApp` in Xcode |
+| **Web** | `jsMain` | `./gradlew :composeApp:jsBrowserDevelopmentRun` → <http://localhost:8080> |
 
----
+The web target is **Kotlin/JS** (`js(IR)`) rendering Compose to an HTML canvas —
+not `wasmJs` (Ktor 2.3.9 has no Wasm engine). Production bundle:
+`./gradlew :composeApp:jsBrowserProductionWebpack`.
 
-## 🎨 Design System & Theme
+## Design system — "Stability & Growth"
 
-The UI follows the **"Stability & Growth"** design system:
-- **Typography**: Manrope
-- **Colors**: Slate 900 (`#0f172a`), Teal (`#0d9488`), Amber (`#d97706`), Coral (`#e11d48`)
-- **Components**: Rounded 8px corners, linear budget progress gauges, card layouts, floating action buttons.
+- **Type:** Manrope (bold headers/amounts, medium labels, regular body)
+- **Palette:** deep slate (`#0f172a`) · teal for on‑track (`#0d9488` / in‑app `#006B5F`) · amber for near‑limit · coral/red for over‑budget
+- **Components:** 8px rounded cards, linear spend‑vs‑budget gauges, persistent bottom nav, quick‑action FAB
 
----
+Tokens live in `composeApp/src/commonMain/kotlin/com/budgeyet/theme/`.
 
-## 🚀 Running Targets Locally
+## Layout
 
-### 1. Android
-Open `frontend/` in Android Studio, select the `composeApp` run configuration, and launch on an Android emulator or device.
-
-### 2. Web (Wasm)
-Run the development server using Gradle:
-```bash
-./gradlew :composeApp:wasmJsBrowserDevelopmentRun
 ```
-Open `http://localhost:8080` in Chrome/Edge/Firefox.
+composeApp/src/
+├── commonMain/   shared Compose UI, state, domain models, Ktor networking  ← most code lives here
+├── androidMain/  MainActivity, manifest, Android integrations
+├── iosMain/      MainViewController bridge (consumed by iosApp/)
+└── jsMain/       browser entrypoint + js(IR) actual implementations
+iosApp/           Xcode project that links the compiled KMP framework
+```
 
-### 3. iOS
-Open `frontend/iosApp/iosApp.xcodeproj` in Xcode, select your simulator target (e.g. iPhone 15), and click **Run**. Xcode automatically triggers the Gradle build step to compile the KMP framework.
+## Toolchain (pinned)
+
+Kotlin 1.9.23 · Compose Multiplatform 1.6.1 · Ktor 2.3.9 · AGP 8.2.2 · JDK 17.
+Use the Gradle wrapper. Avoid dependencies that would force a version bump.
+
+## Point at a backend
+
+Default clients use the hosted API. For a local server, use the app's **Backend
+Configuration** screen → **Custom URL** → `http://localhost:8000`.

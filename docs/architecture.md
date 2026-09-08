@@ -18,12 +18,12 @@
                                        /            |             \
                                       /             |              \
                                +------------+ +------------+ +------------+
-                               |  Android   | |    iOS     | | Web (Wasm) |
+                               |  Android   | |    iOS     | | Web (JS)   |
                                |   Native   | |   Native   | | Browser    |
                                +------------+ +------------+ +------------+
                                       \             |              /
                                        \            |             /
-                                    REST/JSON + WebSockets (Ktor Client)
+                                    REST / JSON (Ktor Client)
                                                     |
                                                     v
                                     +--------------------------------+
@@ -93,12 +93,13 @@ Developers run `python3 scripts/setup_env.py` to interactively or non-interactiv
 ## 4. Frontend Architecture (`frontend/`)
 
 ### 4.1 Kotlin Multiplatform (KMP) & Compose Multiplatform (CMP)
-The frontend utilizes a single shared codebase written in Kotlin for domain logic, state management, and UI rendering:
+The frontend uses a single shared codebase written in Kotlin for domain logic, state management, and UI rendering:
 
 - **`commonMain`**: Shared Compose UI components, navigation, domain models, view models, Ktor HTTP client, and state flows.
 - **`androidMain`**: Android `MainActivity`, Android Manifest, and Android platform integrations.
 - **`iosMain`**: Kotlin framework export wrapper and iOS `UIViewController` bridges (`MainViewController`).
-- **`wasmJsMain`**: WebAssembly (Wasm/JS) entrypoint rendering Compose UI on an HTML Canvas.
+- **`jsMain`**: Kotlin/JS (`js(IR)`) entrypoint rendering Compose UI on an HTML canvas. The
+  `wasmJs` target was dropped because Ktor 2.3.9 has no Wasm engine; `wasmJsMain/` is orphaned.
 - **`iosApp`**: Xcode project linking the compiled `composeApp` framework for iOS execution.
 
 ### 4.2 UI Design System & Tokens
@@ -136,6 +137,9 @@ Includes service definitions for:
 
 ### 6.2 Frontend Pipeline (`.github/workflows/frontend-ci.yml`)
 - Triggers on push or pull request touching `frontend/**`.
-- Job 1: Gradle Build for Android (`:composeApp:assembleDebug`).
-- Job 2: Gradle Build for Web Wasm (`:composeApp:wasmJsBrowserDevelopmentRun` / compile).
-- Job 3: Gradle Build for iOS Framework (`:composeApp:embedAndSignAppleFrameworkForXcode`).
+- Android build (`:composeApp:assembleDebug`).
+- Web JS build check (`:composeApp:jsMainClasses`).
+- iOS framework compile + `commonTest` via the iOS simulator target
+  (`:composeApp:compileKotlinIosSimulatorArm64`, `:composeApp:iosSimulatorArm64Test`).
+- `version-drift-check`: fails if `iosApp/Config.xcconfig` doesn't match
+  `frontend/version.properties`.
