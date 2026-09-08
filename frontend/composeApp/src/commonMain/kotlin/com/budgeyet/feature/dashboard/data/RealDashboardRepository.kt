@@ -23,7 +23,18 @@ class RealDashboardRepository(
     override suspend fun getDashboard(): DashboardData {
         val (config, token, householdId) = contextProvider.get()
         val household = api.getHousehold(config, token, householdId).toDomain()
-        val dashboard = api.getDashboard(config, token, householdId)
+        var dashboard = api.getDashboard(config, token, householdId)
+
+        if (dashboard.budget == null) {
+            // New cycle with no budget yet — carry the previous cycle's forward so members
+            // aren't stranded on the "Set Up Budget" screen every month. The backend no-ops
+            // and returns null when there's nothing to carry (household never had a budget),
+            // in which case the empty state stays as-is. runCatching: a rollover failure
+            // (offline, or the rare concurrent-create 409) must never break the dashboard load.
+            val carried = runCatching { api.rolloverBudget(config, token, householdId) }.getOrNull()
+            if (carried != null) dashboard = api.getDashboard(config, token, householdId)
+        }
+
         val activityFeed = api.getActivityFeed(config, token, householdId, limit = ACTIVITY_FEED_LIMIT)
 
         return DashboardData(

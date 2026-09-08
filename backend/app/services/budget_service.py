@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Optional, Sequence
 
 from sqlalchemy.exc import IntegrityError
@@ -10,7 +11,7 @@ from app.models.transaction import TransactionType
 from app.repositories.budget_repository import BudgetRepository
 from app.repositories.transaction_repository import TransactionRepository
 from app.schemas.budget import BudgetCreate, BudgetResponse, BudgetUpdate, BudgetWithStats
-from app.services.cycle_utils import budget_status, get_current_cycle_bounds
+from app.services.cycle_utils import budget_status, get_current_cycle_bounds, month_label
 
 
 class BudgetService:
@@ -53,6 +54,47 @@ class BudgetService:
             # unique constraint is the real guard, so a race lands here instead.
             raise ConflictError(
                 f"A budget already exists for {month}/{year} — update it instead of creating a new one"
+            ) from exc
+
+    async def rollover_current_cycle_budget(
+        self, household: Household, reference: Optional[date] = None
+    ) -> Optional[Budget]:
+        """Ensure the household's current cycle has a budget, carrying the goal
+        amount forward from its most recent prior budget.
+
+        Idempotent: returns the existing budget if the cycle already has one, the
+        newly carried-over budget otherwise, or ``None`` when the household has
+        never had a budget (nothing to carry — leave the empty state alone).
+
+        Only the goal amount and a regenerated name are copied; category limits,
+        unused balance and spend never roll over (PRD 9.3).
+        """
+        bounds = get_current_cycle_bounds(household.cycle_start_day, reference)
+
+        existing = await self.budgets.get_for_cycle(
+            household.id, bounds.label_month, bounds.label_year
+        )
+        if existing is not None:
+            return existing
+
+        history = await self.budgets.list_by_household(household.id)
+        if not history:
+            return None
+        latest = history[0]
+
+        try:
+            return await self.budgets.create(
+                household_id=household.id,
+                name=month_label(bounds.label_month, bounds.label_year),
+                monthly_goal_amount=latest.monthly_goal_amount,
+                month=bounds.label_month,
+                year=bounds.label_year,
+            )
+        except IntegrityError as exc:
+            # Same race as create_budget: a concurrent rollover slipped past the
+            # get_for_cycle check above. The unique constraint is the real guard.
+            raise ConflictError(
+                f"A budget already exists for {bounds.label_month}/{bounds.label_year}"
             ) from exc
 
     async def update_budget(self, budget: Budget, payload: BudgetUpdate) -> Budget:
