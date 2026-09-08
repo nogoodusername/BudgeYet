@@ -394,6 +394,14 @@ assumptions:
 - One budget per household, one currency per household (not per-transaction).
 - Category limits **reset every cycle with no rollover** — but historical transactions/snapshots for prior
   cycles must remain intact and queryable by date range.
+- The budget **goal amount does carry forward**: `POST /households/{id}/budgets/rollover`
+  (`budget_controller.rollover_budget` → `BudgetService.rollover_current_cycle_budget`) is an
+  idempotent get-or-create that copies the household's most recent budget's `monthly_goal_amount`
+  into the current cycle (name via `cycle_utils.month_label`), or no-ops if a budget already
+  exists / the household never had one. Any member may call it (not admin-gated, unlike
+  `POST .../budgets`). The frontend calls it from `RealDashboardRepository.getDashboard()` when
+  the dashboard has no budget for the current cycle, so a new month's budget appears the next
+  time any member opens the app. No balance/spend/limit rollover — only the goal amount (PRD §9.3).
 - Household hard cap: **3 members** (including the Owner) in v1.
 - Future-dated transactions are **disallowed**.
 - Auth is email + 6-digit PIN, not password-based. The PIN is **user-chosen at signup**

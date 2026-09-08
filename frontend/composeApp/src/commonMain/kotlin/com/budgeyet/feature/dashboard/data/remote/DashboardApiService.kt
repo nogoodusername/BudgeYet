@@ -5,12 +5,14 @@ import com.budgeyet.core.network.apiUrl
 import com.budgeyet.core.network.dto.HouseholdResponseDto
 import com.budgeyet.core.network.safeApiCall
 import com.budgeyet.feature.dashboard.data.remote.dto.ActivityFeedPageDto
+import com.budgeyet.feature.dashboard.data.remote.dto.CarriedBudgetDto
 import com.budgeyet.feature.dashboard.data.remote.dto.DashboardResponseDto
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
+import io.ktor.client.request.post
 
 // Thin wrapper over the shared HttpClient, mirroring Auth/Category/TransactionApiService's shape.
 class DashboardApiService(private val httpClient: HttpClient) {
@@ -36,6 +38,19 @@ class DashboardApiService(private val httpClient: HttpClient) {
         householdId: Long
     ): HouseholdResponseDto = safeApiCall {
         httpClient.get(config.apiUrl("/households/$householdId")) {
+            bearerAuth(accessToken)
+        }.body()
+    }
+
+    // Carry the household's latest budget into the current cycle when it has none yet. Idempotent
+    // and safe for any member to call — see the endpoint docstring. Returns null when the
+    // household has never had a budget (nothing to carry).
+    suspend fun rolloverBudget(
+        config: BackendConfig,
+        accessToken: String,
+        householdId: Long
+    ): CarriedBudgetDto? = safeApiCall {
+        httpClient.post(config.apiUrl("/households/$householdId/budgets/rollover")) {
             bearerAuth(accessToken)
         }.body()
     }

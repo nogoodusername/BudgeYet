@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from app.services.cycle_utils import budget_status, get_current_cycle_bounds
+from app.services.cycle_utils import budget_status, get_current_cycle_bounds, month_label
 
 
 def test_cycle_bounds_when_reference_after_start_day():
@@ -29,6 +29,12 @@ def test_cycle_bounds_clamps_start_day_to_shorter_month():
     bounds = get_current_cycle_bounds(cycle_start_day=31, reference=date(2026, 3, 5))
     assert (bounds.label_month, bounds.label_year) == (2, 2026)
     assert bounds.start.day == 28  # 2026 is not a leap year
+
+
+def test_month_label():
+    assert month_label(9, 2026) == "September 2026 Budget"
+    assert month_label(1, 2025) == "January 2025 Budget"
+    assert month_label(12, 2026) == "December 2026 Budget"
 
 
 def test_budget_status_thresholds():
