@@ -1,6 +1,10 @@
-# budge-yet Backend Service
+# BudgeYet Backend Service
 
-FastAPI-powered REST API backend for the `budge-yet` collaborative household budget application.
+FastAPI-powered REST API backend for the BudgeYet collaborative household budget application.
+
+See also: [Getting Started](../docs/getting-started.md) ·
+[Deployment / self-hosting](../docs/deployment.md) ·
+[Production deploy](PROD_DEPLOY.md) · [Architecture](../docs/architecture.md)
 
 ---
 

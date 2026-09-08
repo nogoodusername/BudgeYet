@@ -6,7 +6,7 @@ Instructions for AI coding agents working in this repository. Read this before m
 
 `budge-yet` is a collaborative household budget app (v1/MVP, currently early scaffolding). Households share a
 single monthly budget with categories, limits, and a transaction ledger; members see each other's spending
-in real time. Full product intent lives in [docs/household-budget-app-prd.md](docs/household-budget-app-prd.md)
+in real time. Full product intent lives in [docs/product-requirements.md](docs/product-requirements.md)
 — **read it before implementing any feature**, since business rules (roles, limits, rollover behavior) are
 specific and easy to get wrong by guessing. Technical design lives in [docs/architecture.md](docs/architecture.md).
 
@@ -271,7 +271,7 @@ drill into `references/`. It's mirrored from the MIT-licensed
 [felipechaux/kmp-compose-multiplatform-skill](https://github.com/felipechaux/kmp-compose-multiplatform-skill);
 where it conflicts with this file's frontend conventions, this file wins.
 
-For detailed platform-specific build & run instructions (Android emulator, physical iOS device via Xcode, SideStore sideloading), see [`docs/RUNNING_ANDROID_IOS.md`](docs/RUNNING_ANDROID_IOS.md).
+For detailed platform-specific build & run instructions (Android emulator, physical iOS device via Xcode, SideStore sideloading), see [`docs/running-on-mobile.md`](docs/running-on-mobile.md).
 
 **Commands:**
 ```bash
@@ -376,7 +376,7 @@ Release version (`MAJOR.MINOR.PATCH`) + monotonic build code live in `frontend/v
 | iOS      | `iosApp/Config.xcconfig` is regenerated from `version.properties` by `scripts/sync_version.sh`; Xcode resolves `MARKETING_VERSION`/`CURRENT_PROJECT_VERSION` from it |
 | Web/JS   | Gradle task `generateAppVersion` writes `AppVersion.kt` to `build/generated/version/` with `VERSION_NAME`/`VERSION_CODE` |
 
-Use `scripts/bump_version.sh <major\|minor\|patch> [summary]` to bump all three consistently and prepend a CHANGELOG entry. The `version-drift-check` job in `frontend-ci.yml` fails the build if `Config.xcconfig` doesn't match `version.properties`. See `docs/RELEASING.md` for the full release flow.
+Use `scripts/bump_version.sh <major\|minor\|patch> [summary]` to bump all three consistently and prepend a CHANGELOG entry. The `version-drift-check` job in `frontend-ci.yml` fails the build if `Config.xcconfig` doesn't match `version.properties`. See `docs/releasing.md` for the full release flow.
 
 ### Dummy data scenarios
 

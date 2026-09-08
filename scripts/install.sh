@@ -3,7 +3,7 @@
 # starts the API via Docker Compose. Designed to run standalone on a fresh
 # server with nothing but git, docker, and python3 already present:
 #
-#   curl -fsSL https://raw.githubusercontent.com/nogoodusername/budge-yet/main/scripts/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/nogoodusername/BudgeYet/main/scripts/install.sh | bash
 #
 # Non-interactive/automation use (Ansible, cloud-init, CI, ...):
 #
@@ -18,7 +18,7 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 # Defaults (overridable via flags or env vars)
 # ---------------------------------------------------------------------------
-REPO_URL="${BUDGEYET_REPO:-https://github.com/nogoodusername/budge-yet.git}"
+REPO_URL="${BUDGEYET_REPO:-https://github.com/nogoodusername/BudgeYet.git}"
 BRANCH="${BUDGEYET_BRANCH:-main}"
 INSTALL_DIR="${BUDGEYET_DIR:-budge-yet}"
 NON_INTERACTIVE="${BUDGEYET_NONINTERACTIVE:-0}"

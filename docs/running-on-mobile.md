@@ -1,15 +1,14 @@
-# Running the **fam‑ex** Front‑End (Compose Multiplatform)
+# Running BudgeYet on Mobile (Compose Multiplatform)
 
-The project supports two native targets:
+Building and running the frontend on real devices and emulators. For plain local
+development (web, quick Android builds) see [getting-started.md](getting-started.md).
+
+The mobile targets:
 
 * **Android** – via the Gradle wrapper and an Android Virtual Device (AVD) or a physical device.
-* **iOS** – via Xcode (real iPhone connected to the Mac or an iOS simulator).
+* **iOS** – via Xcode (a connected iPhone or an iOS simulator).
 
-Both workflows assume you are in the repository root:
-
-```
-/Users/kshitijnagvekar/Projects/Personal/budge-yet/frontend
-```
+All commands below assume you are in the `frontend/` directory of the repo.
 
 ---
 
@@ -19,11 +18,11 @@ Both workflows assume you are in the repository root:
 
 | Item | How to verify / install |
 |------|------------------------|
-| **Java 21 (JBR)** – used by the Gradle wrapper | `"$JAVA_HOME/bin/java" -version` (should show `openjdk version "21.0.10"`). The wrapper is already configured to use the JBR shipped with Android Studio. |
+| **Java 21 (JBR)** – used by the Gradle wrapper | `"$JAVA_HOME/bin/java" -version` (JDK 17 or newer). The wrapper is already configured to use the JBR shipped with Android Studio. |
 | **Android SDK** | `echo $ANDROID_HOME` → should point to `~/Library/Android/sdk`. |
 | **Platform‑tools (adb, emulator)** | `$ANDROID_HOME/platform-tools/adb version` |
 | **Gradle wrapper** (binary `./gradlew`) | `./gradlew -v` – should report Gradle 8.4. |
-| **AVD** (optional) | `emulator -list-avds` – you already have `Medium_Phone`. |
+| **AVD** (optional) | `emulator -list-avds` – lists your virtual devices. |
 
 If you prefer a **physical device**, enable **Developer options → USB debugging** and connect it via USB.
 
@@ -59,7 +58,7 @@ export PATH=$ANDROID_HOME/platform-tools:$PATH
 adb shell am start -n com.budgeyet/com.budgeyet.MainActivity
 ```
 
-You should see the **fam‑ex** UI on the device/emulator.
+You should see the BudgeYet UI on the device/emulator.
 
 ### 5️⃣ Verify the process (optional)
 
@@ -81,7 +80,7 @@ adb shell pidof com.budgeyet   # prints the PID of the running process
 | **CocoaPods** (optional, for certain dependencies) | `pod --version`. |
 
 > **Note:** The iOS Xcode project lives at
-> `[iosApp](/Users/kshitijnagvekar/Projects/Personal/budge-yet/frontend/iosApp/iosApp.xcodeproj)`.
+> `[iosApp](frontend/iosApp/iosApp.xcodeproj)`.
 
 ### 2️⃣ Open the Xcode project
 
@@ -201,7 +200,7 @@ cd /tmp/budgeyet-ipa && zip -qry "$OLDPWD/build/budgeyet.ipa" Payload/ && cd -
 ---
 
 ### 🎉 Done!
-You now have a complete, reproducible guide for **building and running** the `fam‑ex` Compose Multiplatform frontend on **both Android and iOS** platforms—whether on a physical device or an emulator/simulator.
+You now have a complete, reproducible guide for **building and running** the `budge-yet` Compose Multiplatform frontend on **both Android and iOS** platforms—whether on a physical device or an emulator/simulator.
 
 If you encounter any signing issues on iOS, ensure your Apple developer account is added to Xcode preferences and that the device is trusted. For Android, make sure USB debugging is enabled on the phone.
 
