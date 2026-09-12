@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [1.3.0] - 2026-09-12
 ### Added
 - The household budget no longer has to be recreated by hand every month — when a new cycle has no budget yet, the app carries the most recent budget's goal amount forward automatically (named "[Month] [Year] Budget") the next time any member opens the dashboard. Category limits still reset each cycle and no unused balance or spend rolls over.
 
