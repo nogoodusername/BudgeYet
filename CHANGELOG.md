@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- The Add/Edit Transaction date picker no longer squeezes its Saturday column on Android and iOS — the picker was wrapped in a plain `Dialog` for cross-platform support, which defaults to a platform-capped width narrower than the calendar's intrinsic layout, unevenly compressing its fixed-size day cells (most visibly the last column). The dialog now sizes to the calendar's natural width instead.
 
 ## [1.3.0] - 2026-09-12
 ### Added

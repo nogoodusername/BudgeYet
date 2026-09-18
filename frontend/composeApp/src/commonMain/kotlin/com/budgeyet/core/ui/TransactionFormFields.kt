@@ -52,6 +52,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import kotlin.math.pow
 import com.budgeyet.core.model.HouseholdMember
 import com.budgeyet.core.model.PaymentMode
@@ -420,7 +421,10 @@ fun TransactionDatePickerDialog(
 ) {
     val datePickerState = rememberDatePickerState(initialSelectedDateMillis = selectedDate.toUtcEpochMillis())
 
-    Dialog(onDismissRequest = onDismiss) {
+    // usePlatformDefaultWidth=false: the platform default caps the dialog narrower than the
+    // DatePicker's intrinsic 360dp layout, so its fixed-size day cells get unevenly squeezed —
+    // most visibly the last (Saturday) column — on both Android and iOS.
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surface) {
             Column {
                 DatePicker(state = datePickerState, showModeToggle = false)
